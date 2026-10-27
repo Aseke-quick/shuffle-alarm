@@ -1,17 +1,11 @@
-# shuffle_alarm
+# Shuffle Alarm
 
-A new Flutter project.
+[![CI](https://github.com/Aseke-quick/shuffle-alarm/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Aseke-quick/shuffle-alarm/actions/workflows/ci.yml)
 
-## Getting Started
+An alarm that plays a different sound every 30 seconds until you get up. One Flutter codebase for web, Android, iOS, macOS, Windows and Linux. The web version comes first, as the test version.
 
-This project is a starting point for a Flutter application.
+**Web test version:** https://aseke-quick.github.io/shuffle-alarm/ (work in progress; it updates after every push to `main`).
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- Roadmap and task list: [PLAN.md](PLAN.md)
+- Technical decisions and platform limits: [docs/DECISIONS.md](docs/DECISIONS.md)
+- Rules and commands for working on the code: [CLAUDE.md](CLAUDE.md)
