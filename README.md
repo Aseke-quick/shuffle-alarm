@@ -4,7 +4,7 @@
 
 An alarm that plays a different sound every 30 seconds until you get up. One Flutter codebase for web, Android, iOS, macOS, Windows and Linux. The web version comes first, as the test version.
 
-**Web test version:** https://aseke-quick.github.io/shuffle-alarm/ (work in progress; it updates after every push to `main`).
+This repository is private. **Web test version:** https://aseke-quick.github.io/shuffle-alarm-web/ (work in progress). Every push to `main` publishes only the built files to the public repo [Aseke-quick/shuffle-alarm-web](https://github.com/Aseke-quick/shuffle-alarm-web).
 
 - Roadmap and task list: [PLAN.md](PLAN.md)
 - Technical decisions and platform limits: [docs/DECISIONS.md](docs/DECISIONS.md)

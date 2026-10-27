@@ -146,7 +146,7 @@ Done when: testers can install the app on every platform.
 - 2026-10-27 · 0.1 · Flutter 3.47.8 app created for 6 platforms (org com.asanali), Material 3 theme, display name "Shuffle Alarm".
 - 2026-10-28 · 0.2 · very_good_analysis 11 replaces flutter_lints (2 rules off, see docs/DECISIONS.md); folder structure with .gitkeep placeholders; test/architecture_test.dart guards the layer rules; docs/DECISIONS.md started.
 - 2026-10-28 · 0.3 · App shell: go_router 18 tabs Alarms, Library, Insights with placeholder screens, plus a Settings page above them; router in a flutter_riverpod 3 provider; Material now comes from the material_ui package (see docs/DECISIONS.md); widget tests for switching tabs and opening Settings.
-- 2026-10-28 · 0.4 · Public repo github.com/Aseke-quick/shuffle-alarm; `.github/workflows/ci.yml` runs a format check, analyze and test on every push and deploys `main` to GitHub Pages: https://aseke-quick.github.io/shuffle-alarm/. Actions pinned by commit SHA, Flutter 3.47.8 in CI; commits use the GitHub no-reply email (see docs/DECISIONS.md).
+- 2026-10-28 · 0.4 · Private repo github.com/Aseke-quick/shuffle-alarm; `.github/workflows/ci.yml` runs a format check, analyze and test on every push, and publishes the built web app from `main` to the public repo Aseke-quick/shuffle-alarm-web (built files only), served at https://aseke-quick.github.io/shuffle-alarm-web/. Actions pinned by commit SHA, Flutter 3.47.8 in CI; commits use the GitHub no-reply email (see docs/DECISIONS.md).
 
 ## References
 - Unfamiliar voices in sleep: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8896625/

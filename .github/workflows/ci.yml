@@ -1,6 +1,8 @@
 # Every push: format check, `flutter analyze` and `flutter test`.
-# Every push to main: also build the web app and deploy it to GitHub Pages.
-# Why the versions are pinned like this: docs/DECISIONS.md (task 0.4).
+# Every push to main: also build the web app and publish only the built files
+# to the public repo Aseke-quick/shuffle-alarm-web, which GitHub Pages serves.
+# Why it works like this, and why the versions are pinned: docs/DECISIONS.md
+# (task 0.4).
 name: CI
 
 on:
@@ -54,19 +56,12 @@ jobs:
         run: flutter test
 
   deploy:
-    name: Build and deploy web app
+    name: Build and publish web app
     # Only a main branch that passed the checks goes live.
     needs: check
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Check out the code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -83,22 +78,40 @@ jobs:
       - name: Get packages
         run: flutter pub get --enforce-lockfile
 
-      - name: Read Pages settings
-        id: pages
-        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
-
-      # base_path is "/shuffle-alarm" for this repo's site, "" with a custom
-      # domain, so renaming the repo does not break the site.
+      # The base href is the site repo's name: its site lives at
+      # https://aseke-quick.github.io/shuffle-alarm-web/.
       - name: Build web app
+        run: flutter build web --release --base-href /shuffle-alarm-web/
+
+      # The site repo gets the built files as one fresh commit each time, so
+      # it never holds source code or old builds. SITE_DEPLOY_TOKEN is a
+      # fine-grained token with Contents read/write on the site repo only.
+      - name: Publish to the public site repo
+        working-directory: build/web
         env:
-          BASE_PATH: ${{ steps.pages.outputs.base_path }}
-        run: flutter build web --release --base-href "$BASE_PATH/"
+          SITE_REPO: Aseke-quick/shuffle-alarm-web
+          SITE_DEPLOY_TOKEN: ${{ secrets.SITE_DEPLOY_TOKEN }}
+        run: |
+          if [ -z "$SITE_DEPLOY_TOKEN" ]; then
+            echo "::error::Secret SITE_DEPLOY_TOKEN is missing (docs/DECISIONS.md, 0.4)."
+            exit 1
+          fi
+          rm -f .last_build_id
+          # GitHub Pages serves the files as they are, without Jekyll.
+          touch .nojekyll
+          cat > README.md <<'EOF'
+          # Shuffle Alarm web test version
 
-      - name: Upload web app
-        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
-        with:
-          path: build/web
+          Built files of the Shuffle Alarm web test version, published here automatically: https://aseke-quick.github.io/shuffle-alarm-web/
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+          The source code is private.
+
+          Copyright (c) 2026 Aseke-quick. All rights reserved.
+          EOF
+          git init --quiet --initial-branch=main
+          git add --all
+          git -c user.name='github-actions[bot]' \
+            -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            commit --quiet --message "Publish web build ${GITHUB_SHA::7}"
+          git push --force --quiet \
+            "https://x-access-token:${SITE_DEPLOY_TOKEN}@github.com/${SITE_REPO}.git" main
