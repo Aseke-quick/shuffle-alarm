@@ -47,7 +47,7 @@ Useful extras:
 Goal: the empty app builds and the web test version is online.
 - [x] 0.1 Create the app in this folder: `flutter create --project-name shuffle_alarm --org com.<yourname> --platforms=android,ios,web,macos,windows,linux .` Material 3 theme, app name "Shuffle Alarm".
 - [x] 0.2 Strict lints (`very_good_analysis` or `flutter_lints`), the folder structure from CLAUDE.md, and `docs/DECISIONS.md`.
-- [ ] 0.3 App shell with go_router and Riverpod: bottom tabs Alarms, Library, Insights, plus a Settings page.
+- [x] 0.3 App shell with go_router and Riverpod: bottom tabs Alarms, Library, Insights, plus a Settings page.
 - [ ] 0.4 GitHub repo + GitHub Actions: every push runs `flutter analyze` and `flutter test`; every push to `main` builds the web app and deploys it (GitHub Pages for a public repo; Cloudflare Pages or Firebase Hosting for a private repo).
 
 Done when: CI is green and the app shell opens at the live URL.
@@ -145,6 +145,7 @@ Done when: testers can install the app on every platform.
 <!-- Claude Code adds one line per finished task: date, task ID, short note. -->
 - 2026-10-27 · 0.1 · Flutter 3.47.8 app created for 6 platforms (org com.asanali), Material 3 theme, display name "Shuffle Alarm".
 - 2026-10-28 · 0.2 · very_good_analysis 11 replaces flutter_lints (2 rules off, see docs/DECISIONS.md); folder structure with .gitkeep placeholders; test/architecture_test.dart guards the layer rules; docs/DECISIONS.md started.
+- 2026-10-28 · 0.3 · App shell: go_router 18 tabs Alarms, Library, Insights with placeholder screens, plus a Settings page above them; router in a flutter_riverpod 3 provider; Material now comes from the material_ui package (see docs/DECISIONS.md); widget tests for switching tabs and opening Settings.
 
 ## References
 - Unfamiliar voices in sleep: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8896625/

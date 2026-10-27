@@ -2,7 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// Guards the layer rules from the Architecture section of CLAUDE.md.
+/// Guards the layer rules from the Architecture section of CLAUDE.md, and the
+/// Material import rule from docs/DECISIONS.md.
 void main() {
   group('Layer rules', () {
     test('lib/core is pure Dart: no Flutter, no other app layer', () {
@@ -10,7 +11,7 @@ void main() {
         'lib/core',
         (target) =>
             target == 'dart:ui' ||
-            target.startsWith('package:flutter') ||
+            _flutterLibraries.any(target.startsWith) ||
             (target.startsWith('lib/') && !target.startsWith('lib/core/')),
       );
 
@@ -25,6 +26,17 @@ void main() {
 
       expect(violations, isEmpty);
     });
+  });
+
+  test('lib takes Material and Cupertino from their packages, not the SDK', () {
+    final violations = _violationsIn(
+      'lib',
+      (target) =>
+          target == 'package:flutter/material.dart' ||
+          target == 'package:flutter/cupertino.dart',
+    );
+
+    expect(violations, isEmpty);
   });
 
   test('the import scanner sees every kind of import', () {
@@ -48,6 +60,15 @@ import 'clip_rule.dart'
     ]);
   });
 }
+
+/// Flutter, including its Material and Cupertino libraries, which Flutter
+/// 3.47 moved out of the SDK into the `material_ui` and `cupertino_ui`
+/// packages.
+const _flutterLibraries = [
+  'package:flutter',
+  'package:material_ui/',
+  'package:cupertino_ui/',
+];
 
 /// Platform-specific code. Features reach it only through the interfaces
 /// in `lib/platform/`.
