@@ -39,6 +39,7 @@ The roadmap and task checklist live in `PLAN.md`. Run `/next-task` to work on th
 - `flutter pub get`
 - `flutter run -d chrome` (web test version)
 - `dart format .`
+- `dart run build_runner build` (after changing the drift tables in `lib/data/database.dart`; commit the regenerated `database.g.dart`)
 - `flutter analyze` (must report 0 issues)
 - `flutter test` (one file: `flutter test test/core/rotation_engine_test.dart`)
 - `flutter build web --release --base-href /<repo-name>/`
@@ -55,6 +56,7 @@ The roadmap and task checklist live in `PLAN.md`. Run `/next-task` to work on th
 
 ## Gotchas
 - Web: browsers block audio until the user interacts with the page, so alarms need an "Arm alarms" tap. Background tabs are throttled (silent audio does not prevent it), so check the clock on every tick instead of relying on one long timer.
+- Web database: `web/sqlite3.wasm` and `web/drift_worker.js` must come from the releases of the drift and sqlite3 versions in `pubspec.lock` (`docs/DECISIONS.md`, 2.1). The Claude app's browser pane cannot open the database (its shared workers cannot fetch), so check it in Chrome with `tool/web_database_check.dart`.
 - iOS: AlarmKit fixes the sound when the alarm is scheduled. Sounds must be in the app bundle (.caf/.wav/.aiff, under 30 s); files in Library/Sounds were reported to fall back to the default sound. Rotation = a chain of alarms 30 s apart, each with its own sound; stopping one cancels the rest. There is no public API for alarm loudness, so escalation on iOS = ordering clips from gentle to strong.
 - Android: use single-fire `setAlarmClock` alarms and reschedule after each ring, reboot and time-zone change. `USE_EXACT_ALARM` and full-screen intents need Play Console declarations (allowed for alarm apps).
 - Desktop: alarms ring only while the computer is awake and the app runs in the tray. Windows and Linux apps must be built on those systems (use GitHub Actions runners).

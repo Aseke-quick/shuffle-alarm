@@ -1,0 +1,13 @@
+# Code generation with build_runner: `dart run build_runner build` writes
+# lib/data/database.g.dart from the drift tables in lib/data/database.dart.
+# Run it after changing the tables, then `dart format .`, and commit the
+# result (docs/DECISIONS.md, task 2.1).
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          # The app reads and writes through its repositories, not drift's
+          # manager API, so leaving it out keeps the code and the web build
+          # smaller.
+          generate_manager: false

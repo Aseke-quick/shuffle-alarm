@@ -33,6 +33,12 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  # The database in lib/data (see docs/DECISIONS.md, task 2.1). drift and
+  # sqlite3 are pinned to exact versions: web/drift_worker.js and
+  # web/sqlite3.wasm come from these two releases, so change the versions and
+  # the files together (test/data/web_files_test.dart checks them).
+  drift: 2.35.3
+  drift_flutter: ^0.3.1
   flutter:
     sdk: flutter
   flutter_riverpod: ^3.4.3
@@ -40,8 +46,18 @@ dependencies:
   material_ui: ^1.8.0
   # `@immutable` for the models in lib/core/models (see docs/DECISIONS.md).
   meta: ^1.18.3
+  # The folder of the database file on Android, iOS and desktop.
+  path_provider: ^2.1.6
+  # SQLite for drift; pinned together with drift, see above.
+  sqlite3: 3.8.0
 
 dev_dependencies:
+  # Generates lib/data/database.g.dart: `dart run build_runner build`.
+  build_runner: ^2.17.1
+  # SHA-256 of the web database files in test/data/web_files_test.dart.
+  crypto: ^3.0.8
+  # The drift code generator that build_runner runs.
+  drift_dev: ^2.35.2
   flutter_test:
     sdk: flutter
   # Strict lint rules, activated in `analysis_options.yaml`.
