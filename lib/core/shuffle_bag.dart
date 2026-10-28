@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:shuffle_alarm/core/adaptive_weights.dart';
 import 'package:shuffle_alarm/core/models/sound.dart';
 
 /// Picks the sounds of a ringing alarm one at a time, like cards from a bag.
@@ -15,18 +16,30 @@ import 'package:shuffle_alarm/core/models/sound.dart';
 /// [next] can also be asked for a sound of some intensity, as the gentle
 /// start of a ring does (`Escalation`). The bag rules still hold.
 ///
-/// All chance comes from the [Random] the bag gets, so the same sounds and a
-/// `Random` with the same seed give the same sounds in the same order.
+/// The [SoundWeights] the bag gets make a heavier sound more likely to be
+/// the next one out, so it tends to come earlier in its bag. They only choose
+/// among the sounds the bag rules allow, so every sound still plays once per
+/// bag.
+///
+/// All chance comes from the [Random] the bag gets, so the same sounds, the
+/// same weights and a `Random` with the same seed give the same sounds in the
+/// same order.
 class ShuffleBag {
   /// A bag of the sounds in [pool]. Sounds are told apart by [Sound.id]:
   /// sounds with the same id count as one sound, the first of them. The order
   /// of [pool] does not change what plays.
   ///
+  /// Without `weights`, every sound has the start weight, so each sound the
+  /// bag rules allow is just as likely to come next.
+  ///
   /// Throws an [ArgumentError] if [pool] is empty, as there is nothing to
   /// play. An alarm without sounds gets all the built-in sounds instead (task
   /// 1.6), so it still rings.
-  ShuffleBag(Iterable<Sound> pool, {required this._random})
-    : _pool = _oneSoundPerId(pool) {
+  ShuffleBag(
+    Iterable<Sound> pool, {
+    required this._random,
+    this._weights = const SoundWeights.start(),
+  }) : _pool = _oneSoundPerId(pool) {
     if (_pool.isEmpty) throw ArgumentError('Must not be empty', 'pool');
   }
 
@@ -34,6 +47,8 @@ class ShuffleBag {
   final List<Sound> _pool;
 
   final Random _random;
+
+  final SoundWeights _weights;
 
   /// The sounds left in the current bag.
   final _left = <Sound>[];
@@ -64,10 +79,24 @@ class ShuffleBag {
     return sound;
   }
 
-  /// Chooses one of [candidates] at random. The bag makes every choice here,
-  /// so task 1.5 can turn it into a weighted choice in this one place.
-  Sound _pick(List<Sound> candidates) =>
-      candidates[_random.nextInt(candidates.length)];
+  /// Chooses one of [candidates] at random, each as likely as its weight
+  /// says: a sound of weight 2 is twice as likely as one of weight 1. The bag
+  /// makes every choice here, with one number from the [Random] per [next],
+  /// so the same seed gives the same sounds.
+  Sound _pick(List<Sound> candidates) {
+    final weights = [
+      for (final sound in candidates) _weights.weightOf(sound.id),
+    ];
+    // Each candidate gets a stretch of the line from 0 to the sum of the
+    // weights, as long as its weight; a random point on it picks one.
+    var point = _random.nextDouble() * weights.reduce((a, b) => a + b);
+    for (final (index, sound) in candidates.indexed) {
+      point -= weights[index];
+      if (point < 0) return sound;
+    }
+    // Rounding can leave the point just past the last stretch.
+    return candidates.last;
+  }
 }
 
 /// The first sound of each id in [sounds], sorted by id.

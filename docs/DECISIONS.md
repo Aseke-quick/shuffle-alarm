@@ -108,3 +108,24 @@ Add an entry when a task makes a choice that the code does not explain by itself
   - iOS has no public API for alarm loudness (`CLAUDE.md`, Gotchas). There only the order climbs, from gentle to strong, and from the fourth sound on gentle sounds can come back.
   - iPhone Safari has long ignored the volume a web page sets on an audio element (Apple's Safari docs; still reported on iOS 17). Task 2.5 checks whether the volume climbs there, for example with a Web Audio gain node.
   - Task 1.6 counts `index` from 0 in each ring and passes `gentleStart: false` for a ring after Snooze. The players (tasks 2.5, 4.3, 6.2) set the volume to `volume`; task 7.1's max-volume setting scales it. On Android, task 4.3 decides what full volume is: the phone's alarm volume or the loudest.
+
+## 2026-10-28 · 1.5 · Adaptive weights
+- **Decision:** the adaptive weights live in `lib/core/adaptive_weights.dart` as `SoundWeights`, an immutable value with one weight per `Sound.id`. `ShuffleBag(pool, random: ..., weights: ...)` makes a weighted pick with them.
+  - Every sound starts at weight 1.0 (`SoundWeights.startWeight`). `afterSnooze(soundId)` multiplies the weight of the sound that played when the user tapped Snooze by 0.8, and `afterStop(soundId)` the one at Stop by 1.1. A weight stays between 0.2 and 3.0 (`minWeight`, `maxWeight`): 8 Snoozes in a row take a sound from 1.0 to 0.2, and 12 Stops in a row to 3.0. Each update gives a new value. These are start values; tune them with real data.
+  - The sound that played at the tap is the sound of the ring's last `RingEvent`, whose action is `snooze` or `stop`. Only its weight changes.
+  - A missed alarm, which reached its time cap without a tap, changes no weight.
+  - One set of weights for all alarms, kept by sound id. A sound that leaves an alarm's pool, for example because the user turned off its genre, keeps its weight: it may still be in another alarm, or come back. A new sound, like any sound without a stored weight, has 1.0. A weight goes only when its sound is deleted (task 2.1).
+  - Built-in sounds, user songs and voice messages all learn by the same rules. A weight is only a number on the device, next to a sound id.
+  - Among the sounds the bag rules and the gentle start allow, the bag picks each one as likely as its weight says: a sound of weight 2 is twice as likely to come next as one of weight 1. It draws one `nextDouble()` per `next()`, so the same sounds, weights and seed give the same ring (task 1.6).
+  - A stored weight outside the limits, such as one saved before the limits were tuned, moves to the nearest limit, and one that is not a number gets 1.0, so a bad stored value cannot break an alarm. Weights of exactly 1.0 are not kept, so two values that give every sound the same weight are equal.
+- **Why:** the user took the recommended option for each of these on 2026-10-28:
+  - An immutable value, like the other core values: the start weight, the factors and the limits live in one place, and no caller can make a weight outside the limits. Turned down: plain functions over a map of weights.
+  - The sound at the tap, as `PLAN.md` says. Turned down: giving the change to the sound before when the last one had played less than about 3 s (the user may have woken from the one before). Real data can show whether that is needed.
+  - A missed alarm says nothing about the sounds: nobody may have been there to hear it. Turned down: ×0.8 for every sound of a missed alarm.
+  - One set for all alarms learns from every morning, so it learns faster. Turned down: weights per alarm, erased when a sound leaves its alarm.
+  - The same rules for every sound: what counts is what wakes this user, not where the sound came from. Turned down: user songs and voice messages always at 1.0.
+- **Limits / follow-up:**
+  - The bag still plays every sound once per bag, so over a long ring every sound plays about as often. A weight changes how early in its bag a sound tends to come: with 8 sounds, one of weight 3.0 among sounds of 1.0 is the first sound out in 30% of the bags instead of 12.5%. Most rings end within the first few sounds, so in practice heavier sounds play more.
+  - Every morning that is not missed ends with one Stop, so weights tend to climb. If the user rarely snoozes, more and more sounds reach 3.0, and they are equal again. Tune the factors with real data, or keep the average weight at 1.0 (Phase 7).
+  - Task 2.1 stores the weights by sound id and deletes a sound's weight with the sound. Task 2.5 calls `afterSnooze` or `afterStop` with the id of the sound playing at the tap. Task 7.2's "Reset learning" goes back to `SoundWeights.start()`, and with adaptive rotation off the bag gets no weights.
+  - Task 1.6 passes the weights to the bag of each ring. If the ring after a Snooze gets a new bag, the snoozed sound is already lighter there.
