@@ -52,7 +52,9 @@ class Alarm {
   /// Whether it is switched on.
   final bool enabled;
 
-  /// The genres its sounds come from.
+  /// The genres of the built-in sounds it plays; no genres: every genre. The
+  /// user's own songs and voice messages play in every alarm
+  /// (`buildRingSequence`).
   final Set<String> genres;
 
   /// Whether it starts with a gentle sound and gets stronger (task 1.4).

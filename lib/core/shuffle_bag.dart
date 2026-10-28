@@ -32,13 +32,19 @@ class ShuffleBag {
   /// Without `weights`, every sound has the start weight, so each sound the
   /// bag rules allow is just as likely to come next.
   ///
+  /// `lastId` is the id of a sound that played just before the first sound
+  /// out of this bag, such as the sound that was playing when the user tapped
+  /// Snooze. The bag does not start with it, as if it were the last sound of
+  /// a bag before.
+  ///
   /// Throws an [ArgumentError] if [pool] is empty, as there is nothing to
-  /// play. An alarm without sounds gets all the built-in sounds instead (task
-  /// 1.6), so it still rings.
+  /// play. An alarm without sounds gets all the built-in sounds instead
+  /// (`buildRingSequence`), so it still rings.
   ShuffleBag(
     Iterable<Sound> pool, {
     required this._random,
     this._weights = const SoundWeights.start(),
+    this._lastId,
   }) : _pool = _oneSoundPerId(pool) {
     if (_pool.isEmpty) throw ArgumentError('Must not be empty', 'pool');
   }
@@ -53,7 +59,8 @@ class ShuffleBag {
   /// The sounds left in the current bag.
   final _left = <Sound>[];
 
-  /// The id of the sound that played last, or null before the first one.
+  /// The id of the sound that played last. Before the first sound out of the
+  /// bag, the `lastId` the bag got, if any.
   String? _lastId;
 
   /// Takes the next sound out of the bag. An empty bag is refilled first.

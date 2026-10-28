@@ -8,7 +8,7 @@ import 'package:shuffle_alarm/core/models/sound.dart';
 /// sound starts after 30 s at the latest, and a built-in clip for at most
 /// [maxBuiltinLength]. A clip never runs past the end of its file, so it can
 /// be shorter, such as a 12-s voice message; the next sound then starts right
-/// after it.
+/// after it. A window can be cut shorter ([cutTo]), never made longer.
 @immutable
 class ClipWindow {
   /// The window of [sound]: from its [Sound.clipStart] until the limit for
@@ -46,6 +46,18 @@ class ClipWindow {
 
   /// How long the clip plays.
   Duration get length => end - start;
+
+  /// This window cut so it plays for at most [length], from the same start,
+  /// such as the last clip of a ring that reaches its time cap. A window
+  /// that is not longer stays as it is.
+  ///
+  /// Throws an [ArgumentError] if [length] is not positive.
+  ClipWindow cutTo(Duration length) {
+    if (length <= Duration.zero) {
+      throw ArgumentError('Must be positive, was $length', 'length');
+    }
+    return length < this.length ? ClipWindow._(start, start + length) : this;
+  }
 
   @override
   bool operator ==(Object other) =>

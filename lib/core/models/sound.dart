@@ -60,7 +60,8 @@ class Sound {
   final String title;
   final SoundSource source;
 
-  /// The genre it belongs to; an alarm plays sounds from its `genres`.
+  /// The genre it belongs to. An alarm plays the built-in sounds of its
+  /// `genres`, and the user's own sounds whatever their genre.
   final String genre;
 
   /// From [minIntensity] (gentle, melodic) to [maxIntensity] (strong).

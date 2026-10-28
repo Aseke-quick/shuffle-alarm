@@ -131,6 +131,43 @@ void main() {
     });
   });
 
+  group('ClipWindow.cutTo', () {
+    test('cuts a window short, from the same start', () {
+      final cut = ClipWindow.of(_sound(clipStart: const Duration(minutes: 1)))
+          .cutTo(const Duration(seconds: 12));
+
+      expect(cut.start, const Duration(minutes: 1));
+      expect(cut.end, const Duration(minutes: 1, seconds: 12));
+      expect(cut.length, const Duration(seconds: 12));
+    });
+
+    test('never makes a window longer', () {
+      final window = ClipWindow.of(
+        _sound(
+          source: SoundSource.voice,
+          duration: const Duration(seconds: 12),
+        ),
+      );
+
+      expect(window.cutTo(const Duration(seconds: 12)), window);
+      expect(window.cutTo(const Duration(minutes: 10)), window);
+    });
+
+    test('rejects a length that is not positive', () {
+      final window = ClipWindow.of(_sound());
+
+      for (final length in const [Duration.zero, Duration(seconds: -1)]) {
+        expect(
+          () => window.cutTo(length),
+          throwsA(
+            isArgumentError.having((error) => error.name, 'name', 'length'),
+          ),
+          reason: 'Length $length',
+        );
+      }
+    });
+  });
+
   test('no clip over 30 s, and no built-in clip over 29 s', () {
     for (final sound in _soundsAroundTheLimits()) {
       final limit = sound.source == SoundSource.builtin

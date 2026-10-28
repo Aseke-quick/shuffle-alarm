@@ -420,6 +420,57 @@ void main() {
       expect(random.draws, 100);
     });
   });
+
+  group('ShuffleBag after another sound', () {
+    test('starts with any sound but the one that played before it', () {
+      for (var size = 2; size <= 10; size++) {
+        final pool = _pool(size);
+        for (final last in pool) {
+          final firstSounds = <String>{};
+          for (final seed in _seeds) {
+            final ids = _next(
+              ShuffleBag(pool, random: Random(seed), lastId: last.id),
+              size * 10,
+            );
+            firstSounds.add(ids.first);
+
+            expect(
+              _bagRuleBreaks(ids, size),
+              isEmpty,
+              reason: '$size sounds after ${last.id}, seed $seed',
+            );
+          }
+
+          expect(
+            firstSounds,
+            _ids(pool).toSet()..remove(last.id),
+            reason: '$size sounds after ${last.id}',
+          );
+        }
+      }
+    });
+
+    test('plays the only sound of a pool of one, also after itself', () {
+      final sound = _sound('sound-1');
+      final bag = ShuffleBag([sound], random: Random(1), lastId: 'sound-1');
+
+      for (var i = 0; i < 10; i++) {
+        expect(bag.next(), sound);
+      }
+    });
+
+    test('is not changed by a sound outside its pool', () {
+      final pool = _pool(4);
+
+      for (final seed in _seeds) {
+        expect(
+          _next(ShuffleBag(pool, random: Random(seed), lastId: 'other'), 40),
+          _next(ShuffleBag(pool, random: Random(seed)), 40),
+          reason: 'Seed $seed',
+        );
+      }
+    });
+  });
 }
 
 /// Seeds for the random number generator, so each check runs many times.
