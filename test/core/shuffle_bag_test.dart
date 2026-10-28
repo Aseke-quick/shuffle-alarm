@@ -157,6 +157,86 @@ void main() {
       }
     }
   });
+
+  group('ShuffleBag.next with an intensity', () {
+    test('takes a sound of that intensity while the bag has one', () {
+      // Two sounds of each intensity: sound-3 and sound-4 are intensity 2.
+      final pool = _poolOf([1, 1, 2, 2, 3, 3]);
+
+      for (final seed in _seeds) {
+        final bag = ShuffleBag(pool, random: Random(seed));
+
+        expect(
+          [bag.next(intensity: 2).id, bag.next(intensity: 2).id],
+          unorderedEquals(['sound-3', 'sound-4']),
+          reason: 'Seed $seed',
+        );
+        // This bag has no sound of intensity 2 left, and 1 and 3 are just as
+        // near: the gentler one plays.
+        expect(bag.next(intensity: 2).intensity, 1, reason: 'Seed $seed');
+      }
+    });
+
+    test('picks at random among the sounds of that intensity', () {
+      final pool = _poolOf([1, 1, 1, 3]);
+      final firstSounds = {
+        for (final seed in _seeds)
+          ShuffleBag(pool, random: Random(seed)).next(intensity: 1).id,
+      };
+
+      expect(firstSounds, {'sound-1', 'sound-2', 'sound-3'});
+    });
+
+    test('takes the nearest intensity, the gentler one on a tie', () {
+      // The intensities in a pool, the one asked for and the one played.
+      const cases = [
+        ([3, 3], 1, 3),
+        ([1, 1], 3, 1),
+        ([2, 3], 1, 2),
+        ([1, 2], 3, 2),
+        ([1, 3], 2, 1),
+      ];
+
+      for (final (intensities, asked, played) in cases) {
+        for (final seed in _seeds) {
+          final bag = ShuffleBag(_poolOf(intensities), random: Random(seed));
+
+          expect(
+            bag.next(intensity: asked).intensity,
+            played,
+            reason: 'Intensities $intensities, asked for $asked, seed $seed',
+          );
+        }
+      }
+    });
+
+    test('keeps both bag rules, whatever intensity it is asked for', () {
+      const asks = [null, 1, 2, 3];
+
+      for (var size = 2; size <= 10; size++) {
+        final pool = _poolOf([for (var i = 0; i < size; i++) i % 3 + 1]);
+        for (final seed in _seeds) {
+          final bag = ShuffleBag(pool, random: Random(seed));
+          // A generator of its own picks what to ask for, so the bag's
+          // generator still only picks sounds.
+          final askRandom = Random(seed + 1000);
+          final ids = [
+            for (var i = 0; i < 1000; i++)
+              bag.next(intensity: asks[askRandom.nextInt(asks.length)]).id,
+          ];
+          final breaks = [
+            for (var start = 0; start + size <= ids.length; start += size)
+              if (ids.sublist(start, start + size).toSet().length < size)
+                'bag ${start ~/ size + 1}: ${ids.sublist(start, start + size)}',
+            for (var i = 1; i < ids.length; i++)
+              if (ids[i] == ids[i - 1]) 'picks $i and ${i + 1}: ${ids[i]}',
+          ];
+
+          expect(breaks, isEmpty, reason: '$size sounds, seed $seed');
+        }
+      }
+    });
+  });
 }
 
 /// Seeds for the random number generator, so each check runs many times.
@@ -167,13 +247,21 @@ List<Sound> _pool(int count) => [
   for (var i = 1; i <= count; i++) _sound('sound-$i'),
 ];
 
-/// A built-in clip. The shuffle bag tells sounds apart by their id only.
-Sound _sound(String id, {String title = 'Clip'}) => Sound(
+/// Built-in sounds `sound-1`, `sound-2` and so on, one of each of
+/// [intensities], in this order.
+List<Sound> _poolOf(List<int> intensities) => [
+  for (var i = 0; i < intensities.length; i++)
+    _sound('sound-${i + 1}', intensity: intensities[i]),
+];
+
+/// A built-in clip. The shuffle bag tells sounds apart by their id, and looks
+/// at their intensity only when [ShuffleBag.next] is asked for one.
+Sound _sound(String id, {String title = 'Clip', int intensity = 1}) => Sound(
   id: id,
   title: title,
   source: SoundSource.builtin,
   genre: 'pop',
-  intensity: 1,
+  intensity: intensity,
   duration: const Duration(seconds: 20),
 );
 

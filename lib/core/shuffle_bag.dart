@@ -12,6 +12,9 @@ import 'package:shuffle_alarm/core/models/sound.dart';
 /// a pool of one sound plays its sound every time: there is no other sound,
 /// and the alarm must still ring.
 ///
+/// [next] can also be asked for a sound of some intensity, as the gentle
+/// start of a ring does (`Escalation`). The bag rules still hold.
+///
 /// All chance comes from the [Random] the bag gets, so the same sounds and a
 /// `Random` with the same seed give the same sounds in the same order.
 class ShuffleBag {
@@ -39,7 +42,12 @@ class ShuffleBag {
   String? _lastId;
 
   /// Takes the next sound out of the bag. An empty bag is refilled first.
-  Sound next() {
+  ///
+  /// With an [intensity], it takes a sound of that intensity if the bag rules
+  /// allow one. If not, it takes one of the nearest intensity they allow: the
+  /// gentler one when a gentler and a stronger one are just as near. So a
+  /// pool without that intensity still rings.
+  Sound next({int? intensity}) {
     if (_left.isEmpty) _left.addAll(_pool);
     // Only the first sound out of a new bag can be the one that just played.
     // A pool of one sound has no other, so its sound plays again.
@@ -47,7 +55,10 @@ class ShuffleBag {
       for (final sound in _left)
         if (sound.id != _lastId) sound,
     ];
-    final sound = _pick(others.isEmpty ? _left : others);
+    final allowed = others.isEmpty ? _left : others;
+    final sound = _pick(
+      intensity == null ? allowed : _nearestIntensity(allowed, intensity),
+    );
     _left.remove(sound);
     _lastId = sound.id;
     return sound;
@@ -66,4 +77,21 @@ List<Sound> _oneSoundPerId(Iterable<Sound> sounds) {
     byId.putIfAbsent(sound.id, () => sound);
   }
   return byId.values.toList()..sort((a, b) => a.id.compareTo(b.id));
+}
+
+/// The sounds of [sounds] whose intensity is nearest to [intensity]. If a
+/// gentler and a stronger intensity are just as near, the gentler ones, so a
+/// ring never climbs faster than it should.
+List<Sound> _nearestIntensity(List<Sound> sounds, int intensity) {
+  final distance = sounds
+      .map((sound) => (sound.intensity - intensity).abs())
+      .reduce(min);
+  final gentler = intensity - distance;
+  final nearest = sounds.any((sound) => sound.intensity == gentler)
+      ? gentler
+      : intensity + distance;
+  return [
+    for (final sound in sounds)
+      if (sound.intensity == nearest) sound,
+  ];
 }
