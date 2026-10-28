@@ -13,6 +13,9 @@ enum SoundSource {
 }
 
 /// A sound an alarm can play: a clip from an audio file.
+///
+/// The clip starts at [clipStart]; `ClipWindow.of` in
+/// `lib/core/clip_rule.dart` says where it ends.
 @immutable
 class Sound {
   /// Throws an [ArgumentError] if [intensity] is not 1–3, [duration] is not

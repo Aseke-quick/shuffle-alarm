@@ -75,3 +75,10 @@ Add an entry when a task makes a choice that the code does not explain by itself
   - Task 1.6 decides what an alarm without genres plays. Tasks 2.1 and 2.3 add where a sound's audio lives (asset, file or browser storage).
   - Store the enums by name, not by index (task 2.1), so a new enum value never changes stored rows.
   - An alarm's `experimentGroup` changes during an experiment, so task 7.3 may need to copy it into each `RingSession`.
+
+## 2026-10-28 · 1.2 · Clip rule
+- **Decision:** the clip rule lives in `lib/core/clip_rule.dart` as `ClipWindow`: the part of a sound's file that plays when the sound rings. `ClipWindow.of(sound)` is the only way to get one. A window starts at the sound's `clipStart` and ends after 30 s (`ClipWindow.maxLength`), after 29 s for a built-in sound (`ClipWindow.maxBuiltinLength`), or at the end of the file if that comes first.
+  - A longer file is cut, not rejected: a built-in file of 29.5 s plays its first 29 s, and a voice message of 30.4 s (a recorder that stopped late) plays 30 s.
+  - A shorter file plays whole, such as a 12-s voice message, and the next sound starts right after it.
+- **Why:** the constructor is private, so no code can make a window longer than its limit. Turned down: a `Sound` constructor that throws for a built-in file over 29 s. One wrong file would then break loading the library, and could keep an alarm from ringing; alarm reliability comes first. The limits live in one place, so the player (task 2.5), the song import (2.6), the voice recorder (2.7) and the license check (3.5) use the same numbers.
+- **Limits / follow-up:** on iOS, AlarmKit gets the sound file itself and cannot play just a part of it, so each built-in file must be shorter than 30 s. `tool/prepare_audio.sh` (task 3.3) cuts the files to 29 s, and `tool/check_licenses.dart` (task 3.5) fails CI for a longer one; it can use `ClipWindow.maxBuiltinLength`. If task 5.1(c) shows that user songs and voice messages can be AlarmKit sounds too, their files must be shorter than 30 s as well.
