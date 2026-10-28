@@ -56,3 +56,22 @@ Add an entry when a task makes a choice that the code does not explain by itself
   - If the site repo is made private, GitHub Free takes the site down and deletes its Pages setting (seen on 2026-10-28). If the site repo is renamed, change `--base-href` and `SITE_REPO` in `ci.yml`.
   - The private repo uses the monthly free Actions minutes of GitHub Free (2,000 at the time of writing); a push to `main` takes about 3 minutes.
   - When Flutter is upgraded on the Mac, change `FLUTTER_VERSION` in the same commit. To update an action, replace both the SHA and the version comment. GitHub Pages limits: 1 GB per site and a soft limit of 100 GB traffic a month.
+
+## 2026-10-28 · 1.1 · Core models
+- **Decision:** the models live in `lib/core/models/`, one file each: `ClockTime`, `Alarm`, `Sound`, `RingEvent` and `RingSession`.
+  - A `RingSession` is one time an alarm goes off, such as Tuesday's 07:00 alarm: every sound it played, from the first one until Stop, including the rings after each Snooze. Its `scheduledFor` time stays the same through the snoozes.
+  - A `RingEvent` is one sound that played. Its `action` says how that sound ended: `stop` or `snooze` (the user tapped it), or `timeout` (its time ran out and the next sound started). When the alarm is over, a last event of `timeout` means the alarm reached its time cap: a missed alarm.
+  - Every model has a `String` id. Built-in sounds keep their id from `manifest.json`; the data layer (task 2.1) creates the others.
+  - Repeat days are `DateTime.weekday` numbers, 1 (Monday) to 7 (Sunday). No repeat days: the alarm rings once.
+  - `ExperimentGroup` holds the two conditions of task 7.3, `sameSound` and `rotation`; an alarm outside experiment mode has none. `gentleStart` is on by default, as task 7.1 asks.
+  - Constructors throw an `ArgumentError` for values that cannot be right: an hour outside 0–23, a minute outside 0–59, a repeat day outside 1–7, an intensity outside 1–3, a file without length, a clip start outside the file. `RingEvent` and `RingSession` check nothing.
+  - Models are immutable and equal when all their values are equal. `meta` is now a direct dependency for its `@immutable` annotation: the lint rule `avoid_equals_and_hash_code_on_mutable_classes` allows `==` only on classes marked with it. Checked on pub.dev on 2026-10-28: published by dart.dev, BSD-3-Clause, all 6 platforms, 150/160 pub points, latest 1.19.0 (2026-07-09). Flutter itself depends on `meta ^1.18.3`, so the locked version stays 1.18.3.
+- **Why:**
+  - One session per alarm occurrence gives Insights (task 2.8) and the experiment export (task 7.4, one row per morning) their rows directly. Turned down: one session per ring, which would have to group the rings of one morning again.
+  - One event per sound gives adaptive weights (task 1.5) the sound that played at each Stop and Snooze, and Insights the number of sounds played.
+  - String ids, because sound ids from `manifest.json` are strings, and one id type keeps the data layer simple. If an Android alarm API needs int ids (task 4.1), the Android scheduler maps them.
+  - Ring logs are written while an alarm rings. The device clock can jump back during a ring, so an event may end before it starts, and a check that throws there could stop the alarm.
+- **Limits / follow-up:**
+  - Task 1.6 decides what an alarm without genres plays. Tasks 2.1 and 2.3 add where a sound's audio lives (asset, file or browser storage).
+  - Store the enums by name, not by index (task 2.1), so a new enum value never changes stored rows.
+  - An alarm's `experimentGroup` changes during an experiment, so task 7.3 may need to copy it into each `RingSession`.

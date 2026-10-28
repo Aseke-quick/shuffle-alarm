@@ -38,6 +38,8 @@ dependencies:
   flutter_riverpod: ^3.4.3
   go_router: ^18.1.1
   material_ui: ^1.8.0
+  # `@immutable` for the models in lib/core/models (see docs/DECISIONS.md).
+  meta: ^1.18.3
 
 dev_dependencies:
   flutter_test:

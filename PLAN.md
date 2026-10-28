@@ -54,7 +54,7 @@ Done when: CI is green and the app shell opens at the live URL.
 
 ## Phase 1 — Core engine (pure Dart, no UI)
 Goal: all the "smart" logic exists and is tested before any platform work.
-- [ ] 1.1 Models: `Alarm` (id, time, repeat days, label, enabled, genres, gentleStart, experimentGroup), `Sound` (id, title, source: builtin/user/voice, genre, intensity 1–3, duration, clipStart), `RingSession`, `RingEvent` (soundId, startedAt, endedAt, action: stop/snooze/timeout).
+- [x] 1.1 Models: `Alarm` (id, time, repeat days, label, enabled, genres, gentleStart, experimentGroup), `Sound` (id, title, source: builtin/user/voice, genre, intensity 1–3, duration, clipStart), `RingSession`, `RingEvent` (soundId, startedAt, endedAt, action: stop/snooze/timeout).
 - [ ] 1.2 Clip rule: a clip window never exceeds 30 s; bundled clips never exceed 29 s.
 - [ ] 1.3 Shuffle bag: no sound repeats until every sound in the pool has played, and never the same sound twice in a row (also across bag refills).
 - [ ] 1.4 Escalation: the first sound is intensity 1 (gentle, melodic); each next sound is one level stronger until level 3. A volume value per level (start values 40% → 70% → 100%) for platforms that allow it.
@@ -147,6 +147,7 @@ Done when: testers can install the app on every platform.
 - 2026-10-28 · 0.2 · very_good_analysis 11 replaces flutter_lints (2 rules off, see docs/DECISIONS.md); folder structure with .gitkeep placeholders; test/architecture_test.dart guards the layer rules; docs/DECISIONS.md started.
 - 2026-10-28 · 0.3 · App shell: go_router 18 tabs Alarms, Library, Insights with placeholder screens, plus a Settings page above them; router in a flutter_riverpod 3 provider; Material now comes from the material_ui package (see docs/DECISIONS.md); widget tests for switching tabs and opening Settings.
 - 2026-10-28 · 0.4 · Private repo github.com/Aseke-quick/shuffle-alarm; `.github/workflows/ci.yml` runs a format check, analyze and test on every push, and publishes the built web app from `main` to the public repo Aseke-quick/shuffle-alarm-web (built files only), served at https://aseke-quick.github.io/shuffle-alarm-web/. Actions pinned by commit SHA, Flutter 3.47.8 in CI; commits use the GitHub no-reply email (see docs/DECISIONS.md).
+- 2026-10-28 · 1.1 · Core models in `lib/core/models/`: `ClockTime`, `Alarm` (+ `ExperimentGroup`), `Sound` (+ `SoundSource`), `RingEvent` (+ `RingAction`) and `RingSession` (one alarm occurrence, snoozes included). Constructors reject impossible values; models are immutable with value equality, so `meta` is now a direct dependency for `@immutable` (see docs/DECISIONS.md). 34 tests in `test/core/models/`.
 
 ## References
 - Unfamiliar voices in sleep: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8896625/
