@@ -42,6 +42,7 @@ The roadmap and task checklist live in `PLAN.md`. Run `/next-task` to work on th
 - `dart run build_runner build` (after changing the drift tables in `lib/data/database.dart`; commit the regenerated `database.g.dart`)
 - `flutter analyze` (must report 0 issues)
 - `flutter test` (one file: `flutter test test/core/rotation_engine_test.dart`)
+- `TZ=Europe/Berlin flutter test test/core/next_ring_test.dart` (the daylight saving time tests, skipped in other zones; CI also runs them in America/New_York)
 - `flutter build web --release --base-href /<repo-name>/`
 - `dart run tool/check_licenses.dart` (audio license check, from Phase 3)
 

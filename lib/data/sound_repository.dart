@@ -42,11 +42,10 @@ class SoundRepository {
   final AppDatabase _db;
 
   /// Every sound, by id.
-  Future<List<StoredSound>> all() =>
-      (_db.select(_db.sounds)
-            ..orderBy([(sound) => OrderingTerm(expression: sound.id)]))
-          .map(_fromRow)
-          .get();
+  Future<List<StoredSound>> all() => _byId().get();
+
+  /// Every sound, by id: now, and again after each change.
+  Stream<List<StoredSound>> watchAll() => _byId().watch();
 
   /// The sound with [id], or null if there is none.
   Future<StoredSound?> byId(String id) async {
@@ -69,6 +68,10 @@ class SoundRepository {
   Future<void> delete(String id) async {
     await (_db.delete(_db.sounds)..where((sound) => sound.id.equals(id))).go();
   }
+
+  Selectable<StoredSound> _byId() => (_db.select(
+    _db.sounds,
+  )..orderBy([(sound) => OrderingTerm(expression: sound.id)])).map(_fromRow);
 }
 
 StoredSound _fromRow(SoundRow row) => StoredSound(

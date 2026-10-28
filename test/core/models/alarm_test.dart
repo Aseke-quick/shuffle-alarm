@@ -98,6 +98,36 @@ void main() {
         expect(other, isNot(alarm));
       }
     });
+
+    test('copies itself with the values given, and keeps the others', () {
+      final alarm = _alarm();
+
+      expect(alarm.copyWith(), alarm);
+      expect(
+        alarm.copyWith(time: ClockTime(hour: 8, minute: 30)),
+        _alarm(hour: 8),
+      );
+      expect(
+        alarm.copyWith(repeatDays: const {DateTime.sunday}),
+        _alarm(repeatDays: {DateTime.sunday}),
+      );
+      expect(alarm.copyWith(label: 'Work'), _alarm(label: 'Work'));
+      expect(alarm.copyWith(enabled: false), _alarm(enabled: false));
+      expect(alarm.copyWith(genres: const {'rock'}), _alarm(genres: {'rock'}));
+      expect(alarm.copyWith(gentleStart: false), _alarm(gentleStart: false));
+    });
+
+    test('a copy keeps the id and the experiment group', () {
+      final copy = _alarm(experimentGroup: ExperimentGroup.sameSound)
+          .copyWith(label: 'Work', enabled: false);
+
+      expect(copy.id, 'a1');
+      expect(copy.experimentGroup, ExperimentGroup.sameSound);
+    });
+
+    test('a copy checks its repeat days too', () {
+      expect(() => _alarm().copyWith(repeatDays: {0}), throwsRangeError);
+    });
   });
 
   test('the experiment groups are same sound and rotation', () {

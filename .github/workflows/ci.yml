@@ -55,6 +55,14 @@ jobs:
       - name: Test
         run: flutter test
 
+      # The tests of the clock changes of daylight saving time run only in a
+      # time zone that has them, and CI runs in UTC (docs/DECISIONS.md, 2.2).
+      - name: Test the clock changes of daylight saving time
+        run: |
+          for zone in Europe/Berlin America/New_York; do
+            TZ=$zone flutter test test/core/next_ring_test.dart
+          done
+
   deploy:
     name: Build and publish web app
     # Only a main branch that passed the checks goes live.

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'package:shuffle_alarm/features/alarms/alarm_editor_screen.dart';
 import 'package:shuffle_alarm/features/alarms/alarms_screen.dart';
 import 'package:shuffle_alarm/features/insights/insights_screen.dart';
 import 'package:shuffle_alarm/features/library/library_screen.dart';
@@ -12,7 +13,10 @@ import 'package:shuffle_alarm/features/settings/settings_screen.dart';
 /// Every `ProviderScope` builds its own router, so each widget test starts
 /// fresh on the Alarms tab.
 final routerProvider = Provider<GoRouter>((ref) {
+  // The navigator of the whole app, above the tabs.
+  final rootNavigatorKey = GlobalKey<NavigatorState>();
   final router = GoRouter(
+    navigatorKey: rootNavigatorKey,
     routes: [
       // The home address, such as the web site root, opens the Alarms tab.
       GoRoute(path: '/', redirect: (context, state) => AlarmsScreen.path),
@@ -27,6 +31,21 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: AlarmsScreen.path,
                 builder: (context, state) => const AlarmsScreen(),
+                // AlarmEditorScreen.newPath and .pathFor(id). Above the tabs,
+                // so they cover the bottom navigation bar.
+                routes: [
+                  GoRoute(
+                    path: 'new',
+                    parentNavigatorKey: rootNavigatorKey,
+                    builder: (context, state) => const AlarmEditorScreen(),
+                  ),
+                  GoRoute(
+                    path: ':id',
+                    parentNavigatorKey: rootNavigatorKey,
+                    builder: (context, state) =>
+                        AlarmEditorScreen(alarmId: state.pathParameters['id']),
+                  ),
+                ],
               ),
             ],
           ),

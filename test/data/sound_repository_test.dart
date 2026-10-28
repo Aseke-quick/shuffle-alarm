@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:shuffle_alarm/core/adaptive_weights.dart';
@@ -103,6 +105,32 @@ void main() {
 
     test('reads null for a sound it does not have', () async {
       expect(await sounds.byId('missing'), isNull);
+    });
+
+    test('tells a listener the sounds again after each change', () async {
+      final [sunrise, mySong, mom] = _library();
+      final updates = StreamIterator(sounds.watchAll());
+
+      expect(await updates.moveNext(), isTrue);
+      expect(updates.current, isEmpty);
+
+      await sounds.save(sunrise);
+      expect(await updates.moveNext(), isTrue);
+      expect(updates.current, [sunrise]);
+
+      await sounds.save(mom);
+      expect(await updates.moveNext(), isTrue);
+      expect(updates.current, [mom, sunrise]);
+
+      await sounds.save(mySong);
+      expect(await updates.moveNext(), isTrue);
+      expect(updates.current, [mom, mySong, sunrise]);
+
+      await sounds.delete('sunrise');
+      expect(await updates.moveNext(), isTrue);
+      expect(updates.current, [mom, mySong]);
+
+      await updates.cancel();
     });
 
     test(

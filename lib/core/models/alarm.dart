@@ -63,6 +63,28 @@ class Alarm {
   /// The experiment condition it follows, or null outside experiment mode.
   final ExperimentGroup? experimentGroup;
 
+  /// This alarm with the values given. It keeps its [id] and its
+  /// [experimentGroup], which only experiment mode changes (task 7.3).
+  ///
+  /// Throws a [RangeError] if a repeat day is not 1 to 7.
+  Alarm copyWith({
+    ClockTime? time,
+    Set<int>? repeatDays,
+    String? label,
+    bool? enabled,
+    Set<String>? genres,
+    bool? gentleStart,
+  }) => Alarm(
+    id: id,
+    time: time ?? this.time,
+    repeatDays: repeatDays ?? this.repeatDays,
+    label: label ?? this.label,
+    enabled: enabled ?? this.enabled,
+    genres: genres ?? this.genres,
+    gentleStart: gentleStart ?? this.gentleStart,
+    experimentGroup: experimentGroup,
+  );
+
   @override
   bool operator ==(Object other) =>
       other is Alarm &&

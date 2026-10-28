@@ -3,13 +3,22 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'package:shuffle_alarm/app.dart';
+import 'package:shuffle_alarm/data/database.dart';
+import 'package:shuffle_alarm/data/providers.dart';
 import 'package:shuffle_alarm/router.dart';
 
+import 'data/memory_database.dart';
+
 void main() {
+  late AppDatabase db;
+
+  setUp(() => db = memoryDatabase());
+  // Not closed: see memoryDatabase().
+
   testWidgets('the bottom tabs switch between Alarms, Library and Insights', (
     tester,
   ) async {
-    await _openApp(tester);
+    await _openApp(tester, db);
     _expectTab(tester, 'Alarms', index: 0);
 
     await _tapTab(tester, 'Library');
@@ -28,7 +37,7 @@ void main() {
   testWidgets('the gear opens Settings above the tabs, Back returns to them', (
     tester,
   ) async {
-    await _openApp(tester);
+    await _openApp(tester, db);
     await _tapTab(tester, 'Library');
 
     await tester.tap(find.byTooltip('Settings'));
@@ -45,7 +54,7 @@ void main() {
   });
 
   testWidgets('the home address opens the Alarms tab', (tester) async {
-    await _openApp(tester);
+    await _openApp(tester, db);
     await _tapTab(tester, 'Insights');
 
     tester.container().read(routerProvider).go('/');
@@ -55,8 +64,14 @@ void main() {
   });
 }
 
-Future<void> _openApp(WidgetTester tester) async {
-  await tester.pumpWidget(const ProviderScope(child: ShuffleAlarmApp()));
+/// Opens the app with [db], empty, as its database.
+Future<void> _openApp(WidgetTester tester, AppDatabase db) async {
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [databaseProvider.overrideWithValue(db)],
+      child: const ShuffleAlarmApp(),
+    ),
+  );
   await tester.pumpAndSettle();
 }
 
