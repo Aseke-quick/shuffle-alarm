@@ -226,7 +226,14 @@ ThemeData _theme(WakemixColors c) {
       ),
       side: BorderSide.none,
       shape: const StadiumBorder(),
-      labelStyle: textTheme.labelMedium!.copyWith(color: c.text),
+      // A filter chip takes this label style in every state, so its color
+      // follows the fill: the text on the accent when it is selected.
+      labelStyle: textTheme.labelMedium!.copyWith(
+        color: WidgetStateColor.resolveWith(
+          (states) =>
+              states.contains(WidgetState.selected) ? c.onAccent : c.text,
+        ),
+      ),
       secondaryLabelStyle: textTheme.labelMedium!.copyWith(color: c.onAccent),
       checkmarkColor: c.onAccent,
       showCheckmark: true,

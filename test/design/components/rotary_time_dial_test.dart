@@ -124,6 +124,33 @@ void main() {
       expect(scroll.offset, greaterThan(0));
     });
 
+    testWidgets('in a list after a tap on the ring still takes the next drag', (
+      tester,
+    ) async {
+      final scroll = ScrollController();
+      addTearDown(scroll.dispose);
+      final dial = await _pumpDial(
+        tester,
+        const TimeOfDay(hour: 6, minute: 15),
+        inList: scroll,
+      );
+
+      // The list gives up a tap, and the dial is the one left in the
+      // gesture arena when the finger is already up.
+      await tester.tapAt(dial.at(40));
+      await tester.pumpAndSettle();
+      expect(dial.time, const TimeOfDay(hour: 6, minute: 15));
+
+      // The same drag as above: the dial keeps it, all the way.
+      final gesture = await tester.startGesture(dial.at(14));
+      await dial.turn(gesture, from: 15, to: 20);
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(dial.time, const TimeOfDay(hour: 6, minute: 20));
+      expect(scroll.offset, 0);
+    });
+
     testWidgets(
       'ticks every 5 minutes on a phone',
       (tester) async {

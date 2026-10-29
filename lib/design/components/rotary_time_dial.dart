@@ -339,6 +339,10 @@ class _RingDragRecognizer extends OneSequenceGestureRecognizer {
 
   @override
   void acceptGesture(int pointer) {
+    // The arena can also pick the dial once the finger is up, such as after
+    // a tap on the ring that a list around it gave up. There is no drag
+    // then, and the next one must start from the slop again.
+    if (_down == null) return;
     _accepted = true;
     invokeCallback<void>('onStart', () => onStart?.call());
   }

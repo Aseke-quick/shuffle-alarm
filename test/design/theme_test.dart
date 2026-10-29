@@ -5,6 +5,8 @@ import 'package:shuffle_alarm/design/fonts.dart';
 import 'package:shuffle_alarm/design/theme.dart';
 import 'package:shuffle_alarm/design/tokens.dart';
 
+import 'design_app.dart';
+
 void main() {
   for (final (name, theme, colors) in [
     ('dark', WakemixTheme.dark, WakemixColors.dark),
@@ -120,6 +122,40 @@ void main() {
             borderRadius: BorderRadius.all(Radius.circular(Corners.card)),
           ),
         );
+      });
+
+      testWidgets('writes a chip label in the text color of its fill', (
+        tester,
+      ) async {
+        await pumpDesign(
+          tester,
+          Wrap(
+            children: [
+              FilterChip(
+                label: const Text('Lo-fi'),
+                selected: true,
+                onSelected: (_) {},
+              ),
+              FilterChip(label: const Text('Acoustic'), onSelected: (_) {}),
+            ],
+          ),
+          brightness: colors.brightness,
+        );
+
+        Color? labelColor(String label) => tester
+            .widget<RichText>(
+              find.descendant(
+                of: find.text(label),
+                matching: find.byType(RichText),
+              ),
+            )
+            .text
+            .style
+            ?.color;
+        // The pairs of contrast_test.dart: text on the accent, and text on
+        // an input or day key.
+        expect(labelColor('Lo-fi'), colors.onAccent);
+        expect(labelColor('Acoustic'), colors.text);
       });
     });
   }

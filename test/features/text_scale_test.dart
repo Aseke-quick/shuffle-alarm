@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -5,6 +6,8 @@ import 'package:shuffle_alarm/core/models/alarm.dart';
 import 'package:shuffle_alarm/core/models/clock_time.dart';
 import 'package:shuffle_alarm/data/alarm_repository.dart';
 import 'package:shuffle_alarm/data/database.dart';
+import 'package:shuffle_alarm/data/library_manifest.dart';
+import 'package:shuffle_alarm/data/library_sync.dart';
 import 'package:shuffle_alarm/design/components/alarm_track_row.dart';
 import 'package:shuffle_alarm/design/components/nav_bar.dart';
 
@@ -17,8 +20,12 @@ import 'alarms/alarms_app.dart';
 /// the real fonts. A widget test fails on any overflow by itself.
 void main() {
   late AppDatabase db;
+  late List<LibraryEntry> library;
 
-  setUpAll(loadWakemixFonts);
+  setUpAll(() async {
+    await loadWakemixFonts();
+    library = await loadLibraryManifest(rootBundle);
+  });
   setUp(() => db = memoryDatabase());
   // Not closed: see memoryDatabase().
 
@@ -43,6 +50,10 @@ void main() {
       await alarms.save(
         Alarm(id: 'off', time: ClockTime(hour: 22, minute: 55), enabled: false),
       );
+      // The bundled library, so the editor shows its genres as chips.
+      await syncLibrary(db, [
+        for (final entry in library) entry.toStoredSound(),
+      ]);
       await openAlarms(tester, db: db, now: wednesdayEvening, size: phone);
 
       // Through the whole list, to the last alarm.
@@ -57,6 +68,13 @@ void main() {
       expect(find.text('Edit alarm'), findsOneWidget);
       await _scrollThrough(tester);
       expect(find.text('GENRES'), findsOneWidget);
+      expect(find.byType(FilterChip), findsNWidgets(3));
+      // A chosen chip gets a check mark, and the chips wrap again.
+      final electronic = find.widgetWithText(FilterChip, 'Electronic');
+      await tester.tap(electronic);
+      await tester.pumpAndSettle();
+      expect(tester.widget<FilterChip>(electronic).selected, isTrue);
+      await _scrollThrough(tester);
       expect(find.text('Save alarm'), findsOneWidget);
 
       // A new alarm, with the time typed in.
