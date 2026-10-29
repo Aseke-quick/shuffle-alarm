@@ -17,5 +17,5 @@ Phase 0 and Phase 1 done; 2.1 and 2.2 done. Next: 2.3 (placeholder library).
 
 ## Tasks
 - [ ] 2.2a Wakemix look, name and sleep calculator: agent A, branch `wakemix/2-2a-design`
-- [ ] 2.3 Placeholder library and sync: agent B, branch `wakemix/2-3-library`
+- [x] 2.3 Placeholder library and sync: agent B, done on branch `claude/2-3-placeholder-library-517447` (`decisions/sde/placeholder-library.md`); waiting for the QA review
 - [ ] QA review and merge of each branch (lead), only on the user's yes

@@ -1,11 +1,15 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:shuffle_alarm/core/models/alarm.dart';
 import 'package:shuffle_alarm/core/models/sound.dart';
 import 'package:shuffle_alarm/data/alarm_repository.dart';
 import 'package:shuffle_alarm/data/database.dart';
+import 'package:shuffle_alarm/data/library_manifest.dart';
+import 'package:shuffle_alarm/data/library_sync.dart';
 import 'package:shuffle_alarm/data/sound_repository.dart';
 
 /// The app's database: opened once, when the app first needs it, and closed
@@ -45,3 +49,32 @@ final genresProvider = StreamProvider<List<String>>(
         }.toList()..sort(),
       ),
 );
+
+/// Saves the clips of the built-in library (`assets/library/manifest.json`)
+/// into the database as built-in sounds, and deletes the built-in sounds
+/// that left it (task 2.3). It runs again for each new database, such as
+/// after Try again, while [startLibrarySync] listens.
+final librarySyncProvider = FutureProvider<LibrarySyncPlan>((ref) async {
+  final db = ref.watch(databaseProvider);
+  final library = await loadLibraryManifest(rootBundle);
+  return await syncLibrary(db, [
+    for (final entry in library) entry.toStoredSound(),
+  ]);
+});
+
+/// Starts [librarySyncProvider] in [container] when the app starts, and
+/// keeps listening, so each new database gets the library too.
+///
+/// A failure only goes to the log and never stops the app: when the database
+/// cannot open, the Alarms tab says so.
+ProviderSubscription<AsyncValue<LibrarySyncPlan>> startLibrarySync(
+  ProviderContainer container,
+) => container.listen(librarySyncProvider, (_, next) {
+  // While it runs again, it still shows the value or error from before.
+  if (next.isLoading) return;
+  if (next case AsyncError(:final error, :final stackTrace)) {
+    debugPrint('Could not save the built-in library: $error\n$stackTrace');
+  } else if (next case AsyncData(:final value) when !value.isEmpty) {
+    debugPrint('Saved the built-in library: $value');
+  }
+});
