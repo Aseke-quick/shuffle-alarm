@@ -54,6 +54,7 @@ The roadmap and task checklist live in `PLAN.md`. Run `/next-task` to work on th
 - Commit after each task: `type(scope): summary`, e.g. `feat(rotation): add shuffle bag`.
 - Never commit secrets, signing keys or user audio.
 - If a requirement is unclear or a platform limit blocks it, stop and ask. Record decisions and limits in `docs/DECISIONS.md`.
+- Big, open work (such as the redesign) runs through the 10x-Team process (`/10x-Team:10x-team`): its state is in `.10x/` (status, handoff, specs, ADRs, reviews; see `.10x/README.md`). `docs/DECISIONS.md` stays the main decision log and links to each ADR.
 
 ## Gotchas
 - Web: browsers block audio until the user interacts with the page, so alarms need an "Arm alarms" tap. Background tabs are throttled (silent audio does not prevent it), so check the clock on every tick instead of relying on one long timer.
