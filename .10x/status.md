@@ -10,7 +10,7 @@ The user wants the app to look and work clearly differently from https://github.
 | --- | --- | --- |
 | `visual-identity` | Own design system (colors, type, components, motion) and every screen restyled | Built in 2.2a and live since 2026-10-29: Mixtape with a **Cobalt** accent (`#5B8CFF` on dark), **Unbounded** for display and **Geist** for text (Geist Mono for small meta), the vinyl-record hero, the alarm tracklist with mini waveforms, the rotary time dial and a wide "New alarm" button (spec section 1, ADR-001) |
 | `signature-features` | Features of our own beyond `PLAN.md` | The sleep calculator is live (2.2a). Still to come, in this order: 2.4a bedtime reminder (after 2.4), 2.5a **Tonight's mix** and 2.5b **Morning card** (after 2.5). Not chosen: Name that sound |
-| `brand-name` | A new app name instead of "Shuffle Alarm" | **Wakemix**, live since 2026-10-29: the display name only; package, app IDs, database name and site URL stay. A web search found no alarm app of that name, but there was no trademark check (due before task 8) |
+| `brand-name` | A new app name instead of "Shuffle Alarm" | **Wakemix**, live since 2026-10-29: the display name only; package, app IDs, database name and site URL stay. First-pass trademark check on 2026-10-29: **low risk**, no live WAKEMIX mark, app, domain or business found; Kazpatent's own register could not be searched (docs/DECISIONS.md, 2026-10-30). Not legal advice: a lawyer's full search is due before filing and before task 8 |
 
 ## PLAN.md progress
 Phase 0 and Phase 1 done; 2.1, 2.2, 2.2a and 2.3 done. Next: 2.4 (web scheduler).
