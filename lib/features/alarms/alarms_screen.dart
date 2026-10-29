@@ -17,6 +17,7 @@ import 'package:shuffle_alarm/design/tokens.dart';
 import 'package:shuffle_alarm/features/alarms/alarm_editor_screen.dart';
 import 'package:shuffle_alarm/features/alarms/alarm_texts.dart';
 import 'package:shuffle_alarm/features/alarms/alarm_writes.dart';
+import 'package:shuffle_alarm/features/alarms/arm_card.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
 import 'package:shuffle_alarm/features/alarms/database_error_view.dart';
 import 'package:shuffle_alarm/features/settings/settings_button.dart';
@@ -59,6 +60,7 @@ class _Alarms extends StatelessWidget {
           child: ContentWidth(
             child: ListView(
               children: [
+                ArmCard(alarms: alarms),
                 _NextAlarm(alarms: alarms),
                 _Tracklist(alarms: alarms),
                 const SizedBox(height: Space.s16),

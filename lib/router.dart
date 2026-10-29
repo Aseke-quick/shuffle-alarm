@@ -8,6 +8,7 @@ import 'package:shuffle_alarm/features/alarms/alarm_editor_screen.dart';
 import 'package:shuffle_alarm/features/alarms/alarms_screen.dart';
 import 'package:shuffle_alarm/features/insights/insights_screen.dart';
 import 'package:shuffle_alarm/features/library/library_screen.dart';
+import 'package:shuffle_alarm/features/ringing/ringing_screen.dart';
 import 'package:shuffle_alarm/features/settings/settings_screen.dart';
 
 /// All pages of the app: three bottom tabs, and Settings above them.
@@ -78,6 +79,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: SettingsScreen.path,
         pageBuilder: (context, state) =>
             _page(context, state, const SettingsScreen()),
+      ),
+      // Above everything, while an alarm rings. The app opens it.
+      GoRoute(
+        path: RingingScreen.path,
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) =>
+            _page(context, state, const RingingScreen()),
       ),
     ],
   );

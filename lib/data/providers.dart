@@ -11,6 +11,7 @@ import 'package:shuffle_alarm/data/database.dart';
 import 'package:shuffle_alarm/data/library_manifest.dart';
 import 'package:shuffle_alarm/data/library_sync.dart';
 import 'package:shuffle_alarm/data/sound_repository.dart';
+import 'package:shuffle_alarm/data/weight_repository.dart';
 
 /// The app's database: opened once, when the app first needs it, and closed
 /// with the app. Tests override it with a database in memory.
@@ -34,6 +35,10 @@ final alarmsProvider = StreamProvider<List<Alarm>>(
 
 final soundRepositoryProvider = Provider<SoundRepository>(
   (ref) => SoundRepository(ref.watch(databaseProvider)),
+);
+
+final weightRepositoryProvider = Provider<WeightRepository>(
+  (ref) => WeightRepository(ref.watch(databaseProvider)),
 );
 
 /// The genres of the built-in sounds, A to Z: the genres an alarm can choose

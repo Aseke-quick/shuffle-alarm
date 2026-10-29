@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'package:shuffle_alarm/design/fonts.dart';
 import 'package:shuffle_alarm/design/theme.dart';
 import 'package:shuffle_alarm/design/tokens.dart';
+import 'package:shuffle_alarm/features/ringing/ringing_controller.dart';
+import 'package:shuffle_alarm/features/ringing/ringing_screen.dart';
 import 'package:shuffle_alarm/router.dart';
 
 /// The app: Wakemix. Its package keeps the working name `shuffle_alarm`
@@ -14,6 +18,14 @@ class ShuffleAlarmApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     registerFontLicenses();
+    final router = ref.watch(routerProvider);
+    // Rings the alarms that come due, while the app runs, and shows the
+    // ringing page above everything when one starts.
+    ref.listen(ringingProvider, (before, now) {
+      if (before == null && now != null) {
+        unawaited(router.push(RingingScreen.path));
+      }
+    });
     return MaterialApp.router(
       title: 'Wakemix',
       debugShowCheckedModeBanner: false,
@@ -22,7 +34,7 @@ class ShuffleAlarmApp extends ConsumerWidget {
       // setting: `themeMode` stays at its default, ThemeMode.system.
       theme: WakemixTheme.light,
       darkTheme: WakemixTheme.dark,
-      routerConfig: ref.watch(routerProvider),
+      routerConfig: router,
       builder: (context, child) => _LessMotion(child: child!),
     );
   }

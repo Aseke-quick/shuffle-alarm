@@ -330,3 +330,63 @@ Add an entry when a task makes a choice that the code does not explain by itself
   - Registering the name is a question of its own: WAKE and MIX together say what the app does ("A new mix every morning"), so an examiner may call WAKEMIX descriptive (US Section 2(e)(1); EU Article 7(1)(b) and (c) EUTMR).
   - A trademark lawyer is needed before filing, and before the store releases of tasks 8.3 and 8.4: a full search (Kazpatent included), an opinion on that question, and the filing plan (offices; classes 9 and 42, maybe 41). Kazakhstan is in the Madrid system, so a Kazakh application can be extended to the US, the EU and the UK.
   - Registers change every day (WAYK was registered a month ago): search again right before filing. The domains and handles are free today; registering wakemix.com and wakemix.app, and the free handles, before the stores show the name keeps them from being taken.
+
+## 2026-10-30 · 2.4 · The web scheduler: Arm alarms, a check every second, the banner and the wake lock
+- **Decision:** the web version rings its alarms while its tab is open. The coordinating session asked for this task here, under the user's delegation of 2026-10-29, so the plan went into the shared notes (`task-2.4-plan.md`) instead of waiting for approval.
+  - **When an alarm is due:** `dueRings(alarms, since:, now:)` in `lib/core/due_rings.dart`, tests first. For each alarm that is on, it gives the last ring after the check before (`since`) and at the check (`now`) or before (`nextRing`). So a late check still finds each ring once, and after a long gap, such as a sleeping laptop, only an alarm's last ring.
+  - **The checks:** `TickingAlarmScheduler` in `lib/platform/` checks the clock every second (`Timer.periodic`) from its first `watch`, and at once when the tab comes back into view (`visibilitychange`). A ring that came due before the app started does not ring.
+  - **Interfaces in `lib/platform/`** (`CLAUDE.md`):
+    - `AlarmScheduler`: `watch`, `dueRings`;
+    - `SoundPlayer`: `needsUnlock`, `unlock`, `preload`, `play`, `stop`;
+    - `ScreenWakeLock`: `hold`, `release`, `held`.
+    `lib/platform/providers.dart` picks the web versions with a conditional import (`dart.library.js_interop`). Android, iOS, the desktop and the tests' Dart VM get idle ones until Phases 4 to 6: `IdleAlarmScheduler`, `SilentSoundPlayer` and `NoScreenWakeLock`.
+  - **Sound on the web:** `WebSoundPlayer` uses the Web Audio API.
+    - One `AudioContext` for the page, resumed in the tap on "Arm alarms" together with a moment of silence, which Safari needs.
+    - Each clip is decoded once from the app's assets and plays through a gain node at its escalation volume.
+    - When the browser blocks the sound, `play` throws `SoundBlockedException` after waiting 1 s for the context.
+    - After the tap on "Arm alarms", `ArmController` loads every sound into memory, so a ring needs no network: on the web a clip downloads only when it plays, and nothing keeps it offline (`.10x/decisions/sre/placeholder-library.md`, risk 2).
+  - **"Arm alarms"** (`ArmController`, `ArmCard` at the top of the Alarms tab):
+    - while an alarm is on and the sound is locked, a card "Arm alarms to hear them" with an "Arm alarms" button;
+    - after the tap, the banner "Keep this tab open", with "The screen stays on." or "The screen may turn off. Keep this tab in front.";
+    - a refused unlock says so, and the button stays;
+    - a platform that needs no tap shows nothing.
+  - **The screen wake lock:** while armed and an alarm is on, `WebScreenWakeLock` holds `navigator.wakeLock`.
+    - The browser lets go while the tab is hidden, so it asks again each time the tab comes back into view.
+    - It lets go when no alarm is on.
+    - Browsers ask no permission for it, so it needs no explanation screen (`CLAUDE.md`).
+  - **What a due alarm does now** (`RingingController` in `lib/features/ringing/`):
+    - A one-time alarm switches off, unless the user changed its time or days since.
+    - The ringing page (`/ringing`, above everything; Back does not close it) shows the time, the label and Stop.
+    - It plays the alarm's ring sequence (`buildRingSequence`, a new seed per ring), clip after clip, from where the clock says (`ringPosition` in `lib/core/ring_position.dart`, tests first), until Stop or the 10-min cap.
+    - At the cap it goes quiet, and the page says "It rang for 10 min, and nobody stopped it." with Close.
+    - A ring found when its cap is over is missed: no sound.
+    - One ring at a time: an alarm that comes due while another rings does not ring.
+    - When the sound is blocked, or no clip can be read, the page says "The sound did not play." and offers "Play sound", whose tap unlocks the sound and plays from where the clock says.
+    - Each ring writes one line to the log, with how long after its time the check found it.
+  - **Package:** `web` 1.1.2 is now a direct dependency. Checked on pub.dev on 2026-10-30: dart.dev, BSD-3-Clause, 160/160 pub points, published 2026-10-23, web only. Only `lib/platform/web/` imports it.
+- **Why:**
+  - **The check:** asking for the rings after the check before, rather than whether the minute is now, keeps "when to ring" pure and tested in `lib/core`, and each ring comes once, also after a late check (2.2).
+  - **Every second, plus a wake-up:** a browser throttles the timers of a background tab (`CLAUDE.md`, Gotchas), and the wake-up shortens the wait when the tab comes back.
+  - **Web Audio on the web:**
+    - one unlock in a tap covers every later sound, in Safari too;
+    - a gain node sets the volume where Safari on the iPhone ignores the volume of an audio element (1.4);
+    - decoded clips follow one another without a gap.
+    - Turned down for the web: audioplayers, whose audio elements Safari unlocks one by one. audioplayers stays the plan for the native players behind the same interface (`CLAUDE.md`, Tech stack).
+  - **The sequence now, with a plain page:** an armed alarm on the live site that made no sound would mislead the testers.
+    - Turned down: a silent "due" event until 2.5.
+    - Turned down: one sound on repeat, which breaks "when it ends, the next sound starts".
+    - Turned down: one clip played once, which breaks "the alarm keeps rotating until Stop or Snooze".
+  - **A one-time alarm switches off when it comes due,** not at Stop: it had its one ring, also when nobody stopped it.
+  - **An "Arm alarms" tap,** rather than unlocking on the tap on Save: it says that the tab must stay open, and it asks before the wake lock keeps the screen on all night. The wake lock holds only while an alarm is on.
+- **Limits / follow-up:**
+  - **Measured on 2026-10-30** in headless Chrome 156 with a fresh profile and `--autoplay-policy=user-gesture-required`, built as the deploy job builds:
+    - *Visible tab:* after "Arm alarms" (the context went from "suspended" to "running" in the tap), a one-time alarm at 00:57 was found 613 ms after its minute, and its first clip started 39 ms later. Stop switched it to "Off".
+    - *Hidden tab:* the tab was hidden by opening another one, about 6 minutes before an alarm at 01:04. It was found 21.7 s late, inside the phase's "at most about a minute". The clips then followed one another in the hidden tab: 9 clips by 01:06:48.
+    - The banner said "The screen stays on." The console showed no warning or error.
+  - **Chrome played the sound without "Arm alarms"** whenever the site had had a tap before in that profile: after Save, after a reload, and in a new tab. So the blocked case ("Play sound") is covered by widget tests only. Safari needs the tap (its context unlocks only in one); no Safari was at hand to try it.
+  - **A tab that is closed, discarded or frozen does not ring.** Examples: Chrome's Memory Saver, a phone that sleeps. The banner asks to keep the tab open and the device plugged in.
+  - **Task 2.5** builds on `RingingController`, which holds the ring's clips:
+    - the ringing screen (the clock, the sound that plays, the accent fill);
+    - Snooze;
+    - the log (`RingSession`, `RingEvent`), the weights after Stop and Snooze, and logging a missed ring.
+  - **Task 2.4a** puts its notification behind an interface in `lib/platform/` as well.

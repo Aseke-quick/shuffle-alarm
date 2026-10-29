@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'package:shuffle_alarm/core/due_rings.dart';
 import 'package:shuffle_alarm/core/models/alarm.dart';
 import 'package:shuffle_alarm/core/models/clock_time.dart';
 import 'package:shuffle_alarm/data/alarm_repository.dart';
@@ -10,9 +11,13 @@ import 'package:shuffle_alarm/data/library_manifest.dart';
 import 'package:shuffle_alarm/data/library_sync.dart';
 import 'package:shuffle_alarm/design/components/alarm_track_row.dart';
 import 'package:shuffle_alarm/design/components/nav_bar.dart';
+import 'package:shuffle_alarm/features/alarms/clock.dart';
+import 'package:shuffle_alarm/features/ringing/ringing_screen.dart';
+import 'package:shuffle_alarm/platform/providers.dart';
 
 import '../data/memory_database.dart';
 import '../design/design_app.dart';
+import '../platform/fake_platform.dart';
 import 'alarms/alarms_app.dart';
 
 /// Large text on a small phone (spec section 1): at a text scale of 2.0 on
@@ -108,6 +113,55 @@ void main() {
     await tester.tap(find.byTooltip('Settings'));
     await tester.pumpAndSettle();
     expect(find.text('No settings yet.'), findsOneWidget);
+  });
+
+  testWidgets('the arm card and the ringing page fit', (tester) async {
+    setTextScale(tester, 2);
+    final scheduler = FakeAlarmScheduler();
+    // The browser blocks the sound until a tap: the page offers to play it.
+    final player = FakeSoundPlayer(blocked: true);
+    final ring = DateTime(2026, 11, 12, 10, 45);
+    final alarm = Alarm(
+      id: 'long',
+      time: ClockTime(hour: 10, minute: 45),
+      label: 'Morning run with the dog, then a swim',
+    );
+    await AlarmRepository(db).save(alarm);
+    await syncLibrary(db, [for (final entry in library) entry.toStoredSound()]);
+    await openAlarms(
+      tester,
+      db: db,
+      now: wednesdayEvening,
+      size: phone,
+      overrides: [
+        alarmSchedulerProvider.overrideWithValue(scheduler),
+        soundPlayerProvider.overrideWithValue(player),
+        screenWakeLockProvider.overrideWithValue(FakeScreenWakeLock()),
+        nowProvider.overrideWithValue(() => ring),
+      ],
+    );
+
+    expect(find.text('Arm alarms to hear them'), findsOneWidget);
+    player.unlocks = false;
+    await tester.tap(find.text('Arm alarms'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('The browser did not let the sound play. Try again.'),
+      findsOneWidget,
+    );
+    player.unlocks = true;
+    await tester.tap(find.text('Arm alarms'));
+    await tester.pumpAndSettle();
+    expect(find.text('Keep this tab open'), findsOneWidget);
+    await _scrollThrough(tester);
+
+    player.blocked = true;
+    scheduler.ring(DueRing(alarm, scheduledFor: ring));
+    await tester.pumpAndSettle();
+    expect(find.byType(RingingScreen), findsOneWidget);
+    expect(find.text('Play sound'), findsOneWidget);
+    await _scrollThrough(tester);
+    expect(find.text('Stop'), findsOneWidget);
   });
 
   testWidgets('the error view fits', (tester) async {

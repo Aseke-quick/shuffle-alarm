@@ -2,6 +2,10 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+/// Where the time now comes from, to the microsecond: the device's clock.
+/// Tests override it with a clock of their own.
+final nowProvider = Provider<DateTime Function()>((ref) => DateTime.now);
+
 /// The time now, again at the start of each minute, so that texts such as
 /// "Rings in 7 h 20 min" keep up with the clock. Tests override it with a
 /// clock of their own.
