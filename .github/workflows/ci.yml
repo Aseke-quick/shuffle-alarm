@@ -88,9 +88,10 @@ jobs:
         run: flutter pub get --enforce-lockfile
 
       # The base href is the site repo's name: its site lives at
-      # https://aseke-quick.github.io/shuffle-alarm-web/.
+      # https://aseke-quick.github.io/shuffle-alarm-web/. The site serves
+      # Flutter's web engine (CanvasKit) itself, not from Google's CDN.
       - name: Build web app
-        run: flutter build web --release --base-href /shuffle-alarm-web/
+        run: flutter build web --release --base-href /shuffle-alarm-web/ --no-web-resources-cdn
 
       # The site repo gets the built files as one fresh commit each time, so
       # it never holds source code or old builds. SITE_DEPLOY_TOKEN is a
@@ -109,9 +110,9 @@ jobs:
           # GitHub Pages serves the files as they are, without Jekyll.
           touch .nojekyll
           cat > README.md <<'EOF'
-          # Shuffle Alarm web test version
+          # Wakemix web test version
 
-          Built files of the Shuffle Alarm web test version, published here automatically: https://aseke-quick.github.io/shuffle-alarm-web/
+          Built files of the Wakemix web test version, published here automatically: https://aseke-quick.github.io/shuffle-alarm-web/
 
           The source code is private.
 

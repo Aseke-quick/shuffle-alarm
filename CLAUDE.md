@@ -44,7 +44,8 @@ The roadmap and task checklist live in `PLAN.md`. Run `/next-task` to work on th
 - `flutter analyze` (must report 0 issues)
 - `flutter test` (one file: `flutter test test/core/rotation_engine_test.dart`)
 - `TZ=Europe/Berlin flutter test test/core/next_ring_test.dart test/core/bedtime_test.dart` (the daylight saving time tests, skipped in other zones; CI also runs them in America/New_York)
-- `flutter build web --release --base-href /<repo-name>/`
+- `flutter build web --release --base-href /<repo-name>/ --no-web-resources-cdn` (as the deploy job builds it: the site serves CanvasKit itself)
+- `dart run tool/generate_placeholder_library.dart` (after changing a placeholder clip in `tool/placeholder_library/`; commit the WAVs and `manifest.json` it writes)
 - `dart run tool/check_licenses.dart` (audio license check, from Phase 3)
 
 ## Workflow
