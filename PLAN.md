@@ -67,9 +67,13 @@ Done when: `flutter test test/core` passes, with tests for every rule above, inc
 Goal: a working alarm in the browser to try the idea with real people.
 - [x] 2.1 drift database (works on web): alarms, sounds, ring events, weights.
 - [x] 2.2 Alarms screen: list, add/edit (time, repeat days, label, genres), on/off switch, "rings in 7 h 20 min".
+- [ ] 2.2a Wakemix look and name (`.10x/specs/2026-10-29-wakemix-redesign-design.md`): the Mixtape design system in `lib/design/` (cobalt accent; Unbounded, Geist and Geist Mono, bundled), the next alarm as a record, the alarm tracklist, a rotary time dial, every screen restyled, the display name Wakemix, and the sleep calculator ("Bed by 22:30 for 8 h of sleep").
 - [ ] 2.3 Placeholder library: a script in `tool/` generates 9 original clips (3 genres × 3, synthesized melodies) + `manifest.json` with license `original`. No downloads.
 - [ ] 2.4 Web scheduler: "Arm alarms" button (unlocks audio), checks the clock every second, banner "Keep this tab open", screen wake lock if the browser supports it.
+- [ ] 2.4a Bedtime reminder: an optional notification at the bedtime of the next alarm, after a short screen that explains it; on the web only while the tab is open.
 - [ ] 2.5 Ringing screen: big clock, current sound title, Stop and Snooze; plays the sequence from 1.6; logs every RingEvent.
+- [ ] 2.5a Tonight's mix: the record shows the real mix of the next ring; tapping it lists the sounds in play order with a preview, Reshuffle and Not tonight; the ring plays exactly that stored plan (schema version 2).
+- [ ] 2.5b Morning card: after Stop, when you woke, the snoozes and the sounds that played; "Which sound woke you?" teaches the weights and feeds Insights (2.8).
 - [ ] 2.6 Import own songs (mp3, m4a, wav): pick a 30-s part with a start slider and preview; stored only in the browser.
 - [ ] 2.7 Voice messages: record up to 30 s, give it a name ("Mom", "Best friend"), use it in the rotation.
 - [ ] 2.8 Insights tab: last 14 mornings with time to Stop, number of snoozes and sounds played.
@@ -138,7 +142,6 @@ Done when: testers can install the app on every platform.
 
 ## Later (not in the MVP)
 - Accounts and cloud sync; sending a voice message straight to a friend's alarm (needs a server and moderation).
-- Bedtime reminder (putting off bedtime is linked with worse sleep).
 - More genres; smart wake-up in light sleep (needs sleep tracking; check the evidence first).
 
 ## Progress log

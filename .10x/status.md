@@ -1,6 +1,6 @@
 # Status
 
-- **Phase:** Design complete (ADR-001 accepted). The user approved the whole spec on 2026-10-29 (`.10x/specs/2026-10-29-wakemix-redesign-design.md`).
+- **Phase:** Planning complete. Next: implementation by agents A (2.2a) and B (2.3). The user approved the whole spec on 2026-10-29 (`.10x/specs/2026-10-29-wakemix-redesign-design.md`).
 - **Team setup (the user's choice, 2026-10-29):** this session leads the process and writes the spec. After the user approves it, two agents work in parallel, each in its own worktree and branch: the design system, and `PLAN.md` task 2.3. A QA review of each branch comes before it merges into `main`, and only on the user's yes.
 
 ## Sub-projects of the redesign
@@ -14,3 +14,8 @@ The user wants the app to look and work clearly differently from https://github.
 
 ## PLAN.md progress
 Phase 0 and Phase 1 done; 2.1 and 2.2 done. Next: 2.3 (placeholder library).
+
+## Tasks
+- [ ] 2.2a Wakemix look, name and sleep calculator: agent A, branch `wakemix/2-2a-design`
+- [ ] 2.3 Placeholder library and sync: agent B, branch `wakemix/2-3-library`
+- [ ] QA review and merge of each branch (lead), only on the user's yes
