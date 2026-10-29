@@ -16,6 +16,6 @@ The user wants the app to look and work clearly differently from https://github.
 Phase 0 and Phase 1 done; 2.1 and 2.2 done. Next: 2.3 (placeholder library).
 
 ## Tasks
-- [ ] 2.2a Wakemix look, name and sleep calculator: agent A, branch `wakemix/2-2a-design`
+- [x] 2.2a Wakemix look, name and sleep calculator: agent A, branch `claude/2-2a-wakemix-design-3e0318`, done 2026-10-29 and pushed; waiting for the QA review and the user's yes (`decisions/sde/visual-identity.md`)
 - [ ] 2.3 Placeholder library and sync: agent B, branch `wakemix/2-3-library`
 - [ ] QA review and merge of each branch (lead), only on the user's yes

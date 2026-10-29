@@ -1,5 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:shuffle_alarm/core/bedtime.dart';
+import 'package:shuffle_alarm/core/models/alarm.dart';
+import 'package:shuffle_alarm/core/models/clock_time.dart';
 import 'package:shuffle_alarm/features/alarms/alarm_texts.dart';
 
 void main() {
@@ -80,6 +83,122 @@ void main() {
       ],
       ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     );
+  });
+
+  test('fullDayName names every weekday in full, for screen readers', () {
+    expect(
+      [
+        for (var day = DateTime.monday; day <= DateTime.sunday; day++)
+          fullDayName(day),
+      ],
+      [
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+        'Sunday',
+      ],
+    );
+  });
+
+  test('countdownText counts down like ringsIn, for the record', () {
+    expect(
+      countdownText(const Duration(hours: 7, minutes: 19, seconds: 30)),
+      'in 7 h 20 min',
+    );
+    expect(countdownText(const Duration(days: 1, hours: 2)), 'in 1 d 2 h');
+    expect(countdownText(const Duration(microseconds: 1)), 'in 1 min');
+  });
+
+  test('alarmDetails gives the label, if any, and the repeat days', () {
+    final alarm = Alarm(
+      id: 'a',
+      time: ClockTime(hour: 7, minute: 0),
+      repeatDays: const {1, 2, 3, 4, 5},
+      label: 'Work',
+    );
+
+    expect(alarmDetails(alarm), 'Work · Weekdays');
+    expect(alarmDetails(alarm.copyWith(label: '')), 'Weekdays');
+    expect(alarmDetails(alarm.copyWith(label: '', repeatDays: {})), 'Once');
+  });
+
+  group('sleepText', () {
+    // Wednesday evening.
+    final now = DateTime(2026, 11, 11, 20);
+    String clock(DateTime time) =>
+        '${time.hour}:${time.minute.toString().padLeft(2, '0')}';
+
+    test('before the bedtime, says when to go to bed', () {
+      expect(
+        sleepText(
+          BedBy(DateTime(2026, 11, 11, 22, 30), goal: defaultSleepGoal),
+          now: now,
+          clock: clock,
+        ),
+        'Bed by 22:30 for 8 h of sleep',
+      );
+      expect(
+        sleepText(
+          BedBy(
+            DateTime(2026, 11, 11, 23),
+            goal: const Duration(hours: 7, minutes: 30),
+          ),
+          now: now,
+          clock: clock,
+        ),
+        'Bed by 23:00 for 7 h 30 min of sleep',
+      );
+    });
+
+    test('names the day of a bedtime that is not today', () {
+      // After midnight it is Thursday, and so are bedtimes of the weekend.
+      for (final (bedtime, text) in [
+        (DateTime(2026, 11, 12, 0, 30), 'Bed by Thu 0:30 for 8 h of sleep'),
+        (DateTime(2026, 11, 15, 23), 'Bed by Sun 23:00 for 8 h of sleep'),
+      ]) {
+        expect(
+          sleepText(
+            BedBy(bedtime, goal: defaultSleepGoal),
+            now: now,
+            clock: clock,
+          ),
+          text,
+        );
+      }
+    });
+
+    test('takes a bedtime in UTC as local time', () {
+      expect(
+        sleepText(
+          BedBy(DateTime(2026, 11, 11, 22, 30).toUtc(), goal: defaultSleepGoal),
+          now: now,
+          clock: clock,
+        ),
+        'Bed by 22:30 for 8 h of sleep',
+      );
+    });
+
+    test('from the bedtime on, says how long the night is', () {
+      expect(
+        sleepText(
+          const SleepNow(Duration(hours: 7, minutes: 5)),
+          now: now,
+          clock: clock,
+        ),
+        'Sleep now: 7 h 5 min',
+      );
+      expect(
+        sleepText(const SleepNow(Duration(hours: 8)), now: now, clock: clock),
+        'Sleep now: 8 h',
+      );
+      expect(
+        sleepText(const SleepNow(Duration.zero), now: now, clock: clock),
+        'Sleep now: under 1 min',
+      );
+    });
   });
 
   test('genreName starts a genre with a capital letter', () {

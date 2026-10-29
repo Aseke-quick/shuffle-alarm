@@ -1,7 +1,7 @@
-# Shuffle Alarm
+# Wakemix
 
 Cross-platform alarm clock that wakes people with a rotating set of different sounds.
-Working title "Shuffle Alarm", package `shuffle_alarm` (rename later if needed).
+Display name Wakemix ("A new mix every morning"; until 2026-10-29 "Shuffle Alarm"). The package `shuffle_alarm`, the app IDs, the database name and the repo names keep the old name (docs/DECISIONS.md, 2.2a).
 The roadmap and task checklist live in `PLAN.md`. Run `/next-task` to work on the next task.
 
 ## Product rules (never break)
@@ -31,6 +31,7 @@ The roadmap and task checklist live in `PLAN.md`. Run `/next-task` to work on th
 - `lib/core/`: pure Dart, no Flutter imports. Models, `RotationEngine`, clip rules, adaptive weights.
 - `lib/data/`: drift database, repositories, library loader for `manifest.json`.
 - `lib/platform/`: `AlarmScheduler` and `SoundPlayer` interfaces + `android/`, `ios/`, `desktop/`, `web/` implementations.
+- `lib/design/`: the Wakemix design system (ADR-001): tokens (the only colors in `lib/`), `WakemixTheme`, the bundled fonts and the components. Flutter and `material_ui` only, never `lib/data/` or `lib/features/`; components take plain values. Features take colors and text styles from the theme, never `Color(0x…)`.
 - `lib/features/`: `alarms/`, `ringing/`, `library/`, `voice/`, `insights/`, `settings/`.
 - `assets/library/<genre>/`: audio clips + `manifest.json`. `tool/`: dev scripts. `test/` mirrors `lib/`.
 - Features never call platform code directly, only through the interfaces.
@@ -42,7 +43,7 @@ The roadmap and task checklist live in `PLAN.md`. Run `/next-task` to work on th
 - `dart run build_runner build` (after changing the drift tables in `lib/data/database.dart`; commit the regenerated `database.g.dart`)
 - `flutter analyze` (must report 0 issues)
 - `flutter test` (one file: `flutter test test/core/rotation_engine_test.dart`)
-- `TZ=Europe/Berlin flutter test test/core/next_ring_test.dart` (the daylight saving time tests, skipped in other zones; CI also runs them in America/New_York)
+- `TZ=Europe/Berlin flutter test test/core/next_ring_test.dart test/core/bedtime_test.dart` (the daylight saving time tests, skipped in other zones; CI also runs them in America/New_York)
 - `flutter build web --release --base-href /<repo-name>/`
 - `dart run tool/check_licenses.dart` (audio license check, from Phase 3)
 

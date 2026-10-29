@@ -1,5 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'package:shuffle_alarm/design/components/layout.dart';
+import 'package:shuffle_alarm/design/components/status_view.dart';
+
 /// The Settings page. It opens above the tabs, so its app bar has a back
 /// button. Placeholder until the first settings arrive.
 class SettingsScreen extends StatelessWidget {
@@ -9,9 +12,9 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: const Center(child: Text('No settings yet.')),
+    return const Scaffold(
+      appBar: ContentAppBar(title: Text('Settings')),
+      body: StatusView(title: 'No settings yet.'),
     );
   }
 }
