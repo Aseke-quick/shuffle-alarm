@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'package:shuffle_alarm/design/components/nav_bar.dart';
+import 'package:shuffle_alarm/design/tokens.dart';
 import 'package:shuffle_alarm/features/alarms/alarm_editor_screen.dart';
 import 'package:shuffle_alarm/features/alarms/alarms_screen.dart';
 import 'package:shuffle_alarm/features/insights/insights_screen.dart';
@@ -37,13 +39,17 @@ final routerProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'new',
                     parentNavigatorKey: rootNavigatorKey,
-                    builder: (context, state) => const AlarmEditorScreen(),
+                    pageBuilder: (context, state) =>
+                        _page(context, state, const AlarmEditorScreen()),
                   ),
                   GoRoute(
                     path: ':id',
                     parentNavigatorKey: rootNavigatorKey,
-                    builder: (context, state) =>
-                        AlarmEditorScreen(alarmId: state.pathParameters['id']),
+                    pageBuilder: (context, state) => _page(
+                      context,
+                      state,
+                      AlarmEditorScreen(alarmId: state.pathParameters['id']),
+                    ),
                   ),
                 ],
               ),
@@ -70,13 +76,21 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Outside the tabs, so it covers the bottom navigation bar.
       GoRoute(
         path: SettingsScreen.path,
-        builder: (context, state) => const SettingsScreen(),
+        pageBuilder: (context, state) =>
+            _page(context, state, const SettingsScreen()),
       ),
     ],
   );
   ref.onDispose(router.dispose);
   return router;
 });
+
+/// A page above the tabs: it comes in with the platform's transition, or at
+/// once when the platform asks for less motion.
+Page<void> _page(BuildContext context, GoRouterState state, Widget child) =>
+    Motion.reduceMotion(context)
+    ? NoTransitionPage<void>(key: state.pageKey, child: child)
+    : MaterialPage<void>(key: state.pageKey, child: child);
 
 /// The frame around the tabs: the open tab and the bottom navigation bar.
 class AppShell extends StatelessWidget {
@@ -88,28 +102,28 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: navigationShell,
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: WakemixNavBar(
         selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: (index) => navigationShell.goBranch(
+        onSelected: (index) => navigationShell.goBranch(
           index,
           // Tapping the open tab again goes back to its first page.
           initialLocation: index == navigationShell.currentIndex,
         ),
         // Same order as the branches in [routerProvider].
         destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.alarm_outlined),
-            selectedIcon: Icon(Icons.alarm),
+          NavDestination(
+            icon: Icons.alarm_outlined,
+            selectedIcon: Icons.alarm,
             label: 'Alarms',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.library_music_outlined),
-            selectedIcon: Icon(Icons.library_music),
+          NavDestination(
+            icon: Icons.library_music_outlined,
+            selectedIcon: Icons.library_music,
             label: 'Library',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.insights_outlined),
-            selectedIcon: Icon(Icons.insights),
+          NavDestination(
+            icon: Icons.insights_outlined,
+            selectedIcon: Icons.insights,
             label: 'Insights',
           ),
         ],

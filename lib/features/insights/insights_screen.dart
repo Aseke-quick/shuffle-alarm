@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'package:shuffle_alarm/design/components/layout.dart';
+import 'package:shuffle_alarm/design/components/status_view.dart';
 import 'package:shuffle_alarm/features/settings/settings_button.dart';
 
 /// The Insights tab. Placeholder until task 2.8 adds the last 14 mornings.
@@ -10,12 +12,15 @@ class InsightsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Insights'),
-        actions: const [SettingsButton()],
+    return const Scaffold(
+      appBar: ContentAppBar(
+        title: Text('Insights'),
+        actions: [SettingsButton()],
       ),
-      body: const Center(child: Text('No mornings to show yet.')),
+      body: StatusView(
+        title: 'No mornings to show yet.',
+        message: 'After your first alarm, your mornings will show here.',
+      ),
     );
   }
 }

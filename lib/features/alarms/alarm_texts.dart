@@ -1,22 +1,63 @@
+import 'package:shuffle_alarm/core/bedtime.dart';
+import 'package:shuffle_alarm/core/models/alarm.dart';
+
 /// "Rings in 7 h 20 min": how long until an alarm rings, [untilRing],
 /// rounded up to whole minutes.
 ///
 /// Rounded up, as the clock counts: at 23:40:30 the clock shows 23:40, and an
 /// alarm at 07:00 rings in 7 h 20 min. From 24 hours on it says days too,
 /// such as "Rings in 1 d 2 h 5 min", and it leaves out the parts that are 0.
-String ringsIn(Duration untilRing) {
-  final minutes = (untilRing.inMicroseconds / Duration.microsecondsPerMinute)
-      .ceil();
+String ringsIn(Duration untilRing) => 'Rings in ${_untilRing(untilRing)}';
+
+/// "in 7 h 20 min": the countdown on the record, rounded up like [ringsIn].
+String countdownText(Duration untilRing) => 'in ${_untilRing(untilRing)}';
+
+String _untilRing(Duration untilRing) =>
+    _span((untilRing.inMicroseconds / Duration.microsecondsPerMinute).ceil());
+
+/// [minutes] as "1 d 2 h 5 min", without the parts that are 0.
+String _span(int minutes) {
   final days = minutes ~/ Duration.minutesPerDay;
   final hours = minutes % Duration.minutesPerDay ~/ Duration.minutesPerHour;
   final rest = minutes % Duration.minutesPerHour;
   return [
-    'Rings in',
     if (days > 0) '$days d',
     if (hours > 0) '$hours h',
     if (rest > 0) '$rest min',
   ].join(' ');
 }
+
+/// The line of the sleep calculator for [advice] at [now].
+///
+/// Before the bedtime, "Bed by 10:30 PM for 8 h of sleep", with the day in
+/// front of the time when the bedtime is not today, such as "Bed by Sun
+/// 11:00 PM for 8 h of sleep". From the bedtime on, "Sleep now: 7 h 5 min".
+/// [clock] writes a time of day as the device shows it.
+String sleepText(
+  SleepAdvice advice, {
+  required DateTime now,
+  required String Function(DateTime time) clock,
+}) => switch (advice) {
+  BedBy(:final bedtime, :final goal) =>
+    'Bed by ${_dayUnlessToday(bedtime, now)}${clock(bedtime.toLocal())} '
+        'for ${_span(goal.inMinutes)} of sleep',
+  SleepNow(:final sleep) when sleep.inMinutes < 1 => 'Sleep now: under 1 min',
+  SleepNow(:final sleep) => 'Sleep now: ${_span(sleep.inMinutes)}',
+};
+
+/// "Sun " if [time] is on another day than [now], else nothing.
+String _dayUnlessToday(DateTime time, DateTime now) {
+  final (a, b) = (time.toLocal(), now.toLocal());
+  final today = (a.year, a.month, a.day) == (b.year, b.month, b.day);
+  return today ? '' : '${dayName(a.weekday)} ';
+}
+
+/// An alarm's label, if it has one, and how often it rings: "Work ·
+/// Weekdays", or "Once".
+String alarmDetails(Alarm alarm) => [
+  if (alarm.label.isNotEmpty) alarm.label,
+  repeatText(alarm.repeatDays),
+].join(' · ');
 
 /// How often an alarm with these [repeatDays] rings: "Once", "Every day",
 /// "Weekdays", "Weekends", or its days from Monday on, such as
@@ -35,7 +76,20 @@ String repeatText(Set<int> repeatDays) {
 /// The short name of a [DateTime.weekday]: "Mon" for 1 to "Sun" for 7.
 String dayName(int weekday) => _dayNames[weekday - DateTime.monday];
 
+/// The full name of a [DateTime.weekday]: "Monday" for 1 to "Sunday" for 7.
+String fullDayName(int weekday) => _fullDayNames[weekday - DateTime.monday];
+
 const _dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+const _fullDayNames = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+];
 
 /// A genre as the user reads it: its name in the library with a capital
 /// first letter, such as "Pop" for `pop` and "Hip-hop" for `hip-hop`.
