@@ -305,4 +305,7 @@ Add an entry when a task makes a choice that the code does not explain by itself
   - The cost, measured on 2026-10-29: GitHub Pages sends `canvaskit.wasm` gzipped, 2,080,793 bytes, where gstatic sends it as brotli, 1,555,790 bytes. That is about 0.5 MB more at a first visit, about 3.3 MB on the wire in all. GitHub Pages lets browsers cache files for 10 minutes, and each deploy gives every file a new date, so a returning visitor downloads CanvasKit again after a deploy; gstatic's copy keeps for a year. Browsers keep a separate cache per site anyway, so the CDN never saved our visitors a download made for another site. For a test version that is acceptable.
   - Turned down: keeping the CDN (smaller and longer cached, but a request to Google and a second host the app depends on), and `--static-assets-url` with another host (one more service).
   - The site README is the one place on the site that still had the old name (spec section 2).
-- **Limits / follow-up:** a glyph that no bundled font has still makes the engine download a Noto font from `fonts.gstatic.com` (2.2a). GitHub Pages has a soft limit of 100 GB of traffic a month (0.4), about 30,000 first visits at 3.3 MB.
+- **Limits / follow-up:**
+  - Checked on the live site after the deploy of `b2e3e19`, in headless Chrome 156 with fresh profiles: a first visit made 18 requests, all to `aseke-quick.github.io`, 3,268,230 bytes on the wire; an alarm saved there was still there after a reload; the console showed no warning or error.
+  - A glyph that no bundled font has still makes the engine download a Noto font from `fonts.gstatic.com` (2.2a).
+  - GitHub Pages has a soft limit of 100 GB of traffic a month (0.4), about 30,000 first visits at 3.3 MB.
