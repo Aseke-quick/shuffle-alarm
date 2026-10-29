@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'package:shuffle_alarm/data/providers.dart';
+import 'package:shuffle_alarm/design/components/status_view.dart';
+import 'package:shuffle_alarm/design/components/wide_button.dart';
 
 /// What the app shows instead of the alarms when its database cannot open,
 /// such as in a browser that blocks the site's storage (docs/DECISIONS.md,
@@ -15,42 +17,19 @@ class DatabaseErrorView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
-            const SizedBox(height: 16),
-            Text(
-              'Alarms are not available',
-              style: theme.textTheme.titleLarge,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'The app could not open its storage, so it cannot show or '
-              'save alarms, and no alarm can ring. '
-              '${kIsWeb ? _webHint : _deviceHint}',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            FilledButton.tonal(
-              // A new database, which tries to open again.
-              onPressed: () => ref.invalidate(databaseProvider),
-              child: const Text('Try again'),
-            ),
-            const SizedBox(height: 16),
-            SelectableText(
-              '$error',
-              style: theme.textTheme.bodySmall,
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+    return StatusView(
+      error: true,
+      title: 'Alarms are not available',
+      message:
+          'The app could not open its storage, so it cannot show or save '
+          'alarms, and no alarm can ring. '
+          '${kIsWeb ? _webHint : _deviceHint}',
+      action: WideButton.secondary(
+        label: 'Try again',
+        // A new database, which tries to open again.
+        onPressed: () => ref.invalidate(databaseProvider),
       ),
+      detail: '$error',
     );
   }
 }

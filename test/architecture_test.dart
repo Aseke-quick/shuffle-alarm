@@ -2,8 +2,9 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// Guards the layer rules from the Architecture section of CLAUDE.md, and the
-/// Material import rule from docs/DECISIONS.md.
+/// Guards the layer rules from the Architecture section of CLAUDE.md, the
+/// Material import rule from docs/DECISIONS.md, and the design rules of
+/// ADR-001 (`.10x/adrs/001-wakemix-design-system.md`).
 void main() {
   group('Layer rules', () {
     test('lib/core is pure Dart: no Flutter, no other app layer', () {
@@ -26,6 +27,49 @@ void main() {
 
       expect(violations, isEmpty);
     });
+
+    test('lib/design imports nothing from lib/data or lib/features', () {
+      // Its widgets take plain values; the features look the values up.
+      final violations = _violationsIn(
+        'lib/design',
+        (target) =>
+            target.startsWith('lib/data/') ||
+            target.startsWith('lib/features/'),
+      );
+
+      expect(violations, isEmpty);
+    });
+  });
+
+  test('lib/features has no color literals: colors come from the theme', () {
+    final dir = Directory('lib/features');
+    final violations = [
+      for (final file in dir.listSync(recursive: true).whereType<File>())
+        if (file.path.endsWith('.dart'))
+          for (final literal in _colorLiterals(file.readAsStringSync()))
+            '${file.path} has $literal',
+    ];
+
+    expect(violations, isEmpty);
+  });
+
+  test('the color scanner sees every way to write a color', () {
+    const source = '''
+const a = Color(0xFF5B8CFF);
+final b = Color( 0xff000000 );
+final c = Color.fromARGB(255, 91, 140, 255);
+final d = ui.Color.fromRGBO(91, 140, 255, 1);
+// Color(0xFFFFFFFF) in a comment is fine, and so is a lerp:
+final e = Color.lerp(x, y, 0.5);
+final f = WakemixColors.of(context).accent;
+''';
+
+    expect(_colorLiterals(source), [
+      'Color(0xFF5B8CFF)',
+      'Color( 0xff000000 )',
+      'Color.fromARGB(255, 91, 140, 255)',
+      'Color.fromRGBO(91, 140, 255, 1)',
+    ]);
   });
 
   test('lib takes Material and Cupertino from their packages, not the SDK', () {
@@ -78,6 +122,18 @@ const _platformImplementations = [
   'lib/platform/desktop/',
   'lib/platform/web/',
 ];
+
+/// The colors written out in [source], outside comments: `Color(0x...)`,
+/// `Color.fromARGB(...)` and `Color.fromRGBO(...)`.
+List<String> _colorLiterals(String source) => [
+  for (final line in source.split('\n'))
+    if (!line.trimLeft().startsWith('//'))
+      for (final match in _colorLiteral.allMatches(line)) match[0]!,
+];
+
+final _colorLiteral = RegExp(
+  r'\bColor(?:\(\s*0x[0-9A-Fa-f]+\s*\)|\.from(?:ARGB|RGBO)\([^)]*\))',
+);
 
 /// Every import in the Dart files under [folder] that [isForbidden] rejects.
 List<String> _violationsIn(String folder, bool Function(String) isForbidden) {

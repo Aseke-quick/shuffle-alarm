@@ -5,6 +5,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:shuffle_alarm/app.dart';
 import 'package:shuffle_alarm/data/database.dart';
 import 'package:shuffle_alarm/data/providers.dart';
+import 'package:shuffle_alarm/design/components/nav_bar.dart';
+import 'package:shuffle_alarm/design/components/wordmark.dart';
 import 'package:shuffle_alarm/router.dart';
 
 import 'data/memory_database.dart';
@@ -31,7 +33,7 @@ void main() {
 
     await _tapTab(tester, 'Alarms');
     _expectTab(tester, 'Alarms', index: 0);
-    expect(find.text('No alarms yet.'), findsOneWidget);
+    expect(find.text('No alarm set'), findsOneWidget);
   });
 
   testWidgets('the gear opens Settings above the tabs, Back returns to them', (
@@ -45,7 +47,7 @@ void main() {
 
     expect(find.widgetWithText(AppBar, 'Settings'), findsOneWidget);
     expect(find.text('No settings yet.'), findsOneWidget);
-    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byType(WakemixNavBar), findsNothing);
 
     await tester.pageBack();
     await tester.pumpAndSettle();
@@ -78,14 +80,23 @@ Future<void> _openApp(WidgetTester tester, AppDatabase db) async {
 /// Taps the tab with this [label] in the bottom navigation bar.
 Future<void> _tapTab(WidgetTester tester, String label) async {
   await tester.tap(
-    find.descendant(of: find.byType(NavigationBar), matching: find.text(label)),
+    find.descendant(of: find.byType(WakemixNavBar), matching: find.text(label)),
   );
   await tester.pumpAndSettle();
 }
 
 /// Checks that the tab with this [title] is open and selected in the bar.
+/// The Alarms tab has the wordmark as its title.
 void _expectTab(WidgetTester tester, String title, {required int index}) {
-  expect(find.widgetWithText(AppBar, title), findsOneWidget);
-  final bar = tester.widget<NavigationBar>(find.byType(NavigationBar));
+  expect(
+    title == 'Alarms'
+        ? find.descendant(
+            of: find.byType(AppBar),
+            matching: find.byType(Wordmark),
+          )
+        : find.widgetWithText(AppBar, title),
+    findsOneWidget,
+  );
+  final bar = tester.widget<WakemixNavBar>(find.byType(WakemixNavBar));
   expect(bar.selectedIndex, index);
 }

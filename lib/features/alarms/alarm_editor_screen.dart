@@ -2,11 +2,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'package:shuffle_alarm/core/bedtime.dart';
 import 'package:shuffle_alarm/core/models/alarm.dart';
 import 'package:shuffle_alarm/core/models/clock_time.dart';
 import 'package:shuffle_alarm/core/next_ring.dart';
 import 'package:shuffle_alarm/data/ids.dart';
 import 'package:shuffle_alarm/data/providers.dart';
+import 'package:shuffle_alarm/design/components/day_keys.dart';
+import 'package:shuffle_alarm/design/components/layout.dart';
+import 'package:shuffle_alarm/design/components/rotary_time_dial.dart';
+import 'package:shuffle_alarm/design/components/section_label.dart';
+import 'package:shuffle_alarm/design/components/status_view.dart';
+import 'package:shuffle_alarm/design/components/wide_button.dart';
+import 'package:shuffle_alarm/design/theme.dart';
+import 'package:shuffle_alarm/design/tokens.dart';
 import 'package:shuffle_alarm/features/alarms/alarm_texts.dart';
 import 'package:shuffle_alarm/features/alarms/alarm_writes.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
@@ -46,7 +55,7 @@ class _AlarmEditorScreenState extends ConsumerState<AlarmEditorScreen> {
         final alarm = alarms.where((alarm) => alarm.id == id).firstOrNull;
         if (alarm == null) {
           return const _Message(
-            child: Center(child: Text('This alarm no longer exists.')),
+            child: StatusView(title: 'This alarm no longer exists.'),
           );
         }
         _alarm = alarm;
@@ -68,7 +77,7 @@ class _Message extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Edit alarm')),
+      appBar: const ContentAppBar(title: Text('Edit alarm')),
       body: child,
     );
   }
@@ -131,11 +140,16 @@ class _AlarmFormState extends ConsumerState<_AlarmForm> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final c = WakemixColors.of(context);
+    final type = WakemixType.of(context);
+    final hint = Theme.of(context).textTheme.bodySmall!
+        .copyWith(color: c.textMuted);
     final now = ref.watch(clockProvider);
-    final time = TimeOfDay(hour: _time.hour, minute: _time.minute);
+    // Switched on, so it has a next ring.
+    final ring = nextRing(_edited(), now)!;
+    const gutter = EdgeInsets.symmetric(horizontal: Layout.gutter);
     return Scaffold(
-      appBar: AppBar(
+      appBar: ContentAppBar(
         title: Text(_isNew ? 'New alarm' : 'Edit alarm'),
         actions: [
           if (!_isNew)
@@ -144,88 +158,113 @@ class _AlarmFormState extends ConsumerState<_AlarmForm> {
               icon: const Icon(Icons.delete_outline),
               onPressed: _busy ? null : _delete,
             ),
-          TextButton(
-            onPressed: _busy ? null : _save,
-            child: const Text('Save'),
-          ),
-          const SizedBox(width: 8),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: Column(
         children: [
-          Center(
-            child: Tooltip(
-              message: 'Change the time',
-              child: TextButton(
-                onPressed: _pickTime,
-                child: Text(
-                  time.format(context),
-                  style: theme.textTheme.displayMedium,
-                ),
+          Expanded(
+            child: ContentWidth(
+              child: ListView(
+                padding: const EdgeInsets.only(top: Space.s8),
+                children: [
+                  Padding(
+                    padding: gutter,
+                    child: RotaryTimeDial(
+                      time: TimeOfDay(hour: _time.hour, minute: _time.minute),
+                      onChanged: (time) => setState(
+                        () => _time = ClockTime(
+                          hour: time.hour,
+                          minute: time.minute,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: Space.s16),
+                  Padding(
+                    padding: gutter,
+                    child: Column(
+                      children: [
+                        Text(
+                          ringsIn(ring.difference(now)),
+                          textAlign: TextAlign.center,
+                          style: type.meta.copyWith(color: c.accentText),
+                        ),
+                        Text(
+                          sleepText(
+                            sleepAdvice(ring: ring, now: now),
+                            now: now,
+                            clock: (time) =>
+                                TimeOfDay.fromDateTime(time).format(context),
+                          ),
+                          textAlign: TextAlign.center,
+                          style: type.meta,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SectionLabel('Repeat'),
+                  // Narrower margins: on a phone 360 px wide, each key keeps
+                  // a touch target of 48 dp.
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: Space.s12),
+                    child: DayKeys(
+                      selected: _days,
+                      label: dayName,
+                      semanticsLabel: fullDayName,
+                      onChanged: (day, {required selected}) => setState(() {
+                        selected ? _days.add(day) : _days.remove(day);
+                      }),
+                    ),
+                  ),
+                  if (_days.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        Layout.gutter,
+                        Space.s8,
+                        Layout.gutter,
+                        0,
+                      ),
+                      child: Text(
+                        'No days chosen, so it rings once.',
+                        style: hint,
+                      ),
+                    ),
+                  const SizedBox(height: Space.s24),
+                  Padding(
+                    padding: gutter,
+                    child: TextField(
+                      controller: _label,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        labelText: 'Label',
+                        hintText: 'For example: Gym',
+                      ),
+                    ),
+                  ),
+                  const SectionLabel('Genres'),
+                  Padding(
+                    padding: gutter,
+                    child: _GenreChoice(
+                      chosen: _genres,
+                      onChanged: (genre, {required chosen}) => setState(() {
+                        chosen ? _genres.add(genre) : _genres.remove(genre);
+                      }),
+                    ),
+                  ),
+                  const SizedBox(height: Space.s24),
+                ],
               ),
             ),
           ),
-          Text(
-            // Switched on, so it has a next ring.
-            ringsIn(nextRing(_edited(), now)!.difference(now)),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          Text('Repeat', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (var day = DateTime.monday; day <= DateTime.sunday; day++)
-                FilterChip(
-                  label: Text(dayName(day)),
-                  selected: _days.contains(day),
-                  onSelected: (selected) => setState(() {
-                    selected ? _days.add(day) : _days.remove(day);
-                  }),
-                ),
-            ],
-          ),
-          if (_days.isEmpty) ...[
-            const SizedBox(height: 8),
-            Text(
-              'No days chosen, so it rings once.',
-              style: theme.textTheme.bodySmall,
+          BottomAction(
+            child: WideButton(
+              label: 'Save alarm',
+              onPressed: _busy ? null : _save,
             ),
-          ],
-          const SizedBox(height: 24),
-          TextField(
-            controller: _label,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              labelText: 'Label',
-              hintText: 'For example: Gym',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text('Genres', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
-          _GenreChoice(
-            chosen: _genres,
-            onChanged: (genre, {required chosen}) => setState(() {
-              chosen ? _genres.add(genre) : _genres.remove(genre);
-            }),
           ),
         ],
       ),
     );
-  }
-
-  Future<void> _pickTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(hour: _time.hour, minute: _time.minute),
-    );
-    if (picked == null || !mounted) return;
-    setState(() => _time = ClockTime(hour: picked.hour, minute: picked.minute));
   }
 
   Future<void> _save() async {
@@ -240,16 +279,20 @@ class _AlarmFormState extends ConsumerState<_AlarmForm> {
   }
 
   Future<void> _delete() async {
+    final danger = WakemixColors.of(context).danger;
     final sure = await showDialog<bool>(
       context: context,
+      animationStyle: Motion.styleOf(context),
       builder: (context) => AlertDialog(
         title: const Text('Delete this alarm?'),
+        content: const Text('It will not ring again.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
           TextButton(
+            style: TextButton.styleFrom(foregroundColor: danger),
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Delete'),
           ),
@@ -280,7 +323,8 @@ class _GenreChoice extends ConsumerWidget {
     final library = ref.watch(genresProvider).value ?? const <String>[];
     // Also a chosen genre the library no longer has, so it can be taken off.
     final genres = {...library, ...chosen}.toList()..sort();
-    final hint = Theme.of(context).textTheme.bodySmall;
+    final hint = Theme.of(context).textTheme.bodySmall!
+        .copyWith(color: WakemixColors.of(context).textMuted);
     if (genres.isEmpty) {
       return Text(
         'The library has no genres yet, so this alarm plays every sound.',
@@ -291,8 +335,8 @@ class _GenreChoice extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: Space.s8,
+          runSpacing: Space.s8,
           children: [
             for (final genre in genres)
               FilterChip(
@@ -303,7 +347,7 @@ class _GenreChoice extends ConsumerWidget {
           ],
         ),
         if (chosen.isEmpty) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: Space.s8),
           Text('None chosen, so it plays every genre.', style: hint),
         ],
       ],
