@@ -280,3 +280,17 @@ Add an entry when a task makes a choice that the code does not explain by itself
   - `find.byTooltip` of `flutter_test` 3.47 matches `material_ui`'s `Tooltip` only through its semantics, so a tooltip that a test looks for must keep `excludeFromSemantics` false.
   - In the first minute after the app opens, "Rings in" (rounded up) and "Sleep now" (rounded down) can differ by one minute; from the next minute on the clock ticks on the minute and they agree.
   - Checked on 2026-10-29 in headless Chrome 156 with a fresh profile, built with the site's base href: the Alarms tab empty and with three alarms, and the editor, in dark and light at 390 × 844 and 1280 × 800; three alarms made through the UI (the time typed in the picker, label, days, Save) and one switched off; a mouse drag on the dial from :40 across 12 o'clock to :15 (5:12 PM became 6:15 PM). The console showed only Flutter's script loader and drift's storage mode, no warning or error, and no request went to `fonts.gstatic.com`. A viewport set through the DevTools protocol ends with its session, and Flutter's semantics DOM keeps old positions after the device pixel ratio changes until the page reloads.
+
+## 2026-10-29 · 2.2a + 2.3 · QA review and merge of both branches
+- **Decision:** both branches passed the QA gate of spec section 4, and both are on `main`. The reports: `.10x/reviews/2026-10-29-2.3-qa.md` and `.10x/reviews/2026-10-29-2.2a-qa.md`.
+  - Task 2.3 went first, as a fast-forward (`48c00e0`). The 2.2a commit was cherry-picked onto it with its message (`70fb5bf`, "cherry picked from commit 47951f4").
+  - In `PLAN.md`, this file and `.10x/status.md`, both entries, both Progress log lines and both status lines stay, 2.3 first because it was finished first.
+  - Two bugs that the review found in 2.2a are fixed on top, each with a test that failed before the fix (`049c165`):
+    - The chip theme gave a selected chip's label the plain text color, 2.88:1 on the accent in dark. Its color now follows the fill: `onAccent` when selected.
+    - The rotary dial ignores a win in the gesture arena that comes after its pointer is up. Before, a tap on the ring made the dial's next drag give way to the list around it after 18 px.
+- **Why:**
+  - The user delegated every decision on 2026-10-29 ("choose the best option yourself"), which stands in for the yes the spec asks before a merge.
+  - A linear history keeps each task one commit, as on `main` so far. Turned down: a merge commit, which adds nothing here because the code merged cleanly.
+  - Both bugs were small and had a clear cause, so they were fixed on the merge branch rather than sent back to agent A.
+  - Not blocking, and left as they are (the 2.2a report lists them): the switch thumb that still moves when less motion is asked for, unselected chips and day keys told from the page by their fill only, the Noto fonts for glyphs the bundled fonts lack, and tabs that screen readers call buttons.
+- **Limits / follow-up:** checked in headless Chrome 156 with a fresh profile, built with the site's base href: the editor shows the genres of 2.3 as chips with no code change, and `lib/main.dart` still starts `ShuffleAlarmApp`. When Chrome is driven through the DevTools protocol, `Runtime.enable` first replays the console of the page that is already open, so read the console of a fresh load.
