@@ -1,6 +1,6 @@
 # Handoff
 
-**From:** strategy (CTO, PM), 2026-10-29. **To:** the architect and staff engineer.
+**From:** design (architect, staff engineer), 2026-10-29. **To:** the engineering manager and senior engineer.
 
-- The whole spec is approved; strategy and scope are in `decisions/cto/` and `decisions/product-manager/`.
-- Next: ADR-001, for the design system and theme layer in `lib/design/`, and the architect and staff notes for `visual-identity`.
+- ADR-001 is accepted: the `lib/design/` layer, tokens and a `ThemeExtension`, bundled fonts, presentational components, and two new architecture-test rules.
+- Next: the task plan for agents A (2.2a) and B (2.3), and their implementation approach.

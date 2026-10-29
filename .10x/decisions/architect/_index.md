@@ -9,3 +9,4 @@
 - [DISCOVERED] Routing: tabs Alarms, Library and Insights in a `StatefulShellRoute`. Settings and the alarm editor open above the tabs, through the root navigator (`lib/router.dart`).
 - [DISCOVERED] State: hand-written Riverpod providers, no code generation. `clockProvider` ticks at each minute.
 - No theme layer yet: `lib/app.dart` builds `ThemeData` from a seed color. The redesign adds one (sub-project `visual-identity`).
+- 2026-10-29 · `visual-identity`: the `lib/design/` layer and ADR-001 (see `visual-identity.md`).

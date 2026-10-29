@@ -8,3 +8,4 @@
 - [DISCOVERED] Material comes only from `package:material_ui`, never from the SDK copy (docs/DECISIONS.md 0.3).
 - [DISCOVERED] Code and docs are in plain English, with comments that explain why. Decisions are recorded in `docs/DECISIONS.md`.
 - [DISCOVERED] Widget-test rules: see docs/DECISIONS.md 2.2, Limits. Fake time: never await a cancel or close; never close the memory database in widget tests.
+- 2026-10-29 · `visual-identity`: patterns for the design layer (see `visual-identity.md`).
