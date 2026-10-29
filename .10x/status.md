@@ -1,6 +1,6 @@
 # Status
 
-- **Phase:** Discovery complete → Phase 0, brainstorming the redesign (started 2026-10-29).
+- **Phase:** Phase 0, brainstorming: the spec is written (`.10x/specs/2026-10-29-wakemix-redesign-design.md`) and waits for the user's review.
 - **Team setup (the user's choice, 2026-10-29):** this session leads the process and writes the spec. After the user approves it, two agents work in parallel, each in its own worktree and branch: the design system, and `PLAN.md` task 2.3. A QA review of each branch comes before it merges into `main`, and only on the user's yes.
 
 ## Sub-projects of the redesign
@@ -8,9 +8,9 @@ The user wants the app to look and work clearly differently from https://github.
 
 | Slug | What | State |
 | --- | --- | --- |
-| `visual-identity` | Own design system (colors, type, components, motion) and every screen restyled | Brainstorming: three directions shown (Mixtape, Instrument, Poster) |
-| `signature-features` | Features of our own beyond `PLAN.md` | Brainstorming: four candidates shown |
-| `brand-name` | Maybe a new app name instead of "Shuffle Alarm" | Brainstorming |
+| `visual-identity` | Own design system (colors, type, components, motion) and every screen restyled | Spec section 1, approved (2026-10-29): Mixtape at "masterpiece" level with a **Cobalt** accent (`#5B8CFF` on dark), **Unbounded** for display and **Geist** for text (Geist Mono for small meta), and the elements vinyl-record hero, alarm tracklist with mini waveforms, rotary time dial, and a wide "New alarm" button |
+| `signature-features` | Features of our own beyond `PLAN.md` | Spec section 3, approved: sleep calculator in 2.2a; new tasks 2.4a bedtime reminder, 2.5a **Tonight's mix**, 2.5b **Morning card**. Chosen (2026-10-29): **Tonight's mix**, **Morning card**, **Sleep calculator**. Not chosen: Name that sound |
+| `brand-name` | A new app name instead of "Shuffle Alarm" | Spec section 2, approved: display name only; package, app IDs, database name and site URL stay. Chosen (2026-10-29): **Wakemix**. A web search found no alarm app of that name, but there was no trademark check (due before task 8) |
 
 ## PLAN.md progress
 Phase 0 and Phase 1 done; 2.1 and 2.2 done. Next: 2.3 (placeholder library).
