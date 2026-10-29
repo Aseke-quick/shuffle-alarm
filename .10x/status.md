@@ -20,6 +20,7 @@ Phase 0 and Phase 1 done; 2.1, 2.2, 2.2a and 2.3 done. Next: 2.4 (web scheduler)
 - [x] 2.3 Placeholder library and sync: agent B, on `main` as `48c00e0`; QA passed (`reviews/2026-10-29-2.3-qa.md`, `decisions/sde/placeholder-library.md`)
 - [x] QA review and merge of each branch: done 2026-10-29 by the merge session; CI run 40879685261 green and deployed; the live site checked in headless Chrome
 - [x] Follow-ups of the hand-overs: the site serves CanvasKit itself and its README says Wakemix (`b2e3e19`, CI run 40880832565 green and deployed; the live site checked again)
+- [x] Security and SRE review of 2.2a and 2.3: pass, 2026-10-30 (`reviews/2026-10-30-2.2a-2.3-security.md`). Two risks for the first ring are in `decisions/sre/placeholder-library.md`
 
 ## Quality (QA, 2026-10-29)
 - 358 tests: 350 pass and 8 skip outside a time zone with daylight saving time, which CI runs in two such zones. Format and analyze clean, locally and in CI.
