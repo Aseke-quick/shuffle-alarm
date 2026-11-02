@@ -4,11 +4,19 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:shuffle_alarm/core/adaptive_weights.dart';
 import 'package:shuffle_alarm/core/due_rings.dart';
+import 'package:shuffle_alarm/core/fallback_tone.dart';
 import 'package:shuffle_alarm/core/models/alarm.dart';
+import 'package:shuffle_alarm/core/models/ring_event.dart';
+import 'package:shuffle_alarm/core/models/ring_session.dart';
+import 'package:shuffle_alarm/core/models/sound.dart';
 import 'package:shuffle_alarm/core/ring_position.dart';
 import 'package:shuffle_alarm/core/ring_sequence.dart';
+import 'package:shuffle_alarm/core/snooze.dart';
+import 'package:shuffle_alarm/data/ids.dart';
 import 'package:shuffle_alarm/data/providers.dart';
+import 'package:shuffle_alarm/data/sound_repository.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
 import 'package:shuffle_alarm/platform/providers.dart';
 import 'package:shuffle_alarm/platform/sound_player.dart';
@@ -16,34 +24,58 @@ import 'package:shuffle_alarm/platform/sound_player.dart';
 /// The alarm that rings now.
 @immutable
 class Ringing {
-  const Ringing(this.due, {this.audible = true, this.over = false});
+  const Ringing(this.due, {this.sound, this.audible = true, this.over = false});
 
   /// The ring: which alarm, set for when.
   final DueRing due;
 
+  /// The sound that plays now, or null while none does.
+  final Sound? sound;
+
   /// Whether its sound plays. False when the platform blocks it, such as a
-  /// browser that had no tap on "Arm alarms", or when no clip could be read.
+  /// browser that had no tap on "Arm alarms".
   final bool audible;
 
   /// Whether it reached its time cap without a Stop, and went quiet: a
   /// missed alarm.
   final bool over;
 
-  Ringing copyWith({bool? audible, bool? over}) =>
-      Ringing(due, audible: audible ?? this.audible, over: over ?? this.over);
-
   @override
   bool operator ==(Object other) =>
       other is Ringing &&
       other.due == due &&
+      other.sound == sound &&
       other.audible == audible &&
       other.over == over;
 
   @override
-  int get hashCode => Object.hash(due, audible, over);
+  int get hashCode => Object.hash(due, sound, audible, over);
 
   @override
-  String toString() => 'Ringing($due, audible: $audible, over: $over)';
+  String toString() =>
+      'Ringing($due, sound: ${sound?.id}, audible: $audible, over: $over)';
+}
+
+/// An alarm that was snoozed: the ring that comes back, and its session so
+/// far.
+@immutable
+class SnoozedRing {
+  const SnoozedRing(this.due, this.session);
+
+  /// The ring that comes back, at [DueRing.startsAt].
+  final DueRing due;
+
+  final RingSession session;
+
+  @override
+  bool operator ==(Object other) =>
+      other is SnoozedRing && other.due == due && other.session == session;
+
+  @override
+  int get hashCode => Object.hash(due, session);
+
+  @override
+  String toString() => 'SnoozedRing($due)';
 }
 
 /// The alarm that rings now, or null.
@@ -51,19 +83,56 @@ final ringingProvider = NotifierProvider<RingingController, Ringing?>(
   RingingController.new,
 );
 
-/// Rings the alarms that come due (task 2.4).
+/// The alarms that were snoozed and come back, soonest first.
+final snoozedRingsProvider = NotifierProvider<SnoozedRings, List<SnoozedRing>>(
+  SnoozedRings.new,
+);
+
+/// The list behind [snoozedRingsProvider], which [RingingController] keeps.
+class SnoozedRings extends Notifier<List<SnoozedRing>> {
+  @override
+  List<SnoozedRing> build() => const [];
+
+  void add(SnoozedRing ring) {
+    state = [...state, ring]
+      ..sort((a, b) => a.due.startsAt.compareTo(b.due.startsAt));
+  }
+
+  void remove(SnoozedRing ring) {
+    state = [
+      for (final other in state)
+        if (other != ring) other,
+    ];
+  }
+}
+
+/// Rings the alarms that come due (task 2.4), and logs each ring (task 2.5).
 ///
 /// It hands the alarms to the platform's `AlarmScheduler`. When one comes
 /// due, it plays the alarm's ring sequence (`buildRingSequence`), one clip
-/// after the other, from where the clock says (`ringPosition`), until Stop
-/// or the time cap.
+/// after the other, from where the clock says (`ringPosition`), until Stop,
+/// Snooze or the time cap.
 ///
 /// - A one-time alarm switches off when it comes due, so it rings once.
 /// - A ring found after its time cap is over is missed: no sound.
 /// - One ring at a time: an alarm that comes due while another rings does
-///   not ring.
+///   not ring, and is missed. A ring that went quiet at its cap holds back
+///   nothing.
+/// - Snooze gives the `AlarmScheduler` a ring after Snooze, which comes due
+///   like any other, also after a late check. Each ring has a time cap of its
+///   own. A snooze ends with `stopSnoozed`, when its alarm is deleted, or
+///   when its repeating alarm is switched off, and it outlives a reload of
+///   the app: the log says what still comes back.
 ///
-/// Task 2.5 builds the ringing screen, Snooze and the ring log on it.
+/// Every sound goes in the log when it ends, so a tab closed in the middle of
+/// a ring leaves it as missed. A log or a weight that cannot be written only
+/// goes to the debug log: an alarm never fails for its log.
+///
+/// A ring always has something to play: the sounds of the device, the library
+/// straight from its files when there are none (`ringSoundsProvider`), or
+/// else the tone that the player makes itself ([fallbackTone]), which also
+/// takes the place of a clip that cannot be read. Only a platform that blocks
+/// the sound makes it ring without one, and says so ([Ringing.audible]).
 class RingingController extends Notifier<Ringing?> {
   final _random = Random();
 
@@ -73,25 +142,75 @@ class RingingController extends Notifier<Ringing?> {
   List<RingClip> _clips = const [];
   Map<String, String> _assets = const {};
 
+  /// The session of the ring that rings, or that went quiet last.
+  late RingSession _session;
+
+  /// The sound that plays now, and when it started.
+  ({Sound sound, DateTime startedAt})? _playing;
+
+  /// Ends the ring at its time cap, also when no clip reports its end, such
+  /// as a ring with its sound blocked.
+  Timer? _capTimer;
+
+  /// The writes to the log and the weights, one after the other.
+  Future<void> _writes = Future.value();
+
   @override
   Ringing? build() {
     final scheduler = ref.watch(alarmSchedulerProvider);
     ref.listen(alarmsProvider, (_, next) {
-      if (next.value case final alarms?) scheduler.watch(alarms);
+      if (next.value case final alarms?) {
+        scheduler.watch(alarms);
+        _endSnoozesWithoutAlarm(alarms);
+      }
     }, fireImmediately: true);
     final due = scheduler.dueRings.listen(_onDue);
     ref.onDispose(() {
       _playback++;
+      _capTimer?.cancel();
       unawaited(due.cancel());
     });
+    unawaited(_restoreSnoozes());
     return null;
   }
 
+  DateTime get _now => ref.read(nowProvider)();
+
+  SnoozedRings get _snoozed => ref.read(snoozedRingsProvider.notifier);
+
   void _onDue(DueRing due) {
-    if (due.alarm.repeatDays.isEmpty) unawaited(_switchOff(due.alarm));
-    if (state != null || _starting) return;
+    final snoozed = _takeSnoozed(due);
+    if (snoozed == null && due.alarm.repeatDays.isEmpty) {
+      unawaited(_switchOff(due.alarm));
+    }
+    final session =
+        snoozed?.session ??
+        RingSession(
+          id: newId(),
+          alarmId: due.alarm.id,
+          scheduledFor: due.scheduledFor,
+        );
+    final ringing = state;
+    if (_starting || (ringing != null && !ringing.over)) {
+      debugPrint(
+        'Missed the alarm set for ${due.scheduledFor}: another one rings',
+      );
+      _log(session.missedAt(_now));
+      return;
+    }
     _starting = true;
-    unawaited(_start(due).whenComplete(() => _starting = false));
+    unawaited(_start(due, session).whenComplete(() => _starting = false));
+  }
+
+  /// Takes the snoozed ring that came due as [due] out of the list.
+  SnoozedRing? _takeSnoozed(DueRing due) {
+    for (final snoozed in ref.read(snoozedRingsProvider)) {
+      if (snoozed.due == due) {
+        _snoozed.remove(snoozed);
+        return snoozed;
+      }
+    }
+    return null;
   }
 
   /// Switches off the one-time [alarm] that came due, unless the user
@@ -109,69 +228,107 @@ class RingingController extends Notifier<Ringing?> {
     }
   }
 
-  Future<void> _start(DueRing due) async {
-    try {
-      final sounds = await ref.read(soundRepositoryProvider).all();
-      final weights = await ref.read(weightRepositoryProvider).load();
-      _assets = {
-        for (final stored in sounds) stored.sound.id: stored.audioPath,
-      };
-      _clips = sounds.isEmpty
-          ? const []
-          : buildRingSequence(
-              due.alarm,
-              [for (final stored in sounds) stored.sound],
-              weights,
-              _random.nextInt(1 << 30),
-            );
-    } on Object catch (error) {
-      // It still rings, without sound: better seen than not at all.
-      debugPrint('Could not make the ring sequence: $error');
-      _clips = const [];
-    }
-    final elapsed = ref.read(nowProvider)().difference(due.scheduledFor);
-    final missed = _clips.isEmpty
-        ? elapsed >= defaultRingCap
-        : ringPosition(_clips, elapsed) == null;
+  Future<void> _start(DueRing due, RingSession session) async {
+    final sounds = await _soundsToPlay();
+    final weights = await _weights();
+    if (!ref.mounted) return;
+    _assets = {for (final stored in sounds) stored.sound.id: stored.audioPath};
+    _clips = buildRingSequence(
+      due.alarm,
+      sounds.isEmpty ? [fallbackTone] : [for (final s in sounds) s.sound],
+      weights,
+      _random.nextInt(1 << 30),
+      snoozedSoundId: due.snoozedSoundId,
+    );
+    final now = _now;
+    final elapsed = now.difference(due.startsAt);
+    final missed = ringPosition(_clips, elapsed) == null;
     // One line in the log for each ring, which says how late the check
     // found it: a tester can read it in the browser's console.
     debugPrint(
       '${missed ? 'Missed' : 'Ringing'} the alarm set for '
-      '${due.scheduledFor}, found ${elapsed.inMilliseconds} ms after it',
+      '${due.scheduledFor}${due.snoozedSoundId == null ? '' : ', snoozed'}, '
+      'found ${elapsed.inMilliseconds} ms after '
+      '${due.snoozedSoundId == null ? 'it' : 'the snooze'}',
     );
-    if (missed || !ref.mounted) return;
-    state = Ringing(due, audible: _clips.isNotEmpty);
-    if (_clips.isNotEmpty) unawaited(_play(due));
+    if (missed) {
+      _log(session.missedAt(now));
+      return;
+    }
+    _session = session;
+    _log(session);
+    _capTimer?.cancel();
+    _capTimer = Timer(_clips.last.endsAt - elapsed, () {
+      if (state case Ringing(:final due, over: false)) _goQuiet(due);
+    });
+    state = Ringing(due);
+    unawaited(_play(due));
+  }
+
+  /// The sounds of the device, or of the library. None when neither can be
+  /// read: the ring then plays the tone.
+  Future<List<StoredSound>> _soundsToPlay() async {
+    try {
+      return await ref.read(ringSoundsProvider)();
+    } on Object catch (error) {
+      debugPrint('Could not read any sound, so the tone plays: $error');
+      return const [];
+    }
+  }
+
+  Future<SoundWeights> _weights() async {
+    try {
+      return await ref.read(weightRepositoryProvider).load();
+    } on Object catch (error) {
+      debugPrint('Could not read the weights: $error');
+      return const SoundWeights.start();
+    }
   }
 
   /// Plays the clips of the ring from where the clock says, one after the
-  /// other, until Stop or the time cap.
+  /// other, until Stop, Snooze or the time cap.
   Future<void> _play(DueRing due) async {
     final playback = ++_playback;
     final player = ref.read(soundPlayerProvider);
-    final now = ref.read(nowProvider);
     unawaited(
       player.preload({for (final clip in _clips) ?_assets[clip.sound.id]}),
     );
     var next = 0;
-    // Whether the last clip it tried could not be read, such as without a
-    // network: a ring that ends so has made no sound, and is not over.
-    var failed = false;
     while (playback == _playback) {
-      final at = ringPosition(_clips, now().difference(due.scheduledFor));
-      if (at == null) {
-        failed = false;
-        break;
-      }
+      final at = ringPosition(_clips, _now.difference(due.startsAt));
+      if (at == null) break;
       // Never back to a clip that played, such as one that ended a moment
-      // early; one that failed to play is skipped.
+      // early.
       final index = max(at.index, next);
       if (index >= _clips.length) break;
       final clip = _clips[index];
       final offset = index == at.index ? at.offset : Duration.zero;
       next = index + 1;
-      final asset = _assets[clip.sound.id];
-      if (asset == null) continue;
+      if (!await _playClip(clip, offset, due, playback)) return;
+      if (playback != _playback) return;
+      _logPlaying(RingAction.timeout);
+    }
+    if (playback == _playback) _goQuiet(due);
+  }
+
+  /// Plays [clip] from [offset], or the tone in its place when it has no file
+  /// or its file cannot be read. Returns false if no sound can play.
+  Future<bool> _playClip(
+    RingClip clip,
+    Duration offset,
+    DueRing due,
+    int playback,
+  ) async {
+    final player = ref.read(soundPlayerProvider);
+    void playing(Sound sound) {
+      if (playback != _playback) return;
+      _playing = (sound: sound, startedAt: _now);
+      state = Ringing(due, sound: sound);
+    }
+
+    final asset = _assets[clip.sound.id];
+    if (asset != null) {
+      playing(clip.sound);
       try {
         await player.play(
           asset,
@@ -179,36 +336,216 @@ class RingingController extends Notifier<Ringing?> {
           to: clip.window.end,
           volume: clip.volume,
         );
-        failed = false;
+        return true;
       } on SoundBlockedException {
-        if (playback == _playback) state = state?.copyWith(audible: false);
-        return;
+        _noSound(due, playback);
+        return false;
       } on Object catch (error) {
-        failed = true;
         debugPrint('Could not play ${clip.sound.id}: $error');
       }
     }
+    if (playback != _playback) return true;
+    playing(fallbackTone);
+    try {
+      await player.playTone(
+        length: clip.window.length - offset,
+        volume: clip.volume,
+      );
+      return true;
+    } on Object catch (error) {
+      debugPrint('Could not play the tone: $error');
+      _noSound(due, playback);
+      return false;
+    }
+  }
+
+  /// The ring goes on without sound, until a tap or its time cap.
+  void _noSound(DueRing due, int playback) {
     if (playback != _playback) return;
-    state = failed
-        ? state?.copyWith(audible: false)
-        : state?.copyWith(over: true);
+    _playing = null;
+    state = Ringing(due, audible: false);
+  }
+
+  /// The sound that plays ended as [action] says: in the log.
+  void _logPlaying(RingAction action) {
+    final playing = _playing;
+    if (playing == null) return;
+    _playing = null;
+    _session = _session.withEvent(
+      RingEvent(
+        soundId: playing.sound.id,
+        startedAt: playing.startedAt,
+        endedAt: _now,
+        action: action,
+      ),
+    );
+    _log(_session);
+  }
+
+  /// The ring reached its time cap without a tap: it goes quiet, and counts
+  /// as missed.
+  void _goQuiet(DueRing due) {
+    _playback++;
+    _capTimer?.cancel();
+    final wasPlaying = _playing != null;
+    _logPlaying(RingAction.timeout);
+    _session = _session.missedAt(_now);
+    _log(_session);
+    state = Ringing(due, over: true);
+    debugPrint('Missed the alarm set for ${due.scheduledFor}: its time is up');
+    if (wasPlaying) unawaited(ref.read(soundPlayerProvider).stop());
   }
 
   /// Unlocks the sound and plays the ring from where the clock says. Call it
   /// from a tap, such as on "Play sound" when the browser blocked it.
   Future<void> playSound() async {
     final ringing = state;
-    if (ringing == null || ringing.audible || _clips.isEmpty) return;
+    if (ringing == null || ringing.audible || ringing.over) return;
     if (!await ref.read(soundPlayerProvider).unlock()) return;
     if (!identical(state, ringing)) return;
-    state = ringing.copyWith(audible: true);
+    state = Ringing(ringing.due);
     unawaited(_play(ringing.due));
   }
 
-  /// Stops the ring.
+  /// Stops the ring: the log gets the Stop, and the sound at the tap gets
+  /// heavier. After its time cap it only closes the ring.
   Future<void> stop() async {
-    _playback++;
+    final ringing = state;
+    if (ringing == null) return;
+    if (!ringing.over) {
+      _endByTap(
+        ringing,
+        RingAction.stop,
+        learn: (weights, id) => weights.afterStop(id),
+      );
+    }
     state = null;
     await ref.read(soundPlayerProvider).stop();
+  }
+
+  /// Snoozes the ring: the log gets the Snooze, the sound at the tap gets
+  /// lighter, and the ring comes back after the snooze.
+  Future<void> snooze() async {
+    final ringing = state;
+    if (ringing == null || ringing.over) return;
+    final soundId = _endByTap(
+      ringing,
+      RingAction.snooze,
+      learn: (weights, id) => weights.afterSnooze(id),
+    );
+    final back = ringAfterSnooze(ringing.due, soundId: soundId, at: _now);
+    ref.read(alarmSchedulerProvider).schedule(back);
+    _snoozed.add(SnoozedRing(back, _session));
+    state = null;
+    debugPrint(
+      'Snoozed the alarm set for ${ringing.due.scheduledFor} until '
+      '${back.startsAt}',
+    );
+    await ref.read(soundPlayerProvider).stop();
+  }
+
+  /// Ends the ring with a tap, and returns the id of the sound at the tap: the
+  /// one that plays, which learns from the tap, or else the one the clock
+  /// says, which nobody heard.
+  String _endByTap(
+    Ringing ringing,
+    RingAction action, {
+    required SoundWeights Function(SoundWeights weights, String soundId) learn,
+  }) {
+    _playback++;
+    _capTimer?.cancel();
+    final playing = _playing;
+    if (playing != null) {
+      _logPlaying(action);
+      _learn(playing.sound.id, learn);
+      return playing.sound.id;
+    }
+    final now = _now;
+    final at = ringPosition(_clips, now.difference(ringing.due.startsAt));
+    final soundId = _clips[at?.index ?? _clips.length - 1].sound.id;
+    _session = _session.withEvent(
+      RingEvent.silent(soundId: soundId, at: now, action: action),
+    );
+    _log(_session);
+    return soundId;
+  }
+
+  /// Ends the snooze of [ring], so it does not come back: a Stop in the log,
+  /// without length, as no sound played.
+  void stopSnoozed(SnoozedRing ring) {
+    ref.read(alarmSchedulerProvider).cancel(ring.due);
+    _snoozed.remove(ring);
+    _log(_stopped(ring.session));
+  }
+
+  RingSession _stopped(RingSession session) => session.withEvent(
+    RingEvent.silent(
+      soundId: session.events.last.soundId,
+      at: _now,
+      action: RingAction.stop,
+    ),
+  );
+
+  /// Ends each snooze whose alarm was deleted, or whose repeating alarm was
+  /// switched off. A one-time alarm is off from its first ring on.
+  void _endSnoozesWithoutAlarm(List<Alarm> alarms) {
+    final byId = {for (final alarm in alarms) alarm.id: alarm};
+    for (final snoozed in ref.read(snoozedRingsProvider)) {
+      final alarm = byId[snoozed.due.alarm.id];
+      if (alarm == null || (alarm.repeatDays.isNotEmpty && !alarm.enabled)) {
+        stopSnoozed(snoozed);
+      }
+    }
+  }
+
+  /// Brings back the snoozes of the log, when the app starts. One that ended
+  /// long ago comes due at the first check, and is missed then.
+  Future<void> _restoreSnoozes() async {
+    try {
+      final sessions = await ref.read(ringSessionRepositoryProvider).all();
+      for (final session in sessions) {
+        if (session.outcome != RingOutcome.snoozed) continue;
+        final alarm = await ref
+            .read(alarmRepositoryProvider)
+            .byId(session.alarmId);
+        if (!ref.mounted) return;
+        final back = alarm == null ? null : snoozedRingOf(session, alarm);
+        if (back == null) {
+          _log(_stopped(session));
+          continue;
+        }
+        ref.read(alarmSchedulerProvider).schedule(back);
+        _snoozed.add(SnoozedRing(back, session));
+      }
+    } on Object catch (error) {
+      debugPrint('Could not read the snoozes from the log: $error');
+    }
+  }
+
+  /// Saves [session] in the log, after the writes before it.
+  void _log(RingSession session) => _write(
+    () => ref.read(ringSessionRepositoryProvider).save(session),
+    failure: 'Could not write the ring log',
+  );
+
+  /// Saves what the tap on the sound with [soundId] taught, after the writes
+  /// before it.
+  void _learn(
+    String soundId,
+    SoundWeights Function(SoundWeights weights, String soundId) learn,
+  ) => _write(() async {
+    final weights = ref.read(weightRepositoryProvider);
+    await weights.save(learn(await weights.load(), soundId), soundId: soundId);
+  }, failure: 'Could not save the weight of $soundId');
+
+  void _write(Future<void> Function() write, {required String failure}) {
+    _writes = _writes.then((_) async {
+      if (!ref.mounted) return;
+      try {
+        await write();
+      } on Object catch (error) {
+        debugPrint('$failure: $error');
+      }
+    });
   }
 }

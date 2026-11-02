@@ -192,6 +192,9 @@ abstract final class Motion {
 
 /// Font sizes, in logical pixels before the user's text scale.
 abstract final class TypeScale {
+  /// The clock on the ringing screen: read half asleep.
+  static const ringClock = 72.0;
+
   /// The time on the rotary dial.
   static const dial = 56.0;
 

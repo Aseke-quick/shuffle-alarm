@@ -58,6 +58,77 @@ void main() {
       }
     });
   });
+
+  group('RingSession.outcome', () {
+    test('a session that made no sound is missed', () {
+      expect(_session(events: const []).outcome, RingOutcome.missed);
+    });
+
+    test('a session whose last sound ran out is missed', () {
+      expect(_session(events: [_timeout]).outcome, RingOutcome.missed);
+    });
+
+    test('a session whose last event is a Stop is stopped', () {
+      expect(_session(events: [_timeout, _stop]).outcome, RingOutcome.stopped);
+    });
+
+    test('a session whose last event is a Snooze is snoozed', () {
+      expect(
+        _session(events: [_timeout, _snooze]).outcome,
+        RingOutcome.snoozed,
+      );
+    });
+
+    test('only the last event counts', () {
+      expect(_session().outcome, RingOutcome.stopped);
+      expect(_session(events: [_snooze, _timeout]).outcome, RingOutcome.missed);
+    });
+  });
+
+  group('RingSession.withEvent', () {
+    test('gives the session with the event at its end', () {
+      expect(
+        _session(events: [_timeout]).withEvent(_stop),
+        _session(events: [_timeout, _stop]),
+      );
+    });
+
+    test('leaves the session it came from as it is', () {
+      final session = _session(events: [_timeout]);
+
+      expect(session.withEvent(_stop), isNot(session));
+
+      expect(session.events, [_timeout]);
+    });
+  });
+
+  group('RingSession.missedAt', () {
+    final at = DateTime(2026, 10, 29, 7, 20);
+
+    test('a snoozed session ends with a silent event of its last sound', () {
+      final missed = _session(events: [_timeout, _snooze]).missedAt(at);
+
+      expect(
+        missed.events.last,
+        RingEvent.silent(
+          soundId: _snooze.soundId,
+          at: at,
+          action: RingAction.timeout,
+        ),
+      );
+      expect(missed.events, hasLength(3));
+      expect(missed.outcome, RingOutcome.missed);
+    });
+
+    test('a session that is missed already stays as it is', () {
+      for (final session in [
+        _session(events: const []),
+        _session(events: [_timeout]),
+      ]) {
+        expect(session.missedAt(at), session);
+      }
+    });
+  });
 }
 
 /// A session of a 07:00 alarm, by default with [_snoozedThenStopped] events.
@@ -95,3 +166,7 @@ List<RingEvent> _snoozedThenStopped() => [
     action: RingAction.stop,
   ),
 ];
+
+final RingEvent _timeout = _snoozedThenStopped()[0];
+final RingEvent _snooze = _snoozedThenStopped()[1];
+final RingEvent _stop = _snoozedThenStopped()[2];

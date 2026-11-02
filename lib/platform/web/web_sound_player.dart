@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
+import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 
@@ -17,6 +19,7 @@ import 'package:web/web.dart' as web;
 class WebSoundPlayer implements SoundPlayer {
   web.AudioContext? _context;
   final _buffers = <String, Future<web.AudioBuffer>>{};
+  web.AudioBuffer? _tone;
   web.AudioBufferSourceNode? _source;
 
   @override
@@ -106,25 +109,93 @@ class WebSoundPlayer implements SoundPlayer {
     }
     final buffer = await _buffer(asset);
     await stop();
+    final source = audio.createBufferSource()..buffer = buffer;
+    await _played(
+      audio,
+      source,
+      volume,
+      (source) => source.start(0, _seconds(from), _seconds(to - from)),
+    );
+  }
+
+  @override
+  Future<void> playTone({
+    required Duration length,
+    required double volume,
+  }) async {
+    if (!playsSounds) throw const SoundBlockedException('No Web Audio');
+    final audio = _audio;
+    if (!await _resume(audio, const Duration(seconds: 1))) {
+      throw const SoundBlockedException('The browser blocks the sound');
+    }
+    await stop();
+    final source = audio.createBufferSource()
+      ..buffer = _toneBuffer(audio)
+      ..loop = true;
+    await _played(audio, source, volume, (source) {
+      source
+        ..start()
+        ..stop(audio.currentTime + _seconds(length));
+    });
+  }
+
+  /// Plays [source] at [volume], from its [start], until it ends or [stop]
+  /// ends it.
+  Future<void> _played(
+    web.AudioContext audio,
+    web.AudioBufferSourceNode source,
+    double volume,
+    void Function(web.AudioBufferSourceNode source) start,
+  ) async {
     final gain = audio.createGain()
       ..gain.value = volume.clamp(0, 1)
       ..connect(audio.destination);
-    final source = audio.createBufferSource()
-      ..buffer = buffer
-      ..connect(gain);
+    source.connect(gain);
     final ended = Completer<void>();
     source.onended = ((web.Event _) {
       if (!ended.isCompleted) ended.complete();
     }).toJS;
     _source = source;
-    source.start(
-      0,
-      from.inMicroseconds / Duration.microsecondsPerSecond,
-      (to - from).inMicroseconds / Duration.microsecondsPerSecond,
-    );
+    start(source);
     await ended.future;
     if (identical(_source, source)) _source = null;
   }
+
+  static double _seconds(Duration time) =>
+      time.inMicroseconds / Duration.microsecondsPerSecond;
+
+  /// One second of the tone, to loop: two short beeps and a pause. Made here
+  /// once, so a ring needs no file or network for it.
+  web.AudioBuffer _toneBuffer(web.AudioContext audio) {
+    if (_tone case final tone?) return tone;
+    final rate = audio.sampleRate.round();
+    final samples = Float32List(rate);
+    for (final start in const [0.0, 0.25]) {
+      for (var i = 0; i < _beep * rate; i++) {
+        final time = i / rate;
+        // A short fade at both ends, so a beep does not click.
+        final fade = min(1, min(time, _beep - time) / _beepFade);
+        samples[(start * rate).round() + i] =
+            _beepLevel * fade * sin(2 * pi * _beepPitch * time);
+      }
+    }
+    final tone = audio.createBuffer(1, rate, rate.toDouble())
+      ..copyToChannel(samples.toJS, 0);
+    return _tone = tone;
+  }
+
+  /// How long one beep of the tone is, in seconds.
+  static const _beep = 0.15;
+
+  /// How long a beep of the tone takes to fade in and out, in seconds.
+  static const _beepFade = 0.005;
+
+  /// The pitch of the tone, in hertz.
+  static const _beepPitch = 880.0;
+
+  /// How loud a beep is, from 0 to 1: with its pauses, about as loud as the
+  /// strong clips of the library, which reach -14 LUFS.
+  static const _beepLevel = 0.5;
 
   @override
   Future<void> stop() async {

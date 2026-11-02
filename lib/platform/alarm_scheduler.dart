@@ -14,6 +14,13 @@ abstract interface class AlarmScheduler {
   /// Each ring that comes due, once.
   Stream<DueRing> get dueRings;
 
+  /// Rings [ring] when its time comes, [DueRing.startsAt], such as a ring
+  /// after Snooze: it comes out of [dueRings] once.
+  void schedule(DueRing ring);
+
+  /// Forgets [ring], if it was given to [schedule] and has not come due.
+  void cancel(DueRing ring);
+
   /// Stops watching for good.
   Future<void> dispose();
 }
@@ -31,6 +38,12 @@ class IdleAlarmScheduler implements AlarmScheduler {
 
   @override
   Stream<DueRing> get dueRings => const Stream.empty();
+
+  @override
+  void schedule(DueRing ring) {}
+
+  @override
+  void cancel(DueRing ring) {}
 
   @override
   Future<void> dispose() async {}

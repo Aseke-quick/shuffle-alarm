@@ -1,7 +1,7 @@
 # SRE — index
 
-- [DISCOVERED] Alarm reliability comes first: any change to scheduling or ringing must pass the alarm test checklist (`PLAN.md` 4.5). There is no ringing yet (tasks 2.4 and 2.5).
-- On the web, a ring must not need the network or a finished library sync. Before 2.5 rings, see the two risks in `placeholder-library.md`: an empty sound pool throws, and a clip downloads only when it plays.
+- [DISCOVERED] Alarm reliability comes first: any change to scheduling or ringing must pass the alarm test checklist (`PLAN.md` 4.5). On the web, armed alarms ring since 2.4, with Snooze and a log since 2.5.
+- On the web, a ring does not need the network or a finished library sync (`placeholder-library.md`, both risks closed by 2.4 and 2.5).
 
 ## Features
 | Slug | Note | Status |

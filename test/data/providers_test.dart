@@ -74,4 +74,78 @@ void main() {
       expect(await genres.read(), ['jazz', 'pop']);
     },
   );
+
+  group('The sounds that alarms can play', () {
+    final fromFiles = StoredSound(
+      Sound(
+        id: 'file',
+        title: 'File',
+        source: SoundSource.builtin,
+        genre: 'calm',
+        intensity: 1,
+        duration: const Duration(seconds: 20),
+      ),
+      audioPath: 'assets/library/calm/file.wav',
+    );
+    final saved = StoredSound(
+      Sound(
+        id: 'saved',
+        title: 'Saved',
+        source: SoundSource.builtin,
+        genre: 'calm',
+        intensity: 1,
+        duration: const Duration(seconds: 20),
+      ),
+      audioPath: 'assets/library/calm/saved.wav',
+    );
+
+    ProviderContainer withLibrary(
+      Future<List<StoredSound>> Function() library, {
+      SoundRepository? sounds,
+    }) => ProviderContainer.test(
+      overrides: [
+        databaseProvider.overrideWithValue(db),
+        libraryClipsProvider.overrideWithValue(library),
+        if (sounds != null) soundRepositoryProvider.overrideWithValue(sounds),
+      ],
+    );
+
+    test('are the sounds of the database, when it has any', () async {
+      await SoundRepository(db).save(saved);
+      final sounds = withLibrary(() async => [fromFiles]);
+
+      expect(await sounds.read(ringSoundsProvider)(), [saved]);
+    });
+
+    test(
+      'are the library from its files, when the database has none',
+      () async {
+        final sounds = withLibrary(() async => [fromFiles]);
+
+        expect(await sounds.read(ringSoundsProvider)(), [fromFiles]);
+      },
+    );
+
+    test('are the library, when the database cannot be read', () async {
+      final sounds = withLibrary(
+        () async => [fromFiles],
+        sounds: _BrokenSounds(db),
+      );
+
+      expect(await sounds.read(ringSoundsProvider)(), [fromFiles]);
+    });
+
+    test('throw when the library cannot be read either', () async {
+      final sounds = withLibrary(() async => throw StateError('No network'));
+
+      await expectLater(sounds.read(ringSoundsProvider)(), throwsStateError);
+    });
+  });
+}
+
+class _BrokenSounds extends SoundRepository {
+  _BrokenSounds(super._db);
+
+  @override
+  Future<List<StoredSound>> all() async => throw StateError('Broken');
 }

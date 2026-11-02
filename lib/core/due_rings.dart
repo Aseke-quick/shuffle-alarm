@@ -4,28 +4,49 @@ import 'package:shuffle_alarm/core/models/alarm.dart';
 import 'package:shuffle_alarm/core/next_ring.dart';
 
 /// A ring of [alarm] that is due: the alarm was set to ring at
-/// [scheduledFor], and that time has come.
+/// [scheduledFor], and the time of this ring, [startsAt], has come.
 @immutable
 class DueRing {
-  const DueRing(this.alarm, {required this.scheduledFor});
+  /// A first ring starts at [scheduledFor]. A ring after Snooze gets its own
+  /// [startsAt] and [snoozedSoundId] (`ringAfterSnooze`).
+  const DueRing(
+    this.alarm, {
+    required this.scheduledFor,
+    DateTime? startsAt,
+    this.snoozedSoundId,
+  }) : startsAt = startsAt ?? scheduledFor;
 
   final Alarm alarm;
 
-  /// When the alarm was set to ring. A check that comes late, such as in a
-  /// background tab, finds the ring after this time.
+  /// When the alarm was set to ring. The rings after a Snooze keep this time.
+  /// A check that comes late, such as in a background tab, finds the ring
+  /// after [startsAt].
   final DateTime scheduledFor;
+
+  /// When this ring starts, which its time cap counts from: [scheduledFor],
+  /// or the end of the snooze.
+  final DateTime startsAt;
+
+  /// The `Sound.id` of the sound that played at the Snooze before this ring,
+  /// or null for a first ring.
+  final String? snoozedSoundId;
 
   @override
   bool operator ==(Object other) =>
       other is DueRing &&
       other.alarm == alarm &&
-      other.scheduledFor == scheduledFor;
+      other.scheduledFor == scheduledFor &&
+      other.startsAt == startsAt &&
+      other.snoozedSoundId == snoozedSoundId;
 
   @override
-  int get hashCode => Object.hash(alarm, scheduledFor);
+  int get hashCode =>
+      Object.hash(alarm, scheduledFor, startsAt, snoozedSoundId);
 
   @override
-  String toString() => 'DueRing(${alarm.id}, scheduledFor: $scheduledFor)';
+  String toString() =>
+      'DueRing(${alarm.id}, scheduledFor: $scheduledFor, startsAt: $startsAt, '
+      'snoozedSoundId: $snoozedSoundId)';
 }
 
 /// The rings that came due after [since] and at [now] or before: for each

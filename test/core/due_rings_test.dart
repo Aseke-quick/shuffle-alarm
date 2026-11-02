@@ -169,6 +169,82 @@ void main() {
       );
     });
   });
+
+  group('DueRing', () {
+    final at = DateTime(2026, 11, 11, 7);
+    final back = DateTime(2026, 11, 11, 7, 5);
+
+    test('a first ring starts at the time it was set for', () {
+      final ring = DueRing(_alarm('a', 7, 0), scheduledFor: at);
+
+      expect(ring.startsAt, at);
+      expect(ring.snoozedSoundId, isNull);
+    });
+
+    test('a ring after Snooze keeps that time, and starts at its own', () {
+      final ring = DueRing(
+        _alarm('a', 7, 0),
+        scheduledFor: at,
+        startsAt: back,
+        snoozedSoundId: 'chime',
+      );
+
+      expect(ring.scheduledFor, at);
+      expect(ring.startsAt, back);
+      expect(ring.snoozedSoundId, 'chime');
+    });
+
+    test('rings with another start or snoozed sound are not equal', () {
+      final alarm = _alarm('a', 7, 0);
+      final ring = DueRing(
+        alarm,
+        scheduledFor: at,
+        startsAt: back,
+        snoozedSoundId: 'chime',
+      );
+
+      expect(
+        ring,
+        DueRing(
+          alarm,
+          scheduledFor: at,
+          startsAt: back,
+          snoozedSoundId: 'chime',
+        ),
+      );
+      expect(
+        ring.hashCode,
+        DueRing(
+          alarm,
+          scheduledFor: at,
+          startsAt: back,
+          snoozedSoundId: 'chime',
+        ).hashCode,
+      );
+      expect(
+        ring,
+        isNot(
+          DueRing(
+            alarm,
+            scheduledFor: at,
+            startsAt: at,
+            snoozedSoundId: 'chime',
+          ),
+        ),
+      );
+      expect(
+        ring,
+        isNot(
+          DueRing(
+            alarm,
+            scheduledFor: at,
+            startsAt: back,
+            snoozedSoundId: 'bell',
+          ),
+        ),
+      );
+    });
+  });
 }
 
 const _everyDay = {1, 2, 3, 4, 5, 6, 7};

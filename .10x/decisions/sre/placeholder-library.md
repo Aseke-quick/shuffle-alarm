@@ -12,3 +12,6 @@
 
 ## Cost
 The 9 clips are 7.4 MB together, but none downloads before it plays.
+
+## Done
+Both risks are closed. Risk 2 with task 2.4: "Arm alarms" loads every sound into memory. Risk 1 with task 2.5: a ring plays the library straight from its files when the database has no sounds, and else a tone made in code (docs/DECISIONS.md, 2.5).

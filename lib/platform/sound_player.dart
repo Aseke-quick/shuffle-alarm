@@ -30,6 +30,13 @@ abstract interface class SoundPlayer {
     required double volume,
   });
 
+  /// Plays a tone of [length] that needs no file and no network, at [volume]
+  /// from 0 to 1, for a ring that has no sound it can read. Completes when it
+  /// ends, or when [stop] ends it.
+  ///
+  /// Throws a [SoundBlockedException] when the platform does not let it play.
+  Future<void> playTone({required Duration length, required double volume});
+
   /// Stops the sound that plays, if any.
   Future<void> stop();
 
@@ -71,6 +78,10 @@ class SilentSoundPlayer implements SoundPlayer {
     required Duration to,
     required double volume,
   }) => throw const SoundBlockedException('This platform plays no sound yet');
+
+  @override
+  Future<void> playTone({required Duration length, required double volume}) =>
+      throw const SoundBlockedException('This platform plays no sound yet');
 
   @override
   Future<void> stop() async {}

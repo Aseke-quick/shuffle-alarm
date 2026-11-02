@@ -26,6 +26,16 @@ class RingEvent {
     required this.action,
   });
 
+  /// An event without length, at [at]: a ring that ended while no sound
+  /// played, such as a Stop during a snooze or while the browser blocks the
+  /// sound. [soundId] is the sound of that moment; Insights counts only the
+  /// events with a length as sounds that played.
+  const RingEvent.silent({
+    required String soundId,
+    required DateTime at,
+    required RingAction action,
+  }) : this(soundId: soundId, startedAt: at, endedAt: at, action: action);
+
   /// The `Sound.id` of the sound that played.
   final String soundId;
 

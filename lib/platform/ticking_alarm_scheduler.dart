@@ -35,6 +35,7 @@ class TickingAlarmScheduler implements AlarmScheduler {
 
   final _due = StreamController<DueRing>.broadcast(sync: true);
   List<Alarm> _alarms = const [];
+  final _scheduled = <DueRing>[];
   DateTime? _lastCheck;
   Timer? _timer;
   StreamSubscription<void>? _wakeUpListener;
@@ -54,14 +55,29 @@ class TickingAlarmScheduler implements AlarmScheduler {
     _wakeUpListener = wakeUps?.listen((_) => check());
   }
 
+  @override
+  void schedule(DueRing ring) => _scheduled.add(ring);
+
+  @override
+  void cancel(DueRing ring) => _scheduled.remove(ring);
+
   /// Checks the clock now, and tells about each ring that came due since the
-  /// check before.
+  /// check before, and each scheduled ring whose start has come: the earliest
+  /// first.
   void check() {
     final since = _lastCheck;
     if (since == null || _due.isClosed) return;
     final time = now();
     _lastCheck = time;
-    core.dueRings(_alarms, since: since, now: time).forEach(_due.add);
+    bool startedBy(DueRing ring) => !ring.startsAt.isAfter(time);
+    final due = [
+      ..._scheduled.where(startedBy),
+      ...core.dueRings(_alarms, since: since, now: time),
+    ];
+    _scheduled.removeWhere(startedBy);
+    due
+      ..sort((a, b) => a.startsAt.compareTo(b.startsAt))
+      ..forEach(_due.add);
   }
 
   @override

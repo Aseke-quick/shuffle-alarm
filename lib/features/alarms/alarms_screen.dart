@@ -20,6 +20,7 @@ import 'package:shuffle_alarm/features/alarms/alarm_writes.dart';
 import 'package:shuffle_alarm/features/alarms/arm_card.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
 import 'package:shuffle_alarm/features/alarms/database_error_view.dart';
+import 'package:shuffle_alarm/features/ringing/snooze_cards.dart';
 import 'package:shuffle_alarm/features/settings/settings_button.dart';
 
 /// The Alarms tab: the next alarm as a record, every alarm by time of day
@@ -60,6 +61,7 @@ class _Alarms extends StatelessWidget {
           child: ContentWidth(
             child: ListView(
               children: [
+                const SnoozeCards(),
                 ArmCard(alarms: alarms),
                 _NextAlarm(alarms: alarms),
                 _Tracklist(alarms: alarms),

@@ -202,12 +202,14 @@ void main() {
     expect(find.text('Back'), findsOneWidget);
   });
 
-  testWidgets('the arm card and the ringing page fit', (tester) async {
+  testWidgets('the arm card and the ringing screen fit', (tester) async {
     setTextScale(tester, 2);
+    askForLessMotion(tester);
     final scheduler = FakeAlarmScheduler();
     // The browser blocks the sound until a tap: the page offers to play it.
     final player = FakeSoundPlayer(blocked: true);
     final ring = DateTime(2026, 11, 12, 10, 45);
+    var now = ring;
     final alarm = Alarm(
       id: 'long',
       time: ClockTime(hour: 10, minute: 45),
@@ -224,7 +226,7 @@ void main() {
         alarmSchedulerProvider.overrideWithValue(scheduler),
         soundPlayerProvider.overrideWithValue(player),
         screenWakeLockProvider.overrideWithValue(FakeScreenWakeLock()),
-        nowProvider.overrideWithValue(() => ring),
+        nowProvider.overrideWithValue(() => now),
       ],
     );
 
@@ -249,7 +251,81 @@ void main() {
     expect(find.text('Play sound'), findsOneWidget);
     await _scrollThrough(tester);
     expect(find.text('Stop'), findsOneWidget);
+
+    // The sound plays: the clock, the alarm's long label and the sound.
+    await tester.tap(find.text('Play sound'));
+    await tester.pumpAndSettle();
+    expect(find.text('NOW PLAYING'), findsOneWidget);
+    await _scrollThrough(tester);
+    expect(find.text('Snooze 5 min'), findsOneWidget);
+
+    // Snoozed: its card on the Alarms tab.
+    await tester.tap(find.text('Snooze 5 min'));
+    await tester.pumpAndSettle();
+    await _scrollThrough(tester);
+    tester
+        .state<ScrollableState>(find.byType(Scrollable).first)
+        .position
+        .jumpTo(0);
+    await tester.pump();
+    expect(find.text('Snoozed until 10:50 AM'), findsOneWidget);
+    expect(find.text('Stop alarm'), findsOneWidget);
+
+    // It comes back, and reaches its time cap.
+    now = scheduler.scheduled.single.startsAt;
+    scheduler.ringScheduled();
+    await tester.pumpAndSettle();
+    expect(find.byType(RingingScreen), findsOneWidget);
+    now = now.add(const Duration(minutes: 10));
+    player.finishClip();
+    await tester.pumpAndSettle();
+    expect(find.text('Close'), findsOneWidget);
+    await _scrollThrough(tester);
   });
+
+  for (final (name, size) in [
+    ('a small phone', const Size(320, 568)),
+    ('a phone on its side', const Size(844, 390)),
+    ('a wide window', const Size(1280, 800)),
+  ]) {
+    testWidgets('the ringing screen fits $name, at the normal text size', (
+      tester,
+    ) async {
+      askForLessMotion(tester);
+      final scheduler = FakeAlarmScheduler();
+      final at = DateTime(2026, 11, 12, 12, 45);
+      final alarm = Alarm(
+        id: 'long',
+        time: ClockTime(hour: 12, minute: 45),
+        label: 'Morning run with the dog, then a swim',
+      );
+      await AlarmRepository(db).save(alarm);
+      await syncLibrary(db, [
+        for (final entry in library) entry.toStoredSound(),
+      ]);
+      await openAlarms(
+        tester,
+        db: db,
+        now: wednesdayEvening,
+        size: size,
+        overrides: [
+          alarmSchedulerProvider.overrideWithValue(scheduler),
+          soundPlayerProvider.overrideWithValue(
+            FakeSoundPlayer(needsUnlock: false),
+          ),
+          screenWakeLockProvider.overrideWithValue(FakeScreenWakeLock()),
+          nowProvider.overrideWithValue(() => at),
+        ],
+      );
+
+      scheduler.ring(DueRing(alarm, scheduledFor: at));
+      await tester.pumpAndSettle();
+
+      expect(find.text('12:45'), findsOneWidget);
+      expect(find.text('Stop'), findsOneWidget);
+      await _scrollThrough(tester);
+    });
+  }
 
   testWidgets('the error view fits', (tester) async {
     setTextScale(tester, 2);

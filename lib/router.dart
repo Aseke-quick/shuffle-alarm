@@ -8,6 +8,7 @@ import 'package:shuffle_alarm/features/alarms/alarm_editor_screen.dart';
 import 'package:shuffle_alarm/features/alarms/alarms_screen.dart';
 import 'package:shuffle_alarm/features/insights/insights_screen.dart';
 import 'package:shuffle_alarm/features/library/library_screen.dart';
+import 'package:shuffle_alarm/features/ringing/ringing_controller.dart';
 import 'package:shuffle_alarm/features/ringing/ringing_screen.dart';
 import 'package:shuffle_alarm/features/settings/bedtime_reminder_screen.dart';
 import 'package:shuffle_alarm/features/settings/settings_screen.dart';
@@ -21,6 +22,17 @@ final routerProvider = Provider<GoRouter>((ref) {
   final rootNavigatorKey = GlobalKey<NavigatorState>();
   final router = GoRouter(
     navigatorKey: rootNavigatorKey,
+    // A browser tells the app about its Back and Forward as a new address,
+    // which no `PopScope` can stop. So while an alarm rings, every address
+    // stays on the ringing screen: without it the sound would go on with no
+    // Stop in sight. Without a ring, its address opens the Alarms tab.
+    redirect: (context, state) {
+      final ringing = ref.read(ringingProvider) != null;
+      final onRinging = state.matchedLocation == RingingScreen.path;
+      if (ringing && !onRinging) return RingingScreen.path;
+      if (!ringing && onRinging) return AlarmsScreen.path;
+      return null;
+    },
     routes: [
       // The home address, such as the web site root, opens the Alarms tab.
       GoRoute(path: '/', redirect: (context, state) => AlarmsScreen.path),

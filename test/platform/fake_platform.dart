@@ -29,6 +29,19 @@ class FakeAlarmScheduler implements AlarmScheduler {
   /// Tells that [due] came due.
   void ring(DueRing due) => _due.add(due);
 
+  /// The rings it was given to schedule and that have not come due, oldest
+  /// first.
+  final scheduled = <DueRing>[];
+
+  @override
+  void schedule(DueRing ring) => scheduled.add(ring);
+
+  @override
+  void cancel(DueRing ring) => scheduled.remove(ring);
+
+  /// Tells that the oldest scheduled ring came due.
+  void ringScheduled() => ring(scheduled.removeAt(0));
+
   // Not closed: widget tests run on fake time (docs/DECISIONS.md, 2.2).
   @override
   Future<void> dispose() async {}
@@ -36,6 +49,9 @@ class FakeAlarmScheduler implements AlarmScheduler {
 
 /// One sound that a [FakeSoundPlayer] played.
 typedef FakePlay = ({String asset, Duration from, Duration to, double volume});
+
+/// What a [FakeSoundPlayer] says it played for a tone.
+const fakeTone = 'tone';
 
 /// A player that records what it plays. A clip plays until the test calls
 /// [finishClip], or until [stop].
@@ -61,6 +77,9 @@ class FakeSoundPlayer implements SoundPlayer {
 
   /// The assets that cannot be read: [play] throws for them.
   final broken = <String>{};
+
+  /// Whether [playTone] throws, as on a platform that cannot make one.
+  bool toneBroken = false;
 
   int unlockCalls = 0;
   int stopCalls = 0;
@@ -97,6 +116,23 @@ class FakeSoundPlayer implements SoundPlayer {
     if (blocked) throw const SoundBlockedException();
     if (broken.contains(asset)) throw StateError('Cannot read $asset');
     plays.add((asset: asset, from: from, to: to, volume: volume));
+    final clip = _clip = Completer<void>();
+    await clip.future;
+  }
+
+  @override
+  Future<void> playTone({
+    required Duration length,
+    required double volume,
+  }) async {
+    if (blocked) throw const SoundBlockedException();
+    if (toneBroken) throw StateError('Cannot make a tone');
+    plays.add((
+      asset: fakeTone,
+      from: Duration.zero,
+      to: length,
+      volume: volume,
+    ));
     final clip = _clip = Completer<void>();
     await clip.future;
   }

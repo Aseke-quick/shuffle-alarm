@@ -65,6 +65,35 @@ class RecordArt extends StatelessWidget {
   }
 }
 
+/// Draws the ring of [count] segments on the edge of a record of [radius],
+/// [width] wide, from 12 o'clock on.
+void drawRecordSegments(
+  Canvas canvas, {
+  required Offset center,
+  required double radius,
+  required double width,
+  required int count,
+  required Color color,
+}) {
+  if (count <= 0) return;
+  final paint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = width
+    ..color = color;
+  final slice = 2 * math.pi / count;
+  final space = math.min(slice * 0.2, 0.08);
+  final rect = Rect.fromCircle(center: center, radius: radius - width / 2);
+  for (var i = 0; i < count; i++) {
+    canvas.drawArc(
+      rect,
+      -math.pi / 2 + i * slice + space / 2,
+      slice - space,
+      false,
+      paint,
+    );
+  }
+}
+
 class _RecordPainter extends CustomPainter {
   const _RecordPainter({
     required this.segments,
@@ -87,25 +116,14 @@ class _RecordPainter extends CustomPainter {
     final ring = math.max(3, radius * 0.04).toDouble();
     final gap = ring * 1.5;
 
-    // The ring of segments on the edge, from 12 o'clock on.
-    if (segments > 0) {
-      final paint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = ring
-        ..color = segmentColor;
-      final slice = 2 * math.pi / segments;
-      final space = math.min(slice * 0.2, 0.08);
-      final rect = Rect.fromCircle(center: center, radius: radius - ring / 2);
-      for (var i = 0; i < segments; i++) {
-        canvas.drawArc(
-          rect,
-          -math.pi / 2 + i * slice + space / 2,
-          slice - space,
-          false,
-          paint,
-        );
-      }
-    }
+    drawRecordSegments(
+      canvas,
+      center: center,
+      radius: radius,
+      width: ring,
+      count: segments,
+      color: segmentColor,
+    );
 
     final line = Paint()
       ..style = PaintingStyle.stroke

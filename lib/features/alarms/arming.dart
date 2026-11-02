@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:shuffle_alarm/core/models/alarm.dart';
 import 'package:shuffle_alarm/data/providers.dart';
+import 'package:shuffle_alarm/features/ringing/ringing_controller.dart';
 import 'package:shuffle_alarm/platform/providers.dart';
 import 'package:shuffle_alarm/platform/sound_player.dart';
 
@@ -28,7 +29,7 @@ class Arming {
   /// Whether the last tap could not unlock the sound.
   final bool failed;
 
-  /// Whether the screen is kept on now: while armed and an alarm is on.
+  /// Whether the screen is kept on now: while armed and something can ring.
   final bool screenOn;
 
   Arming copyWith({bool? armed, bool? failed, bool? screenOn}) => Arming(
@@ -72,8 +73,10 @@ class ArmController extends Notifier<Arming> {
     ref
       ..onDispose(() => unawaited(held.cancel()))
       ..listen(alarmsProvider, (_, next) {
-        if (next.value case final alarms?) unawaited(_keepScreenOn(alarms));
-      });
+        if (next.hasValue) unawaited(_keepScreenOn());
+      })
+      ..listen(ringingProvider, (_, _) => unawaited(_keepScreenOn()))
+      ..listen(snoozedRingsProvider, (_, _) => unawaited(_keepScreenOn()));
     return Arming(
       needed:
           ref.watch(alarmSchedulerProvider).ringsAlarms &&
@@ -93,12 +96,12 @@ class ArmController extends Notifier<Arming> {
     final unlocked = await player.unlock();
     state = state.copyWith(armed: unlocked, failed: !unlocked);
     if (unlocked) unawaited(_preload(player));
-    await _keepScreenOn(ref.read(alarmsProvider).value ?? const []);
+    await _keepScreenOn();
   }
 
   Future<void> _preload(SoundPlayer player) async {
     try {
-      final sounds = await ref.read(soundRepositoryProvider).all();
+      final sounds = await ref.read(ringSoundsProvider)();
       await player.preload([for (final stored in sounds) stored.audioPath]);
     } on Object catch (error) {
       // A ring loads its clips again when it starts.
@@ -106,11 +109,21 @@ class ArmController extends Notifier<Arming> {
     }
   }
 
-  /// Keeps the screen on while armed and an alarm is on: a browser may run
-  /// a sleeping or hidden tab late, or not at all.
-  Future<void> _keepScreenOn(List<Alarm> alarms) async {
+  /// Whether something can still ring, or rings now. A one-time alarm is off
+  /// from its first ring on, so an alarm that is on does not tell it all.
+  bool get _somethingCanRing {
+    final alarms = ref.read(alarmsProvider).value ?? const <Alarm>[];
+    final ringing = ref.read(ringingProvider);
+    return alarms.any((alarm) => alarm.enabled) ||
+        (ringing != null && !ringing.over) ||
+        ref.read(snoozedRingsProvider).isNotEmpty;
+  }
+
+  /// Keeps the screen on while armed and something can ring: a browser may
+  /// run a sleeping or hidden tab late, or not at all.
+  Future<void> _keepScreenOn() async {
     final wakeLock = ref.read(screenWakeLockProvider);
-    if (state.armed && alarms.any((alarm) => alarm.enabled)) {
+    if (state.armed && _somethingCanRing) {
       await wakeLock.hold();
     } else {
       await wakeLock.release();

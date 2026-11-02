@@ -43,6 +43,20 @@ void main() {
     });
   });
 
+  test('a silent event has no length: no sound played at that moment', () {
+    final at = DateTime(2026, 10, 29, 7, 5);
+
+    expect(
+      RingEvent.silent(soundId: 'pop-01', at: at, action: RingAction.stop),
+      RingEvent(
+        soundId: 'pop-01',
+        startedAt: at,
+        endedAt: at,
+        action: RingAction.stop,
+      ),
+    );
+  });
+
   test('a sound ends by Stop, by Snooze, or when its time runs out', () {
     expect(RingAction.values.map((action) => action.name), [
       'stop',

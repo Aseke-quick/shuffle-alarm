@@ -43,6 +43,13 @@ void main() {
           ('an error in a dialog', c.danger, c.surface),
           ('text on an error fill', c.onAccent, c.danger),
           ('a snack bar or tooltip', c.background, c.text),
+          ('text on the ringing screen', c.onAccent, c.accent),
+          (
+            'the clock on the record of the ringing screen',
+            c.onAccent,
+            c.accent,
+          ),
+          ('the label of Stop on the ringing screen', c.accent, c.onAccent),
         ]) {
           expect(
             _contrast(text, background),
@@ -70,6 +77,14 @@ void main() {
           ('the knob of the dial on its ring', c.accent, c.surfaceHigh),
           ('the focus ring', c.accent, c.background),
           ('the outline record of an error', c.danger, c.background),
+          ('the border of Snooze on the ringing screen', c.onAccent, c.accent),
+          ('the Stop button on the ringing screen', c.onAccent, c.accent),
+          (
+            'the disc of the record on the ringing screen',
+            c.onAccent,
+            c.accent,
+          ),
+          ('the lines on that disc', c.accent, c.onAccent),
         ]) {
           expect(
             _contrast(part, background),

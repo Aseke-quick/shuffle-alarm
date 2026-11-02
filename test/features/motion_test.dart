@@ -1,13 +1,20 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'package:shuffle_alarm/core/due_rings.dart';
 import 'package:shuffle_alarm/core/models/alarm.dart';
 import 'package:shuffle_alarm/core/models/clock_time.dart';
+import 'package:shuffle_alarm/core/models/sound.dart';
+import 'package:shuffle_alarm/data/alarm_repository.dart';
 import 'package:shuffle_alarm/data/database.dart';
+import 'package:shuffle_alarm/data/sound_repository.dart';
 import 'package:shuffle_alarm/design/components/alarm_track_row.dart';
 import 'package:shuffle_alarm/features/alarms/alarm_editor_screen.dart';
+import 'package:shuffle_alarm/features/alarms/clock.dart';
+import 'package:shuffle_alarm/features/ringing/ringing_screen.dart';
 import 'package:shuffle_alarm/features/settings/bedtime_reminder_screen.dart';
 import 'package:shuffle_alarm/features/settings/settings_screen.dart';
+import 'package:shuffle_alarm/platform/providers.dart';
 
 import '../data/memory_database.dart';
 import '../design/design_app.dart';
@@ -19,6 +26,8 @@ import 'settings/reminder_app.dart';
 /// 1): pages, dialogs and new list items are in place in the first frame.
 /// Without that ask, the same steps move, so the check can tell.
 void main() {
+  _ringingScreenTest();
+
   late AppDatabase db;
 
   setUp(() => db = memoryDatabase());
@@ -87,6 +96,66 @@ void main() {
       );
     });
   }
+}
+
+/// The ringing screen with less motion asked for, on its own: without that
+/// ask its record never stops, so the same steps could not end.
+void _ringingScreenTest() {
+  testWidgets('the ringing screen and its sounds: with less motion asked for, '
+      'nothing moves', (tester) async {
+    askForLessMotion(tester);
+    final db = memoryDatabase();
+    final scheduler = FakeAlarmScheduler();
+    final player = FakeSoundPlayer(needsUnlock: false);
+    var now = DateTime(2026, 11, 12, 7);
+    for (final (id, intensity) in [('chime', 1), ('bell', 2)]) {
+      await SoundRepository(db).save(
+        StoredSound(
+          Sound(
+            id: id,
+            title: id,
+            source: SoundSource.builtin,
+            genre: 'calm',
+            intensity: intensity,
+            duration: const Duration(seconds: 20),
+          ),
+          audioPath: 'assets/library/calm/$id.wav',
+        ),
+      );
+    }
+    final alarm = Alarm(id: 'a', time: ClockTime(hour: 7, minute: 0));
+    await AlarmRepository(db).save(alarm);
+    await openAlarms(
+      tester,
+      db: db,
+      now: wednesdayEvening,
+      overrides: [
+        alarmSchedulerProvider.overrideWithValue(scheduler),
+        soundPlayerProvider.overrideWithValue(player),
+        screenWakeLockProvider.overrideWithValue(FakeScreenWakeLock()),
+        nowProvider.overrideWithValue(() => now),
+      ],
+    );
+
+    scheduler.ring(DueRing(alarm, scheduledFor: now));
+    while (find.byType(RingingScreen).evaluate().isEmpty) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await _twoFrames(tester);
+    await _expectFinalAtOnce(tester, find.byType(RingingScreen), still: true);
+    expect(find.text('chime'), findsOneWidget);
+
+    // The next sound: its title takes the place of the one before at once.
+    now = now.add(const Duration(seconds: 20));
+    player.finishClip();
+    while (find.text('bell').evaluate().isEmpty) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await tester.pump();
+    expect(find.text('chime'), findsNothing);
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(tester.hasRunningAnimations, isFalse);
+  });
 }
 
 /// The frame of a change, and one 16 ms later: a page that comes in with a

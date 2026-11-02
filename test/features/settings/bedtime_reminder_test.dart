@@ -17,6 +17,7 @@ import 'package:shuffle_alarm/platform/providers.dart';
 import 'package:shuffle_alarm/platform/system_notifications.dart';
 
 import '../../data/memory_database.dart';
+import '../../design/design_app.dart';
 import '../../platform/fake_platform.dart';
 import '../alarms/alarms_app.dart';
 import 'reminder_app.dart';
@@ -253,6 +254,8 @@ void main() {
     }
 
     Future<void> expectItRings(WidgetTester tester) async {
+      // So `pumpAndSettle` ends: the record of the ringing screen turns.
+      askForLessMotion(tester);
       scheduler.ring(DueRing(sevenOClock(), scheduledFor: ring));
       await tester.pumpAndSettle();
 

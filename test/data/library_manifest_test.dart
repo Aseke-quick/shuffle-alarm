@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:shuffle_alarm/core/clip_rule.dart';
+import 'package:shuffle_alarm/core/fallback_tone.dart';
 import 'package:shuffle_alarm/core/models/sound.dart';
 import 'package:shuffle_alarm/data/library_manifest.dart';
 import 'package:shuffle_alarm/data/sound_repository.dart';
@@ -174,6 +175,13 @@ void main() {
           reason: entry.file,
         );
       }
+    });
+
+    test('has no clip with the id of the tone that rings without sounds', () {
+      expect(
+        library.map((entry) => entry.id),
+        isNot(contains(fallbackTone.id)),
+      );
     });
 
     test('has ids and genres that are lowercase words with hyphens', () {

@@ -7,10 +7,11 @@ import 'package:shuffle_alarm/core/models/alarm.dart';
 import 'package:shuffle_alarm/design/components/notice_card.dart';
 import 'package:shuffle_alarm/design/components/wide_button.dart';
 import 'package:shuffle_alarm/features/alarms/arming.dart';
+import 'package:shuffle_alarm/features/ringing/ringing_controller.dart';
 
 /// On the Alarms tab of the web version: the "Arm alarms" card while an
-/// alarm is on and its sound is locked, then the "Keep this tab open"
-/// banner (task 2.4). Nothing on a platform that needs no tap.
+/// alarm is on or snoozed and its sound is locked, then the "Keep this tab
+/// open" banner (task 2.4). Nothing on a platform that needs no tap.
 class ArmCard extends ConsumerWidget {
   const ArmCard({required this.alarms, super.key});
 
@@ -20,7 +21,9 @@ class ArmCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final arming = ref.watch(armingProvider);
-    final anyOn = alarms.any((alarm) => alarm.enabled);
+    final anyOn =
+        alarms.any((alarm) => alarm.enabled) ||
+        ref.watch(snoozedRingsProvider).isNotEmpty;
     if (!arming.needed || (!arming.armed && !anyOn)) {
       return const SizedBox.shrink();
     }
