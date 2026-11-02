@@ -17,6 +17,9 @@ import 'package:web/web.dart' as web;
 /// Safari, and a gain node sets the volume also where Safari on the iPhone
 /// ignores the volume of an audio element (docs/DECISIONS.md, 1.4 and 2.4).
 class WebSoundPlayer implements SoundPlayer {
+  /// How long a ring waits for a clip that is not in memory yet.
+  static const _loadLimit = Duration(seconds: 2);
+
   web.AudioContext? _context;
   final _buffers = <String, Future<web.AudioBuffer>>{};
   web.AudioBuffer? _tone;
@@ -107,7 +110,9 @@ class WebSoundPlayer implements SoundPlayer {
     if (!await _resume(audio, const Duration(seconds: 1))) {
       throw const SoundBlockedException('The browser blocks the sound');
     }
-    final buffer = await _buffer(asset);
+    // Not longer than this: on a slow network a clip that "Arm alarms" has not
+    // loaded yet could keep the ring silent. It goes on loading for next time.
+    final buffer = await _buffer(asset).timeout(_loadLimit);
     await stop();
     final source = audio.createBufferSource()..buffer = buffer;
     await _played(

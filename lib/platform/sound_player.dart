@@ -22,7 +22,8 @@ abstract interface class SoundPlayer {
   ///
   /// Throws a [SoundBlockedException] when the platform does not let it
   /// play, such as a browser before a tap. Throws another error when the
-  /// sound cannot be read.
+  /// sound cannot be read, or not in a moment, such as a file that still loads
+  /// on a slow network: a ring must not wait for it in silence.
   Future<void> play(
     String asset, {
     required Duration from,
