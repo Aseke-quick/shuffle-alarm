@@ -8,6 +8,7 @@ import 'package:shuffle_alarm/design/theme.dart';
 import 'package:shuffle_alarm/design/tokens.dart';
 import 'package:shuffle_alarm/features/ringing/ringing_controller.dart';
 import 'package:shuffle_alarm/features/ringing/ringing_screen.dart';
+import 'package:shuffle_alarm/features/settings/bedtime_reminder.dart';
 import 'package:shuffle_alarm/router.dart';
 
 /// The app: Wakemix. Its package keeps the working name `shuffle_alarm`
@@ -21,11 +22,14 @@ class ShuffleAlarmApp extends ConsumerWidget {
     final router = ref.watch(routerProvider);
     // Rings the alarms that come due, while the app runs, and shows the
     // ringing page above everything when one starts.
-    ref.listen(ringingProvider, (before, now) {
-      if (before == null && now != null) {
-        unawaited(router.push(RingingScreen.path));
-      }
-    });
+    ref
+      ..listen(ringingProvider, (before, now) {
+        if (before == null && now != null) {
+          unawaited(router.push(RingingScreen.path));
+        }
+      })
+      // Shows the bedtime reminder when it comes due, while the app runs.
+      ..listen(bedtimeReminderProvider, (_, _) {});
     return MaterialApp.router(
       title: 'Wakemix',
       debugShowCheckedModeBanner: false,

@@ -3,15 +3,17 @@ import 'package:material_ui/material_ui.dart';
 
 import 'package:shuffle_alarm/core/models/alarm.dart';
 import 'package:shuffle_alarm/core/models/clock_time.dart';
-import 'package:shuffle_alarm/data/alarm_repository.dart';
 import 'package:shuffle_alarm/data/database.dart';
 import 'package:shuffle_alarm/design/components/alarm_track_row.dart';
 import 'package:shuffle_alarm/features/alarms/alarm_editor_screen.dart';
+import 'package:shuffle_alarm/features/settings/bedtime_reminder_screen.dart';
 import 'package:shuffle_alarm/features/settings/settings_screen.dart';
 
 import '../data/memory_database.dart';
 import '../design/design_app.dart';
+import '../platform/fake_platform.dart';
 import 'alarms/alarms_app.dart';
+import 'settings/reminder_app.dart';
 
 /// "All motion stops when the platform asks for less motion" (spec section
 /// 1): pages, dialogs and new list items are in place in the first frame.
@@ -27,9 +29,14 @@ void main() {
     testWidgets('pages, dialogs and new alarms: with less motion asked for '
         '$lessMotion, $moves', (tester) async {
       if (lessMotion) askForLessMotion(tester);
-      await AlarmRepository(db)
-          .save(Alarm(id: 'a', time: ClockTime(hour: 7, minute: 0)));
-      await openAlarms(tester, db: db, now: wednesdayEvening);
+      useMemorySettings();
+      await openWithReminder(
+        tester,
+        db: db,
+        notifications: FakeSystemNotifications(),
+        now: wednesdayEvening,
+        alarms: [Alarm(id: 'a', time: ClockTime(hour: 7, minute: 0))],
+      );
 
       // A page above the tabs.
       await tester.tap(find.text('New alarm'));
@@ -67,6 +74,15 @@ void main() {
       await _expectFinalAtOnce(
         tester,
         find.byType(SettingsScreen),
+        still: lessMotion,
+      );
+
+      // The explanation of the bedtime reminder, from its switch.
+      await tester.tap(find.byType(Switch));
+      await _twoFrames(tester);
+      await _expectFinalAtOnce(
+        tester,
+        find.byType(BedtimeReminderScreen),
         still: lessMotion,
       );
     });

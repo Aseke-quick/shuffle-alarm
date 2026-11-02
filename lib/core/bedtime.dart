@@ -1,7 +1,15 @@
 import 'package:meta/meta.dart';
 
+import 'package:shuffle_alarm/core/models/alarm.dart';
+import 'package:shuffle_alarm/core/next_ring.dart';
+
 /// How long a night's sleep should be, until a setting can change it.
 const defaultSleepGoal = Duration(hours: 8);
+
+/// How late a bedtime reminder may still come, such as after the device
+/// slept. Later it would only disturb, and the sleep calculator still says
+/// how long the night is. A start value, to tune with real data.
+const bedtimeReminderGrace = Duration(minutes: 30);
 
 /// When to go to bed to sleep [goal] before [ring]: the moment [goal] before
 /// it.
@@ -16,6 +24,33 @@ DateTime bedtimeFor(DateTime ring, {Duration goal = defaultSleepGoal}) {
     throw ArgumentError.value(goal, 'goal', 'Must be positive');
   }
   return ring.subtract(goal);
+}
+
+/// The ring whose bedtime reminder came due after [since] and at [now] or
+/// before: the ring of the next alarm ([soonestRing]), if its bedtime
+/// ([bedtimeFor]) is in that time and less than [bedtimeReminderGrace] ago.
+///
+/// A check runs again and again, each time with the time of its check before
+/// as [since], so each bedtime comes due once, also when a check comes late.
+/// Only the next alarm counts, so a night has one reminder, and an alarm set
+/// after its bedtime has none. Nothing comes due when [now] is not after
+/// [since], such as when the clock was set back.
+///
+/// [since] and [now] can be in UTC. Throws an [ArgumentError] if [goal] is
+/// not positive.
+DateTime? dueBedtimeRing(
+  Iterable<Alarm> alarms, {
+  required DateTime since,
+  required DateTime now,
+  Duration goal = defaultSleepGoal,
+}) {
+  final next = soonestRing(alarms, now);
+  if (next == null) return null;
+  final bedtime = bedtimeFor(next.ring, goal: goal);
+  final cameDue = bedtime.isAfter(since) && !bedtime.isAfter(now);
+  return cameDue && now.difference(bedtime) < bedtimeReminderGrace
+      ? next.ring
+      : null;
 }
 
 /// What the sleep calculator says at [now] about the ring at [ring]: before

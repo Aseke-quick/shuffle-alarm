@@ -48,11 +48,13 @@ dependencies:
   meta: ^1.18.3
   # The folder of the database file on Android, iOS and desktop.
   path_provider: ^2.1.6
+  # Simple settings on the device, in lib/data (docs/DECISIONS.md, task 2.4a).
+  shared_preferences: ^2.5.6
   # SQLite for drift; pinned together with drift, see above.
   sqlite3: 3.8.0
-  # The browser APIs of the web version in lib/platform/web: Web Audio and
-  # the screen wake lock (docs/DECISIONS.md, task 2.4). Web only, so only
-  # lib/platform/web imports it.
+  # The browser APIs of the web version in lib/platform/web: Web Audio, the
+  # screen wake lock (docs/DECISIONS.md, task 2.4) and notifications (2.4a).
+  # Web only, so only lib/platform/web imports it.
   web: ^1.1.2
 
 dev_dependencies:
@@ -64,6 +66,8 @@ dev_dependencies:
   drift_dev: ^2.35.2
   flutter_test:
     sdk: flutter
+  # A store in memory for shared_preferences, in the tests.
+  shared_preferences_platform_interface: ^2.4.2
   # Strict lint rules, activated in `analysis_options.yaml`.
   very_good_analysis: ^11.0.0
 

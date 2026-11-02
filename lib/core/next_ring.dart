@@ -43,3 +43,19 @@ DateTime? nextRing(Alarm alarm, DateTime now) {
   }
   throw StateError('No ring of $alarm found after $now');
 }
+
+/// The alarm of [alarms] that rings first after [now], with that ring
+/// ([nextRing]); on a tie, the first of them. Null if no alarm is on.
+({Alarm alarm, DateTime ring})? soonestRing(
+  Iterable<Alarm> alarms,
+  DateTime now,
+) {
+  ({Alarm alarm, DateTime ring})? soonest;
+  for (final alarm in alarms) {
+    final ring = nextRing(alarm, now);
+    if (ring != null && (soonest == null || ring.isBefore(soonest.ring))) {
+      soonest = (alarm: alarm, ring: ring);
+    }
+  }
+  return soonest;
+}

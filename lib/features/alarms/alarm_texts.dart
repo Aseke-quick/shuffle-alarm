@@ -45,6 +45,43 @@ String sleepText(
   SleepNow(:final sleep) => 'Sleep now: ${_span(sleep.inMinutes)}',
 };
 
+/// A sleep goal, such as "8 h".
+String sleepGoalText(Duration goal) => _span(goal.inMinutes);
+
+/// The title of the bedtime reminder's notification.
+const bedtimeReminderTitle = 'Time for bed';
+
+/// What the bedtime reminder says when it comes at [now] for the ring at
+/// [ring], such as "Sleep now for 8 h before your 7:00 AM alarm."
+///
+/// To the nearest minute, so a reminder a moment after the bedtime says 8 h,
+/// and one that came late says how long the night still is. [clock] writes a
+/// time of day as the device shows it.
+String bedtimeReminderBody({
+  required DateTime ring,
+  required DateTime now,
+  required String Function(DateTime time) clock,
+}) {
+  final minutes =
+      (ring.difference(now).inMilliseconds / Duration.millisecondsPerMinute)
+          .round();
+  return 'Sleep now for ${_span(minutes)} before your '
+      '${clock(ring.toLocal())} alarm.';
+}
+
+/// When the bedtime reminder that is on comes next, as [advice] tells it:
+/// "Next at 10:45 PM", with the day in front when it is not today, such as
+/// "Next at Sun 11:00 PM".
+String nextReminderText(
+  SleepAdvice advice, {
+  required DateTime now,
+  required String Function(DateTime time) clock,
+}) => switch (advice) {
+  BedBy(:final bedtime) =>
+    'Next at ${_dayUnlessToday(bedtime, now)}${clock(bedtime.toLocal())}',
+  SleepNow() => 'The bedtime of your next alarm has passed',
+};
+
 /// "Sun " if [time] is on another day than [now], else nothing.
 String _dayUnlessToday(DateTime time, DateTime now) {
   final (a, b) = (time.toLocal(), now.toLocal());

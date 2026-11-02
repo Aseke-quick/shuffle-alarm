@@ -125,6 +125,100 @@ void main() {
     expect(alarmDetails(alarm.copyWith(label: '', repeatDays: {})), 'Once');
   });
 
+  group('bedtimeReminderBody', () {
+    final ring = DateTime(2026, 11, 12, 7);
+    String clock(DateTime time) =>
+        '${time.hour}:${time.minute.toString().padLeft(2, '0')}';
+
+    test('says the night that is left, and when the alarm rings', () {
+      expect(
+        bedtimeReminderBody(
+          ring: ring,
+          now: DateTime(2026, 11, 11, 23),
+          clock: clock,
+        ),
+        'Sleep now for 8 h before your 7:00 alarm.',
+      );
+      expect(
+        bedtimeReminderBody(
+          ring: ring,
+          now: DateTime(2026, 11, 11, 23, 20),
+          clock: clock,
+        ),
+        'Sleep now for 7 h 40 min before your 7:00 alarm.',
+      );
+    });
+
+    test('rounds to the nearest minute, so a moment late still says 8 h', () {
+      expect(
+        bedtimeReminderBody(
+          ring: ring,
+          now: DateTime(2026, 11, 11, 23, 0, 0, 900),
+          clock: clock,
+        ),
+        startsWith('Sleep now for 8 h before'),
+      );
+      expect(
+        bedtimeReminderBody(
+          ring: ring,
+          now: DateTime(2026, 11, 11, 23, 0, 40),
+          clock: clock,
+        ),
+        startsWith('Sleep now for 7 h 59 min before'),
+      );
+    });
+
+    test('says the time on the local clock for a ring in UTC', () {
+      expect(
+        bedtimeReminderBody(
+          ring: ring.toUtc(),
+          now: DateTime(2026, 11, 11, 23),
+          clock: clock,
+        ),
+        'Sleep now for 8 h before your 7:00 alarm.',
+      );
+    });
+  });
+
+  group('nextReminderText', () {
+    final now = DateTime(2026, 11, 11, 20);
+    String clock(DateTime time) =>
+        '${time.hour}:${time.minute.toString().padLeft(2, '0')}';
+
+    test('says the time of a bedtime today', () {
+      expect(
+        nextReminderText(
+          BedBy(DateTime(2026, 11, 11, 23), goal: defaultSleepGoal),
+          now: now,
+          clock: clock,
+        ),
+        'Next at 23:00',
+      );
+    });
+
+    test('says the day of a bedtime that is not today', () {
+      expect(
+        nextReminderText(
+          BedBy(DateTime(2026, 11, 15, 23), goal: defaultSleepGoal),
+          now: now,
+          clock: clock,
+        ),
+        'Next at Sun 23:00',
+      );
+    });
+
+    test('says when the bedtime has passed', () {
+      expect(
+        nextReminderText(
+          const SleepNow(Duration(hours: 7)),
+          now: now,
+          clock: clock,
+        ),
+        'The bedtime of your next alarm has passed',
+      );
+    });
+  });
+
   group('sleepText', () {
     // Wednesday evening.
     final now = DateTime(2026, 11, 11, 20);

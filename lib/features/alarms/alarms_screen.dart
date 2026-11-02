@@ -92,7 +92,7 @@ class _NextAlarm extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final now = ref.watch(clockProvider);
-    final next = _nextOf(alarms, now);
+    final next = soonestRing(alarms, now);
     if (next == null) {
       return RecordHero(
         title: 'No alarm set',
@@ -100,7 +100,7 @@ class _NextAlarm extends ConsumerWidget {
         semanticsLabel: 'No alarm set',
       );
     }
-    final (alarm, ring) = next;
+    final (:alarm, :ring) = next;
     final time = TimeOfDay(hour: alarm.time.hour, minute: alarm.time.minute);
     final countdown = countdownText(ring.difference(now));
     return RecordHero(
@@ -115,19 +115,6 @@ class _NextAlarm extends ConsumerWidget {
       semanticsLabel: 'Next alarm ${time.format(context)}, $countdown',
     );
   }
-}
-
-/// The alarm that rings first after [now], with its ring; null if none is
-/// on.
-(Alarm, DateTime)? _nextOf(List<Alarm> alarms, DateTime now) {
-  (Alarm, DateTime)? next;
-  for (final alarm in alarms) {
-    final ring = nextRing(alarm, now);
-    if (ring != null && (next == null || ring.isBefore(next.$2))) {
-      next = (alarm, ring);
-    }
-  }
-  return next;
 }
 
 /// "All alarms" and every alarm, by time of day; nothing without alarms.

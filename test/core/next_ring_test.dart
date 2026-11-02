@@ -152,6 +152,54 @@ void main() {
     });
   });
 
+  group('soonestRing', () {
+    final now = DateTime(2026, 11, 11, 23, 40);
+
+    test('is the alarm that rings first, wherever it is in the list', () {
+      final early = _alarm(6, 30);
+      final late = _alarm(7, 0);
+      // Today, so before both of tomorrow's rings, but later in the list.
+      final tonight = _alarm(23, 50);
+
+      for (final alarms in [
+        [early, late],
+        [late, early],
+      ]) {
+        final next = soonestRing(alarms, now);
+        expect(next?.alarm, early);
+        expect(next?.ring, DateTime(2026, 11, 12, 6, 30));
+      }
+      expect(soonestRing([early, late, tonight], now)?.alarm, tonight);
+    });
+
+    test('takes the ring after now, not one that is ringing now', () {
+      final tonight = _alarm(23, 40);
+      final morning = _alarm(7, 0);
+
+      expect(soonestRing([tonight, morning], now)?.alarm, morning);
+    });
+
+    test('skips an alarm that is off', () {
+      final off = _alarm(6, 30, enabled: false);
+      final on = _alarm(7, 0);
+
+      expect(soonestRing([off, on], now)?.alarm, on);
+    });
+
+    test('is null when no alarm is on', () {
+      expect(soonestRing(const [], now), isNull);
+      expect(soonestRing([_alarm(7, 0, enabled: false)], now), isNull);
+    });
+
+    test('on a tie, is the first in the list', () {
+      final first = Alarm(id: 'first', time: ClockTime(hour: 7, minute: 0));
+      final second = Alarm(id: 'second', time: ClockTime(hour: 7, minute: 0));
+
+      expect(soonestRing([first, second], now)?.alarm, first);
+      expect(soonestRing([second, first], now)?.alarm, second);
+    });
+  });
+
   // These tests need a time zone with daylight saving time. CI runs in UTC
   // and runs this file again in each zone of [_dstZones], such as
   // `TZ=Europe/Berlin flutter test test/core/next_ring_test.dart`.

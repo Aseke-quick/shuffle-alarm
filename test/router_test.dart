@@ -46,7 +46,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.widgetWithText(AppBar, 'Settings'), findsOneWidget);
-    expect(find.text('No settings yet.'), findsOneWidget);
+    expect(find.text('Bedtime reminder'), findsOneWidget);
     expect(find.byType(WakemixNavBar), findsNothing);
 
     await tester.pageBack();

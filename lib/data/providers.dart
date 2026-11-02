@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:shuffle_alarm/core/models/alarm.dart';
 import 'package:shuffle_alarm/core/models/sound.dart';
@@ -10,6 +11,7 @@ import 'package:shuffle_alarm/data/alarm_repository.dart';
 import 'package:shuffle_alarm/data/database.dart';
 import 'package:shuffle_alarm/data/library_manifest.dart';
 import 'package:shuffle_alarm/data/library_sync.dart';
+import 'package:shuffle_alarm/data/settings_repository.dart';
 import 'package:shuffle_alarm/data/sound_repository.dart';
 import 'package:shuffle_alarm/data/weight_repository.dart';
 
@@ -39,6 +41,12 @@ final soundRepositoryProvider = Provider<SoundRepository>(
 
 final weightRepositoryProvider = Provider<WeightRepository>(
   (ref) => WeightRepository(ref.watch(databaseProvider)),
+);
+
+/// The simple settings. Reading it throws where the platform has no store,
+/// such as in the Dart VM of the tests, unless a test sets one up.
+final settingsRepositoryProvider = Provider<SettingsRepository>(
+  (ref) => SettingsRepository(SharedPreferencesAsync()),
 );
 
 /// The genres of the built-in sounds, A to Z: the genres an alarm can choose

@@ -5,6 +5,7 @@ import 'package:shuffle_alarm/core/models/alarm.dart';
 import 'package:shuffle_alarm/platform/alarm_scheduler.dart';
 import 'package:shuffle_alarm/platform/screen_wake_lock.dart';
 import 'package:shuffle_alarm/platform/sound_player.dart';
+import 'package:shuffle_alarm/platform/system_notifications.dart';
 
 /// A scheduler that rings when a test says so ([ring]), like the one of the
 /// web version, which rings alarms.
@@ -162,4 +163,56 @@ class FakeScreenWakeLock implements ScreenWakeLock {
 
   @override
   Future<void> dispose() async {}
+}
+
+/// One notification that a [FakeSystemNotifications] showed.
+typedef FakeNotification = ({String title, String body});
+
+/// Notifications that record what they show, and a person who answers the
+/// question as the test says: at once with [answer], or later with
+/// [answerNow] when [waitsToAnswer] is set.
+class FakeSystemNotifications implements SystemNotifications {
+  FakeSystemNotifications({
+    this.access = NotificationAccess.notAsked,
+    this.answer = NotificationAccess.allowed,
+    this.waitsToAnswer = false,
+  });
+
+  @override
+  NotificationAccess access;
+
+  /// What is true after the person answered the question.
+  NotificationAccess answer;
+
+  /// Whether the question stays open until [answerNow].
+  bool waitsToAnswer;
+
+  /// Whether [show] throws, as a browser that cannot show one.
+  bool broken = false;
+
+  int askCalls = 0;
+
+  /// What it showed, oldest first.
+  final shown = <FakeNotification>[];
+
+  Completer<void>? _question;
+
+  @override
+  Future<NotificationAccess> ask() async {
+    askCalls++;
+    if (waitsToAnswer) {
+      final question = _question = Completer<void>();
+      await question.future;
+    }
+    return access = answer;
+  }
+
+  /// Answers the open question with [answer].
+  void answerNow() => _question?.complete();
+
+  @override
+  Future<void> show({required String title, required String body}) async {
+    if (broken) throw StateError('Cannot show a notification');
+    shown.add((title: title, body: body));
+  }
 }

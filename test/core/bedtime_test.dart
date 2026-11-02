@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:shuffle_alarm/core/bedtime.dart';
+import 'package:shuffle_alarm/core/models/alarm.dart';
+import 'package:shuffle_alarm/core/models/clock_time.dart';
 
 void main() {
   group('bedtimeFor', () {
@@ -181,6 +183,252 @@ void main() {
     );
   });
 
+  group('dueBedtimeRing', () {
+    // A 07:00 alarm: its bedtime on Wednesday evening is 23:00, for the ring
+    // on Thursday morning.
+    final seven = _alarm('seven', 7, 0);
+    final ring = DateTime(2026, 11, 12, 7);
+    DateTime evening(int hour, int minute, [int second = 0]) =>
+        DateTime(2026, 11, 11, hour, minute, second);
+
+    test('comes due at the bedtime of the next alarm', () {
+      expect(
+        dueBedtimeRing([seven], since: evening(22, 59), now: evening(23, 0)),
+        ring,
+      );
+    });
+
+    test('does not come due before the bedtime', () {
+      expect(
+        dueBedtimeRing(
+          [seven],
+          since: evening(22, 59),
+          now: DateTime(2026, 11, 11, 22, 59, 59, 999, 999),
+        ),
+        isNull,
+      );
+    });
+
+    test('comes due once: the check after it finds nothing', () {
+      expect(
+        dueBedtimeRing([seven], since: evening(23, 0), now: evening(23, 1)),
+        isNull,
+      );
+    });
+
+    test('comes due once a night through a whole day of checks', () {
+      final found = _checksThrough(
+        [seven],
+        from: evening(7, 30),
+        to: DateTime(2026, 11, 12, 7, 30),
+      );
+
+      expect(found, [ring]);
+    });
+
+    test('a late check still finds it, up to the grace', () {
+      // A background tab may check once a minute, a laptop wakes much later.
+      for (final now in [
+        evening(23, 1),
+        evening(23, 20),
+        DateTime(2026, 11, 11, 23, 29, 59, 999, 999),
+      ]) {
+        expect(
+          dueBedtimeRing([seven], since: evening(22, 40), now: now),
+          ring,
+          reason: 'Now $now',
+        );
+      }
+    });
+
+    test('a check 30 min after the bedtime or later finds nothing', () {
+      expect(bedtimeReminderGrace, const Duration(minutes: 30));
+      for (final now in [
+        evening(23, 30),
+        evening(23, 59),
+        // On the morning of the ring, and after it.
+        DateTime(2026, 11, 12, 6, 50),
+        DateTime(2026, 11, 12, 7, 30),
+      ]) {
+        expect(
+          dueBedtimeRing([seven], since: evening(22, 40), now: now),
+          isNull,
+          reason: 'Now $now',
+        );
+      }
+    });
+
+    test('after a long gap, only the bedtime that just came counts', () {
+      // The laptop slept from Monday evening to Wednesday, 23:05.
+      expect(
+        dueBedtimeRing(
+          [seven],
+          since: DateTime(2026, 11, 9, 22),
+          now: evening(23, 5),
+        ),
+        ring,
+      );
+    });
+
+    test('an alarm set after its bedtime does not come due', () {
+      // At 23:30 someone sets an alarm for 07:00.
+      expect(
+        dueBedtimeRing([seven], since: evening(23, 30), now: evening(23, 31)),
+        isNull,
+      );
+    });
+
+    test('only the next alarm counts, so one reminder a night', () {
+      final six = _alarm('six', 6, 0);
+
+      expect(
+        dueBedtimeRing(
+          [six, seven],
+          since: evening(21, 59),
+          now: evening(22, 0),
+        ),
+        DateTime(2026, 11, 12, 6),
+      );
+      // 23:00 is the bedtime of the 07:00 alarm, which is not the next one.
+      expect(
+        dueBedtimeRing(
+          [six, seven],
+          since: evening(22, 59),
+          now: evening(23, 0),
+        ),
+        isNull,
+      );
+      expect(
+        _checksThrough(
+          [six, seven],
+          from: evening(7, 30),
+          to: DateTime(2026, 11, 12, 5, 30),
+        ),
+        [DateTime(2026, 11, 12, 6)],
+      );
+    });
+
+    test('an alarm that rings at the bedtime gives way at that moment', () {
+      // At 23:00 this alarm rings, and the next one is the 07:00 alarm.
+      final eleven = _alarm('eleven', 23, 0);
+
+      expect(
+        dueBedtimeRing(
+          [eleven, seven],
+          since: evening(22, 59),
+          now: evening(23, 0),
+        ),
+        ring,
+      );
+    });
+
+    test('an alarm that rings before the morning one is the next alarm', () {
+      // At 23:00 the next alarm is the one at 23:30, whose bedtime has
+      // passed.
+      final late = _alarm('late', 23, 30);
+
+      expect(
+        dueBedtimeRing(
+          [late, seven],
+          since: evening(22, 59),
+          now: evening(23, 0),
+        ),
+        isNull,
+      );
+    });
+
+    test('an alarm in the day has its bedtime in the day', () {
+      // As the sleep calculator says it: "Bed by 10:00 AM".
+      expect(
+        dueBedtimeRing(
+          [_alarm('evening', 18, 0)],
+          since: evening(9, 59),
+          now: evening(10, 0),
+        ),
+        evening(18, 0),
+      );
+    });
+
+    test('goes by the days an alarm repeats on', () {
+      final weekdays = _alarm('weekdays', 7, 0, days: {1, 2, 3, 4, 5});
+
+      // Friday evening: the next ring is on Monday.
+      expect(
+        dueBedtimeRing(
+          [weekdays],
+          since: DateTime(2026, 11, 13, 22, 59),
+          now: DateTime(2026, 11, 13, 23),
+        ),
+        isNull,
+      );
+      // Sunday evening.
+      expect(
+        dueBedtimeRing(
+          [weekdays],
+          since: DateTime(2026, 11, 15, 22, 59),
+          now: DateTime(2026, 11, 15, 23),
+        ),
+        DateTime(2026, 11, 16, 7),
+      );
+    });
+
+    test('an alarm that is off does not come due', () {
+      expect(
+        dueBedtimeRing(
+          [_alarm('off', 7, 0, enabled: false)],
+          since: evening(22, 59),
+          now: evening(23, 0),
+        ),
+        isNull,
+      );
+      expect(
+        dueBedtimeRing(const [], since: evening(22, 59), now: evening(23, 0)),
+        isNull,
+      );
+    });
+
+    test('nothing comes due when the clock was set back', () {
+      expect(
+        dueBedtimeRing([seven], since: evening(23, 10), now: evening(22, 50)),
+        isNull,
+      );
+    });
+
+    test('takes another sleep goal', () {
+      const goal = Duration(hours: 7, minutes: 30);
+
+      expect(
+        dueBedtimeRing(
+          [seven],
+          since: evening(22, 59),
+          now: evening(23, 0),
+          goal: goal,
+        ),
+        isNull,
+      );
+      expect(
+        dueBedtimeRing(
+          [seven],
+          since: evening(23, 29),
+          now: evening(23, 30),
+          goal: goal,
+        ),
+        ring,
+      );
+    });
+
+    test('takes times in UTC', () {
+      expect(
+        dueBedtimeRing(
+          [seven],
+          since: evening(22, 59).toUtc(),
+          now: evening(23, 0).toUtc(),
+        ),
+        ring,
+      );
+    });
+  });
+
   // These tests need a time zone with daylight saving time. CI runs in UTC
   // and runs this file again in each zone of [_dstZones], such as
   // `TZ=Europe/Berlin flutter test test/core/bedtime_test.dart`.
@@ -245,9 +493,87 @@ void main() {
           const SleepNow(Duration(hours: 7, minutes: 30)),
         );
       });
+
+      test('the reminder comes a full night before the ring', () {
+        final z = zone!;
+        final seven = _alarm('seven', 7, 0);
+
+        // The clock jumps forward in the night: the bedtime is 22:00.
+        expect(
+          dueBedtimeRing(
+            [seven],
+            since: z.day(z.springForward, -1, 21, 59),
+            now: z.day(z.springForward, -1, 22, 0),
+          ),
+          z.day(z.springForward, 0, 7, 0),
+        );
+        // The clock goes back in the night: the bedtime is midnight.
+        expect(
+          dueBedtimeRing(
+            [seven],
+            since: z.day(z.fallBack, -1, 23, 59),
+            now: z.day(z.fallBack, 0, 0, 0),
+          ),
+          z.day(z.fallBack, 0, 7, 0),
+        );
+      });
+
+      test('the reminder comes once across each change of the clock', () {
+        final z = zone!;
+        final seven = _alarm('seven', 7, 0);
+
+        expect(
+          _checksThrough(
+            [seven],
+            from: z.day(z.springForward, -1, 12, 0),
+            to: z.day(z.springForward, 0, 6, 0),
+          ),
+          [z.day(z.springForward, 0, 7, 0)],
+        );
+        expect(
+          _checksThrough(
+            [seven],
+            from: z.day(z.fallBack, -1, 12, 0),
+            to: z.day(z.fallBack, 0, 6, 0),
+          ),
+          [z.day(z.fallBack, 0, 7, 0)],
+        );
+      });
     },
   );
 }
+
+Alarm _alarm(
+  String id,
+  int hour,
+  int minute, {
+  Set<int> days = const {},
+  bool enabled = true,
+}) => Alarm(
+  id: id,
+  time: ClockTime(hour: hour, minute: minute),
+  repeatDays: days,
+  enabled: enabled,
+);
+
+/// What [dueBedtimeRing] finds when a check runs each minute, [from] until
+/// [to].
+List<DateTime> _checksThrough(
+  List<Alarm> alarms, {
+  required DateTime from,
+  required DateTime to,
+}) => [
+  for (
+    var since = from;
+    since.isBefore(to);
+    since = since.add(const Duration(minutes: 1))
+  )
+    ?dueBedtimeRing(
+      alarms,
+      since: since,
+      now: since.add(const Duration(minutes: 1)),
+    ),
+];
 
 /// A time zone with daylight saving time in 2026, in which the clock changes
 /// on a Sunday. The same zones as in `next_ring_test.dart`.

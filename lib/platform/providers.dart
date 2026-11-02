@@ -7,6 +7,7 @@ import 'package:shuffle_alarm/platform/idle_platform_services.dart'
     if (dart.library.js_interop) 'package:shuffle_alarm/platform/web/web_platform_services.dart';
 import 'package:shuffle_alarm/platform/screen_wake_lock.dart';
 import 'package:shuffle_alarm/platform/sound_player.dart';
+import 'package:shuffle_alarm/platform/system_notifications.dart';
 
 /// The [AlarmScheduler] of the platform the app runs on. Tests override it.
 final alarmSchedulerProvider = Provider<AlarmScheduler>((ref) {
@@ -28,3 +29,9 @@ final screenWakeLockProvider = Provider<ScreenWakeLock>((ref) {
   ref.onDispose(() => unawaited(wakeLock.dispose()));
   return wakeLock;
 });
+
+/// The [SystemNotifications] of the platform the app runs on. Tests override
+/// it.
+final systemNotificationsProvider = Provider<SystemNotifications>(
+  (ref) => createSystemNotifications(),
+);

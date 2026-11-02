@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'package:shuffle_alarm/core/due_rings.dart';
@@ -13,12 +14,16 @@ import 'package:shuffle_alarm/design/components/alarm_track_row.dart';
 import 'package:shuffle_alarm/design/components/nav_bar.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
 import 'package:shuffle_alarm/features/ringing/ringing_screen.dart';
+import 'package:shuffle_alarm/features/settings/bedtime_reminder_screen.dart';
+import 'package:shuffle_alarm/features/settings/settings_screen.dart';
 import 'package:shuffle_alarm/platform/providers.dart';
+import 'package:shuffle_alarm/platform/system_notifications.dart';
 
 import '../data/memory_database.dart';
 import '../design/design_app.dart';
 import '../platform/fake_platform.dart';
 import 'alarms/alarms_app.dart';
+import 'settings/reminder_app.dart';
 
 /// Large text on a small phone (spec section 1): at a text scale of 2.0 on
 /// a screen of 360 × 740, every screen lays out without an overflow, with
@@ -112,7 +117,89 @@ void main() {
 
     await tester.tap(find.byTooltip('Settings'));
     await tester.pumpAndSettle();
-    expect(find.text('No settings yet.'), findsOneWidget);
+    expect(find.text('Bedtime reminder'), findsOneWidget);
+  });
+
+  testWidgets('the bedtime reminder fits, on and at each answer', (
+    tester,
+  ) async {
+    setTextScale(tester, 2);
+    useMemorySettings();
+    final notifications = FakeSystemNotifications(
+      answer: NotificationAccess.blocked,
+    );
+    await openWithReminder(
+      tester,
+      db: db,
+      notifications: notifications,
+      now: wednesdayEvening,
+      size: phone,
+    );
+    await openSettings(tester);
+    expect(find.text('Off'), findsOneWidget);
+
+    // The explanation, from the switch.
+    await tester.tap(find.byType(Switch));
+    await tester.pumpAndSettle();
+    expect(find.byType(BedtimeReminderScreen), findsOneWidget);
+    await _scrollThrough(tester);
+    expect(find.textContaining('this tab is open'), findsOneWidget);
+
+    // A no.
+    await tester.tap(find.text('Turn on'));
+    await tester.pumpAndSettle();
+    await _scrollThrough(tester);
+    expect(find.text('Notifications are blocked'), findsOneWidget);
+
+    // No answer.
+    notifications
+      ..access = NotificationAccess.notAsked
+      ..answer = NotificationAccess.notAsked;
+    await tester.tap(find.text('Try again'));
+    await tester.pumpAndSettle();
+    await _scrollThrough(tester);
+    expect(find.text('No answer from your browser'), findsOneWidget);
+
+    // A question that stays open.
+    notifications.waitsToAnswer = true;
+    await tester.tap(find.text('Try again'));
+    await tester.pumpAndSettle();
+    expect(find.text('Waiting for your browser'), findsOneWidget);
+    notifications
+      ..waitsToAnswer = false
+      ..answer = NotificationAccess.allowed
+      ..answerNow();
+    await tester.pumpAndSettle();
+
+    // On, in Settings, with its longest status.
+    expect(find.byType(SettingsScreen), findsOneWidget);
+    expect(
+      find.text('The bedtime of your next alarm has passed'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a platform without notifications fits', (tester) async {
+    setTextScale(tester, 2);
+    useMemorySettings();
+    await openWithReminder(
+      tester,
+      db: db,
+      notifications: FakeSystemNotifications(
+        access: NotificationAccess.unavailable,
+      ),
+      now: wednesdayEvening,
+      size: phone,
+    );
+    await openSettings(tester);
+    expect(find.text('Not available on this device.'), findsOneWidget);
+
+    GoRouter.of(tester.element(find.byType(SettingsScreen)))
+        .go(BedtimeReminderScreen.path);
+    await tester.pumpAndSettle();
+    await _scrollThrough(tester);
+    expect(find.text('Not available on this device'), findsOneWidget);
+    expect(find.text('Back'), findsOneWidget);
   });
 
   testWidgets('the arm card and the ringing page fit', (tester) async {
