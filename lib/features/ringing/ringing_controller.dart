@@ -11,6 +11,7 @@ import 'package:shuffle_alarm/core/models/alarm.dart';
 import 'package:shuffle_alarm/core/models/ring_event.dart';
 import 'package:shuffle_alarm/core/models/ring_session.dart';
 import 'package:shuffle_alarm/core/models/sound.dart';
+import 'package:shuffle_alarm/core/ring_plan.dart';
 import 'package:shuffle_alarm/core/ring_position.dart';
 import 'package:shuffle_alarm/core/ring_sequence.dart';
 import 'package:shuffle_alarm/core/snooze.dart';
@@ -109,9 +110,11 @@ class SnoozedRings extends Notifier<List<SnoozedRing>> {
 /// Rings the alarms that come due (task 2.4), and logs each ring (task 2.5).
 ///
 /// It hands the alarms to the platform's `AlarmScheduler`. When one comes
-/// due, it plays the alarm's ring sequence (`buildRingSequence`), one clip
-/// after the other, from where the clock says (`ringPosition`), until Stop,
-/// Snooze or the time cap.
+/// due, it plays the clips of the ring's stored plan (`clipsOfPlan`, Tonight's
+/// mix), or else a new ring sequence (`buildRingSequence`), one clip after the
+/// other, from where the clock says (`ringPosition`), until Stop, Snooze or
+/// the time cap. A plan never keeps an alarm from ringing: one that is missing,
+/// or cannot be read in time, only means a new sequence.
 ///
 /// - A one-time alarm switches off when it comes due, so it rings once.
 /// - A ring found after its time cap is over is missed: no sound.
@@ -134,6 +137,9 @@ class SnoozedRings extends Notifier<List<SnoozedRing>> {
 /// takes the place of a clip that cannot be read. Only a platform that blocks
 /// the sound makes it ring without one, and says so ([Ringing.audible]).
 class RingingController extends Notifier<Ringing?> {
+  /// How long a ring waits for its stored plan.
+  static const planLimit = Duration(seconds: 2);
+
   final _random = Random();
 
   /// Counts the playbacks. Stop and each new playback end the one before.
@@ -177,6 +183,10 @@ class RingingController extends Notifier<Ringing?> {
   DateTime get _now => ref.read(nowProvider)();
 
   SnoozedRings get _snoozed => ref.read(snoozedRingsProvider.notifier);
+
+  /// The first round of the clips of the ring that rings, or that went quiet
+  /// last: every sound of it once, in play order.
+  List<RingClip> get round => firstRound(_clips);
 
   void _onDue(DueRing due) {
     final snoozed = _takeSnoozed(due);
@@ -231,15 +241,22 @@ class RingingController extends Notifier<Ringing?> {
   Future<void> _start(DueRing due, RingSession session) async {
     final sounds = await _soundsToPlay();
     final weights = await _weights();
+    final plan = await _planOf(due);
     if (!ref.mounted) return;
     _assets = {for (final stored in sounds) stored.sound.id: stored.audioPath};
-    _clips = buildRingSequence(
-      due.alarm,
-      sounds.isEmpty ? [fallbackTone] : [for (final s in sounds) s.sound],
-      weights,
-      _random.nextInt(1 << 30),
-      snoozedSoundId: due.snoozedSoundId,
-    );
+    final pool = sounds.isEmpty
+        ? [fallbackTone]
+        : [for (final stored in sounds) stored.sound];
+    _clips = plan != null && due.snoozedSoundId == null
+        ? clipsOfPlan(plan, due.alarm, pool, weights)
+        : buildRingSequence(
+            due.alarm,
+            pool,
+            weights,
+            newRingSeed(_random),
+            snoozedSoundId: due.snoozedSoundId,
+            skipped: plan?.notTonight ?? const {},
+          );
     final now = _now;
     final elapsed = now.difference(due.startsAt);
     final missed = ringPosition(_clips, elapsed) == null;
@@ -273,6 +290,20 @@ class RingingController extends Notifier<Ringing?> {
     } on Object catch (error) {
       debugPrint('Could not read any sound, so the tone plays: $error');
       return const [];
+    }
+  }
+
+  /// The stored plan of [due], which a ring after Snooze keeps too. Null when
+  /// it has none, or none that can be read in a moment.
+  Future<RingPlan?> _planOf(DueRing due) async {
+    try {
+      return await ref
+          .read(ringPlanRepositoryProvider)
+          .forRing(due.alarm.id, due.scheduledFor)
+          .timeout(planLimit);
+    } on Object catch (error) {
+      debugPrint('Could not read the plan of a ring, so it makes one: $error');
+      return null;
     }
   }
 

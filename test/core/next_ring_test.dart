@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:shuffle_alarm/core/due_rings.dart';
 import 'package:shuffle_alarm/core/models/alarm.dart';
 import 'package:shuffle_alarm/core/models/clock_time.dart';
 import 'package:shuffle_alarm/core/next_ring.dart';
@@ -285,6 +286,34 @@ void main() {
         expect(after, z.day(z.fallBack, 1, z.repeatedHour, 30));
         // Not again an hour later, when the clock shows the time again.
         expect(after.difference(ring), const Duration(hours: 25));
+      });
+
+      // A stored plan of a ring (`RingPlan.ringAt`) finds its ring by this
+      // moment, to the microsecond: planned the evening before, found at the
+      // ring.
+      test('finds the same moment the evening before as at the ring', () {
+        final z = zone!;
+        for (final (change, hour, minute) in [
+          (z.springForward, 7, 0),
+          (z.springForward, 2, 30),
+          (z.fallBack, 7, 0),
+          (z.fallBack, z.repeatedHour, 30),
+        ]) {
+          final alarm = _alarm(hour, minute);
+          final planned = nextRing(alarm, z.day(change, -1, 22, 0))!;
+
+          final due = dueRings(
+            [alarm],
+            since: planned.subtract(const Duration(seconds: 1)),
+            now: planned.add(const Duration(seconds: 1)),
+          ).single;
+
+          expect(
+            due.scheduledFor.microsecondsSinceEpoch,
+            planned.microsecondsSinceEpoch,
+            reason: 'An alarm at $hour:$minute on $change',
+          );
+        }
       });
     },
   );

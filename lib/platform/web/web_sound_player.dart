@@ -25,6 +25,11 @@ class WebSoundPlayer implements SoundPlayer {
   web.AudioBuffer? _tone;
   web.AudioBufferSourceNode? _source;
 
+  /// Counts the calls to play, make the tone and stop. A sound that waits for
+  /// its context or its file does not start after a newer call: a Stop would
+  /// not reach it, as it does not play yet.
+  var _request = 0;
+
   @override
   bool get playsSounds => web.window.has('AudioContext');
 
@@ -104,6 +109,7 @@ class WebSoundPlayer implements SoundPlayer {
     required double volume,
   }) async {
     if (!playsSounds) throw const SoundBlockedException('No Web Audio');
+    final request = ++_request;
     final audio = _audio;
     // Without a tap now: Chrome and Firefox let a page play after any tap
     // it had before, so this can work without "Arm alarms" too.
@@ -113,7 +119,8 @@ class WebSoundPlayer implements SoundPlayer {
     // Not longer than this: on a slow network a clip that "Arm alarms" has not
     // loaded yet could keep the ring silent. It goes on loading for next time.
     final buffer = await _buffer(asset).timeout(_loadLimit);
-    await stop();
+    if (request != _request) return;
+    _stopSource();
     final source = audio.createBufferSource()..buffer = buffer;
     await _played(
       audio,
@@ -129,11 +136,13 @@ class WebSoundPlayer implements SoundPlayer {
     required double volume,
   }) async {
     if (!playsSounds) throw const SoundBlockedException('No Web Audio');
+    final request = ++_request;
     final audio = _audio;
     if (!await _resume(audio, const Duration(seconds: 1))) {
       throw const SoundBlockedException('The browser blocks the sound');
     }
-    await stop();
+    if (request != _request) return;
+    _stopSource();
     final source = audio.createBufferSource()
       ..buffer = _toneBuffer(audio)
       ..loop = true;
@@ -204,6 +213,11 @@ class WebSoundPlayer implements SoundPlayer {
 
   @override
   Future<void> stop() async {
+    _request++;
+    _stopSource();
+  }
+
+  void _stopSource() {
     final source = _source;
     _source = null;
     try {

@@ -11,6 +11,7 @@ import 'package:shuffle_alarm/data/sound_repository.dart';
 import 'package:shuffle_alarm/design/components/alarm_track_row.dart';
 import 'package:shuffle_alarm/features/alarms/alarm_editor_screen.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
+import 'package:shuffle_alarm/features/alarms/tonight_mix_screen.dart';
 import 'package:shuffle_alarm/features/ringing/ringing_screen.dart';
 import 'package:shuffle_alarm/features/settings/bedtime_reminder_screen.dart';
 import 'package:shuffle_alarm/features/settings/settings_screen.dart';
@@ -27,6 +28,7 @@ import 'settings/reminder_app.dart';
 /// Without that ask, the same steps move, so the check can tell.
 void main() {
   _ringingScreenTest();
+  _mixTest();
 
   late AppDatabase db;
 
@@ -94,6 +96,64 @@ void main() {
         find.byType(BedtimeReminderScreen),
         still: lessMotion,
       );
+    });
+  }
+}
+
+/// Tonight's mix: its page, and a new order of its list.
+void _mixTest() {
+  for (final lessMotion in [true, false]) {
+    final moves = lessMotion ? 'nothing moves' : 'they move';
+    testWidgets("Tonight's mix and a new order: with less motion asked for "
+        '$lessMotion, $moves', (tester) async {
+      if (lessMotion) askForLessMotion(tester);
+      final db = memoryDatabase();
+      for (var i = 1; i <= 6; i++) {
+        await SoundRepository(db).save(
+          StoredSound(
+            Sound(
+              id: 'sound-$i',
+              title: 'Song $i',
+              source: SoundSource.builtin,
+              genre: 'calm',
+              intensity: 1,
+              duration: const Duration(seconds: 20),
+            ),
+            audioPath: 'assets/sound-$i.wav',
+          ),
+        );
+      }
+      await AlarmRepository(db)
+          .save(Alarm(id: 'a', time: ClockTime(hour: 7, minute: 0)));
+      await openAlarms(
+        tester,
+        db: db,
+        now: wednesdayEvening,
+        overrides: [
+          soundPlayerProvider.overrideWithValue(
+            FakeSoundPlayer(needsUnlock: false),
+          ),
+        ],
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text("Tonight's mix · 6 sounds"));
+      await _twoFrames(tester);
+      await _expectFinalAtOnce(
+        tester,
+        find.byType(TonightMixScreen),
+        still: lessMotion,
+      );
+
+      await tester.tap(find.text('Reshuffle'));
+      // Up to the frame with the new order, which the database gives.
+      for (var i = 0; i < 20; i++) {
+        await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+        await tester.pump(const Duration(milliseconds: 1));
+        if (tester.hasRunningAnimations) break;
+      }
+      expect(tester.hasRunningAnimations, !lessMotion);
+      await tester.pumpAndSettle();
     });
   }
 }

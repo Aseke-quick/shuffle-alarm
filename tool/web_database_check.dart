@@ -14,8 +14,8 @@
 ///   --base-href /shuffle-alarm-web/ -o <folder>/shuffle-alarm-web
 /// ```
 ///
-/// It saves an alarm, a sound, a weight and a ring session through the
-/// repositories and reads each one back. It also says whether it found what
+/// It saves an alarm, a sound, a weight, a ring session and a ring plan through
+/// the repositories and reads each one back. It also says whether it found what
 /// the visit before saved: reload the page to see that the data stays. It
 /// uses a database of its own, so it never touches the app's data. Every line
 /// goes to the browser console too. Run it after changing drift, sqlite3 or
@@ -30,8 +30,10 @@ import 'package:shuffle_alarm/core/models/clock_time.dart';
 import 'package:shuffle_alarm/core/models/ring_event.dart';
 import 'package:shuffle_alarm/core/models/ring_session.dart';
 import 'package:shuffle_alarm/core/models/sound.dart';
+import 'package:shuffle_alarm/core/ring_plan.dart';
 import 'package:shuffle_alarm/data/alarm_repository.dart';
 import 'package:shuffle_alarm/data/database.dart';
+import 'package:shuffle_alarm/data/ring_plan_repository.dart';
 import 'package:shuffle_alarm/data/ring_session_repository.dart';
 import 'package:shuffle_alarm/data/sound_repository.dart';
 import 'package:shuffle_alarm/data/weight_repository.dart';
@@ -60,6 +62,7 @@ Future<void> main() async {
     final sounds = SoundRepository(db);
     final weights = WeightRepository(db);
     final sessions = RingSessionRepository(db);
+    final plans = RingPlanRepository(db);
 
     final earlier = await alarms.byId('check');
     log(
@@ -116,11 +119,21 @@ Future<void> main() async {
     await sessions.save(session);
     check('The ring session', await sessions.byId(session.id), session);
 
+    final plan = RingPlan(
+      alarmId: alarm.id,
+      ringAt: now,
+      seed: 1 << 29,
+      soundIds: [sound.sound.id, 'gone', sound.sound.id],
+      notTonight: const {'gone'},
+    );
+    await plans.save(plan);
+    check('The ring plan', await plans.forRing(alarm.id, now), plan);
+
     await db.close();
     log(
       failures == 0
           ? 'PASS: the database works here.'
-          : 'FAIL: $failures of 4 checks failed.',
+          : 'FAIL: $failures of 5 checks failed.',
     );
   } on Object catch (error, stackTrace) {
     log('FAIL: $error\n$stackTrace');

@@ -37,6 +37,15 @@ const defaultRingCap = Duration(minutes: 10);
 /// plays at full volume from its first sound and does not start with that
 /// sound. Leave it null for the first ring of an alarm.
 ///
+/// [planned] plays the order of a stored plan back (`RingPlan`), by
+/// `Sound.id`: the same sounds give the same clips, whatever the [weights] and
+/// the [seed]. A sound the plan names that is gone from [pool] is skipped, and
+/// one it does not name comes after the planned ones of its bag. The rules
+/// above still hold, also when the sounds changed.
+///
+/// [skipped] has the ids of the sounds to leave out of this ring, unless that
+/// leaves none ([soundsOfRing]).
+///
 /// The same alarm, sounds, weights, seed and snoozed sound give the same
 /// clips, whatever the order of [pool]; give each ring a [seed] of its own.
 /// A `Random` with a seed may give other numbers after a Dart update, so a
@@ -51,15 +60,18 @@ List<RingClip> buildRingSequence(
   int seed, {
   String? snoozedSoundId,
   Duration cap = defaultRingCap,
+  Iterable<String> planned = const [],
+  Set<String> skipped = const {},
 }) {
   if (cap <= Duration.zero) {
     throw ArgumentError('Must be positive, was $cap', 'cap');
   }
   final bag = ShuffleBag(
-    _soundsOfRing(alarm, pool),
+    soundsOfRing(alarm, pool, skipped: skipped),
     random: Random(seed),
     weights: weights,
     lastId: snoozedSoundId,
+    planned: planned,
   );
   final gentleStart = alarm.gentleStart && snoozedSoundId == null;
   final clips = <RingClip>[];
@@ -129,7 +141,14 @@ class RingClip {
 /// The sounds of [pool] that a ring of [alarm] plays: the built-in sounds of
 /// its genres, or every built-in sound if that leaves none, and every sound
 /// of the user's own.
-List<Sound> _soundsOfRing(Alarm alarm, Iterable<Sound> pool) {
+///
+/// The ones with an id in [skipped] stay out, unless that leaves none: an
+/// alarm must ring.
+List<Sound> soundsOfRing(
+  Alarm alarm,
+  Iterable<Sound> pool, {
+  Set<String> skipped = const {},
+}) {
   final builtin = [
     for (final sound in pool)
       if (sound.source == SoundSource.builtin) sound,
@@ -138,9 +157,14 @@ List<Sound> _soundsOfRing(Alarm alarm, Iterable<Sound> pool) {
     for (final sound in builtin)
       if (alarm.genres.contains(sound.genre)) sound,
   ];
-  return [
+  final sounds = [
     if (ofGenres.isEmpty) ...builtin else ...ofGenres,
     for (final sound in pool)
       if (sound.source != SoundSource.builtin) sound,
   ];
+  final left = [
+    for (final sound in sounds)
+      if (!skipped.contains(sound.id)) sound,
+  ];
+  return left.isEmpty ? sounds : left;
 }

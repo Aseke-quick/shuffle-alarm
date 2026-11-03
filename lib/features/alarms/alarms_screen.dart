@@ -20,6 +20,8 @@ import 'package:shuffle_alarm/features/alarms/alarm_writes.dart';
 import 'package:shuffle_alarm/features/alarms/arm_card.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
 import 'package:shuffle_alarm/features/alarms/database_error_view.dart';
+import 'package:shuffle_alarm/features/alarms/tonight_mix.dart';
+import 'package:shuffle_alarm/features/alarms/tonight_mix_screen.dart';
 import 'package:shuffle_alarm/features/ringing/snooze_cards.dart';
 import 'package:shuffle_alarm/features/settings/settings_button.dart';
 
@@ -105,16 +107,27 @@ class _NextAlarm extends ConsumerWidget {
     final (:alarm, :ring) = next;
     final time = TimeOfDay(hour: alarm.time.hour, minute: alarm.time.minute);
     final countdown = countdownText(ring.difference(now));
+    // Only the mix of this ring: another one may still show for a moment.
+    final mix = ref
+        .watch(tonightMixProvider)
+        .value
+        ?.takeIf(alarm: alarm, ring: ring);
+    final sounds = mix?.round.length;
     return RecordHero(
       time: time,
       countdown: countdown,
+      segments: mix == null ? const [] : recordSegmentsOf(mix.round),
+      mixLabel: sounds == null ? null : mixCaption(sounds),
+      onTap: mix == null ? null : () => context.push(TonightMixScreen.path),
       details: alarmDetails(alarm),
       note: sleepText(
         sleepAdvice(ring: ring, now: now),
         now: now,
         clock: (time) => TimeOfDay.fromDateTime(time).format(context),
       ),
-      semanticsLabel: 'Next alarm ${time.format(context)}, $countdown',
+      semanticsLabel:
+          'Next alarm ${time.format(context)}, $countdown'
+          '${sounds == null ? '' : ". Tonight's mix, ${soundCount(sounds)}"}',
     );
   }
 }

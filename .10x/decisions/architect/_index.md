@@ -10,3 +10,4 @@
 - [DISCOVERED] State: hand-written Riverpod providers, no code generation. `clockProvider` ticks at each minute.
 - No theme layer yet: `lib/app.dart` builds `ThemeData` from a seed color. The redesign adds one (sub-project `visual-identity`).
 - 2026-10-29 · `visual-identity`: the `lib/design/` layer and ADR-001 (see `visual-identity.md`).
+- 2026-11-03 · `signature-features`: a ring plays a stored plan, replayed through `ShuffleBag`, so a plan can break no rule of a ring (ADR-002).

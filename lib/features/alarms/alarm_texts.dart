@@ -1,5 +1,6 @@
 import 'package:shuffle_alarm/core/bedtime.dart';
 import 'package:shuffle_alarm/core/models/alarm.dart';
+import 'package:shuffle_alarm/core/models/sound.dart';
 
 /// "Rings in 7 h 20 min": how long until an alarm rings, [untilRing],
 /// rounded up to whole minutes.
@@ -132,3 +133,29 @@ const _fullDayNames = [
 /// first letter, such as "Pop" for `pop` and "Hip-hop" for `hip-hop`.
 String genreName(String genre) =>
     genre.isEmpty ? genre : genre[0].toUpperCase() + genre.substring(1);
+
+/// How many sounds these are: "9 sounds", or "1 sound".
+String soundCount(int count) => count == 1 ? '1 sound' : '$count sounds';
+
+/// The line under the record: "Tonight's mix · 9 sounds".
+String mixCaption(int sounds) => "Tonight's mix · ${soundCount(sounds)}";
+
+/// When a clip starts in a ring, as a tracklist says it: "1:15".
+String clipStartText(Duration startsAt) {
+  final seconds = (startsAt.inMilliseconds / Duration.millisecondsPerSecond)
+      .round();
+  final rest = seconds % Duration.secondsPerMinute;
+  return '${seconds ~/ Duration.secondsPerMinute}:'
+      '${rest.toString().padLeft(2, '0')}';
+}
+
+/// What a sound is: "Lo-fi · Gentle", "Your song" or "Voice message".
+String soundDetails(Sound sound) => switch (sound.source) {
+  SoundSource.builtin =>
+    '${genreName(sound.genre)} · ${_strengths[sound.intensity - 1]}',
+  SoundSource.user => 'Your song',
+  SoundSource.voice => 'Voice message',
+};
+
+/// The word for each `Sound.intensity`, from gentle to strong.
+const _strengths = ['Gentle', 'Medium', 'Strong'];

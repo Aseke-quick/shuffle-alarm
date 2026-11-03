@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'package:shuffle_alarm/design/components/record.dart';
 import 'package:shuffle_alarm/design/components/spinning_record.dart';
 
 import '../design_app.dart';
@@ -150,6 +151,34 @@ void main() {
     tester.platformDispatcher.clearAccessibilityFeaturesTestValue();
     await tester.pump();
     expect(tester.hasRunningAnimations, isTrue);
+
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('takes the segments of its mix', (tester) async {
+    const segments = [RecordSegment(length: Duration(seconds: 20))];
+    await pumpDesign(
+      tester,
+      const Center(
+        child: SizedBox.square(
+          dimension: 300,
+          child: SpinningRecord(segments: segments, child: Text('7:00')),
+        ),
+      ),
+    );
+
+    expect(
+      tester.widget<SpinningRecord>(find.byType(SpinningRecord)).segments,
+      segments,
+    );
+    expect(
+      tester.renderObject(
+        find.descendant(of: turning(), matching: find.byType(CustomPaint)),
+      ),
+      paints
+        ..circle()
+        ..arc(),
+    );
 
     await tester.pumpWidget(const SizedBox());
   });

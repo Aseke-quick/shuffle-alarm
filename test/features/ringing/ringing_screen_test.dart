@@ -13,6 +13,7 @@ import 'package:shuffle_alarm/data/alarm_repository.dart';
 import 'package:shuffle_alarm/data/database.dart';
 import 'package:shuffle_alarm/data/ring_session_repository.dart';
 import 'package:shuffle_alarm/data/sound_repository.dart';
+import 'package:shuffle_alarm/design/components/record.dart';
 import 'package:shuffle_alarm/design/components/spinning_record.dart';
 import 'package:shuffle_alarm/design/tokens.dart';
 import 'package:shuffle_alarm/features/alarms/alarms_screen.dart';
@@ -93,6 +94,22 @@ void main() {
       find.descendant(of: find.byType(RingingScreen), matching: finder);
 
   group('The ringing screen', () {
+    testWidgets('shows the sounds of the ring on the edge of its record', (
+      tester,
+    ) async {
+      final alarm = Alarm(id: 'a', time: ClockTime(hour: 7, minute: 0));
+      await open(tester, alarm);
+
+      scheduler.ring(DueRing(alarm, scheduledFor: now));
+      await tester.pumpAndSettle();
+
+      final record = tester.widget<SpinningRecord>(find.byType(SpinningRecord));
+      expect(record.segments, const [
+        RecordSegment(length: Duration(seconds: 20), strength: 0),
+        RecordSegment(length: Duration(seconds: 20), strength: 0.5),
+      ]);
+    });
+
     testWidgets(
       'opens above the tabs, with the clock, the alarm and its sound',
       (tester) async {

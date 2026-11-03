@@ -11,6 +11,7 @@ import 'package:shuffle_alarm/data/alarm_repository.dart';
 import 'package:shuffle_alarm/data/database.dart';
 import 'package:shuffle_alarm/data/library_manifest.dart';
 import 'package:shuffle_alarm/data/library_sync.dart';
+import 'package:shuffle_alarm/data/ring_plan_repository.dart';
 import 'package:shuffle_alarm/data/ring_session_repository.dart';
 import 'package:shuffle_alarm/data/settings_repository.dart';
 import 'package:shuffle_alarm/data/sound_repository.dart';
@@ -40,12 +41,21 @@ final soundRepositoryProvider = Provider<SoundRepository>(
   (ref) => SoundRepository(ref.watch(databaseProvider)),
 );
 
+/// Every sound in the database, by id: now, and again after each change.
+final storedSoundsProvider = StreamProvider<List<StoredSound>>(
+  (ref) => ref.watch(soundRepositoryProvider).watchAll(),
+);
+
 final weightRepositoryProvider = Provider<WeightRepository>(
   (ref) => WeightRepository(ref.watch(databaseProvider)),
 );
 
 final ringSessionRepositoryProvider = Provider<RingSessionRepository>(
   (ref) => RingSessionRepository(ref.watch(databaseProvider)),
+);
+
+final ringPlanRepositoryProvider = Provider<RingPlanRepository>(
+  (ref) => RingPlanRepository(ref.watch(databaseProvider)),
 );
 
 /// The simple settings. Reading it throws where the platform has no store,

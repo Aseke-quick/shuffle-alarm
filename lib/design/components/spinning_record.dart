@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'package:shuffle_alarm/design/components/record.dart';
@@ -13,10 +14,18 @@ import 'package:shuffle_alarm/design/tokens.dart';
 /// It stands still when the platform asks for less motion
 /// ([Motion.reduceMotion]). It goes on an `AccentPage`.
 class SpinningRecord extends StatefulWidget {
-  const SpinningRecord({required this.child, this.turning = true, super.key});
+  const SpinningRecord({
+    required this.child,
+    this.segments = const [],
+    this.turning = true,
+    super.key,
+  });
 
   /// What the label shows, such as the clock. It stays upright.
   final Widget child;
+
+  /// The sounds of the ring, in play order.
+  final List<RecordSegment> segments;
 
   /// Whether it turns: while its sound plays.
   final bool turning;
@@ -80,7 +89,7 @@ class _SpinningRecordState extends State<SpinningRecord>
                 painter: _DiscPainter(
                   disc: c.onAccent,
                   lines: c.accent,
-                  segments: RecordHero.segments,
+                  segments: widget.segments,
                 ),
               ),
             ),
@@ -118,7 +127,7 @@ class _DiscPainter extends CustomPainter {
 
   final Color disc;
   final Color lines;
-  final int segments;
+  final List<RecordSegment> segments;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -133,7 +142,7 @@ class _DiscPainter extends CustomPainter {
       center: center,
       radius: rim,
       width: ring,
-      count: segments,
+      segments: segments,
       color: lines,
     );
 
@@ -151,5 +160,7 @@ class _DiscPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_DiscPainter old) =>
-      old.disc != disc || old.lines != lines || old.segments != segments;
+      old.disc != disc ||
+      old.lines != lines ||
+      !listEquals(old.segments, segments);
 }

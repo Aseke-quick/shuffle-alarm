@@ -17,13 +17,15 @@ const webSqliteFile = 'sqlite3.wasm';
 /// background of the browser.
 const webWorkerFile = 'drift_worker.js';
 
-/// The app's database: the alarms, the sounds with their weights, and the
-/// ring history.
+/// The app's database: the alarms, the sounds with their weights, the ring
+/// history, and the stored plans of the next rings.
 ///
 /// Read and write it through the repositories in `lib/data/`, which turn its
 /// rows into the core models. After a change to the tables, run
 /// `dart run build_runner build` to update `database.g.dart`.
-@DriftDatabase(tables: [Alarms, Sounds, Weights, RingSessions, RingEvents])
+@DriftDatabase(
+  tables: [Alarms, Sounds, Weights, RingSessions, RingEvents, RingPlans],
+)
 class AppDatabase extends _$AppDatabase {
   /// The database on the executor [e], such as `NativeDatabase.memory()` in
   /// tests.
@@ -51,10 +53,15 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (migrator, from, to) async {
+      // Version 2 (task 2.5a): the stored plan of a ring. Nothing else changed,
+      // so the alarms, weights and ring log stay as they are.
+      if (from < 2) await migrator.createTable(ringPlans);
+    },
     beforeOpen: (details) async {
       // SQLite checks foreign keys only on a connection that asks for it.
       await customStatement('PRAGMA foreign_keys = ON');
@@ -154,6 +161,30 @@ class RingEvents extends Table {
 
   @override
   Set<Column<Object>> get primaryKey => {sessionId, position};
+}
+
+/// The stored plan of a ring of an alarm (`RingPlan`). A plan goes when its
+/// alarm is deleted.
+@DataClassName('RingPlanRow')
+class RingPlans extends Table {
+  TextColumn get alarmId =>
+      text().references(Alarms, #id, onDelete: KeyAction.cascade)();
+
+  /// In microseconds since 1970 UTC.
+  IntColumn get ringAt => integer().map(const _TimeConverter())();
+  IntColumn get seed => integer()();
+
+  /// A JSON list in play order, such as `["warm-tape","mom"]`. The sounds have
+  /// no foreign key: a plan stays when one is deleted, and the ring skips it.
+  /// Plain text, not a converter: a row that cannot be read then counts as no
+  /// plan, and does not fail the query (`RingPlanRepository`).
+  TextColumn get soundIds => text()();
+
+  /// A JSON list, like [soundIds].
+  TextColumn get notTonight => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {alarmId, ringAt};
 }
 
 /// A time as microseconds since 1970 UTC: exact, and in the order of time

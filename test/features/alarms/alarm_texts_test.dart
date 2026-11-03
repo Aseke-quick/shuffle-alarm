@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shuffle_alarm/core/bedtime.dart';
 import 'package:shuffle_alarm/core/models/alarm.dart';
 import 'package:shuffle_alarm/core/models/clock_time.dart';
+import 'package:shuffle_alarm/core/models/sound.dart';
 import 'package:shuffle_alarm/features/alarms/alarm_texts.dart';
 
 void main() {
@@ -300,5 +301,69 @@ void main() {
     expect(genreName('hip-hop'), 'Hip-hop');
     expect(genreName('Jazz'), 'Jazz');
     expect(genreName(''), '');
+  });
+
+  group('mixCaption', () {
+    test('says how many sounds the mix has', () {
+      expect(mixCaption(9), "Tonight's mix · 9 sounds");
+      expect(mixCaption(2), "Tonight's mix · 2 sounds");
+    });
+
+    test('says one sound as one', () {
+      expect(mixCaption(1), "Tonight's mix · 1 sound");
+    });
+  });
+
+  group('soundCount', () {
+    test('counts sounds', () {
+      expect(soundCount(9), '9 sounds');
+      expect(soundCount(1), '1 sound');
+    });
+  });
+
+  group('clipStartText', () {
+    test('says minutes and seconds, as a tracklist does', () {
+      expect(clipStartText(Duration.zero), '0:00');
+      expect(clipStartText(const Duration(seconds: 7)), '0:07');
+      expect(clipStartText(const Duration(seconds: 75)), '1:15');
+      expect(clipStartText(const Duration(minutes: 9, seconds: 59)), '9:59');
+    });
+
+    test('rounds to the second it shows', () {
+      expect(clipStartText(const Duration(milliseconds: 19500)), '0:20');
+      expect(clipStartText(const Duration(milliseconds: 19499)), '0:19');
+    });
+  });
+
+  group('soundDetails', () {
+    Sound sound(
+      SoundSource source, {
+      int intensity = 1,
+      String genre = 'lo-fi',
+    }) => Sound(
+      id: 'a',
+      title: 'A',
+      source: source,
+      genre: genre,
+      intensity: intensity,
+      duration: const Duration(seconds: 20),
+    );
+
+    test('says the genre and the strength of a built-in sound', () {
+      expect(soundDetails(sound(SoundSource.builtin)), 'Lo-fi · Gentle');
+      expect(
+        soundDetails(sound(SoundSource.builtin, intensity: 2, genre: 'pop')),
+        'Pop · Medium',
+      );
+      expect(
+        soundDetails(sound(SoundSource.builtin, intensity: 3)),
+        'Lo-fi · Strong',
+      );
+    });
+
+    test('says what a sound of the user is', () {
+      expect(soundDetails(sound(SoundSource.user)), 'Your song');
+      expect(soundDetails(sound(SoundSource.voice)), 'Voice message');
+    });
   });
 }

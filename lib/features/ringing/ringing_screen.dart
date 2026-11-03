@@ -9,6 +9,7 @@ import 'package:shuffle_alarm/core/ring_sequence.dart';
 import 'package:shuffle_alarm/core/snooze.dart';
 import 'package:shuffle_alarm/design/components/accent_page.dart';
 import 'package:shuffle_alarm/design/components/layout.dart';
+import 'package:shuffle_alarm/design/components/record.dart';
 import 'package:shuffle_alarm/design/components/spinning_record.dart';
 import 'package:shuffle_alarm/design/components/time_text.dart';
 import 'package:shuffle_alarm/design/components/wide_button.dart';
@@ -16,6 +17,7 @@ import 'package:shuffle_alarm/design/theme.dart';
 import 'package:shuffle_alarm/design/tokens.dart';
 import 'package:shuffle_alarm/features/alarms/alarms_screen.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
+import 'package:shuffle_alarm/features/alarms/tonight_mix.dart';
 import 'package:shuffle_alarm/features/ringing/ringing_controller.dart';
 
 /// The ringing screen (task 2.5): filled with the accent, above everything
@@ -79,6 +81,7 @@ class _RingingScreenState extends ConsumerState<RingingScreen> {
                         _Record(
                           now: now,
                           box: box,
+                          segments: recordSegmentsOf(controller.round),
                           turning: shown != null && shown.audible && !over,
                         ),
                         const SizedBox(height: Space.s16),
@@ -159,10 +162,18 @@ class _Alarm extends StatelessWidget {
 /// The spinning record with the clock on its label, as large as the space in
 /// [box] allows.
 class _Record extends StatelessWidget {
-  const _Record({required this.now, required this.box, required this.turning});
+  const _Record({
+    required this.now,
+    required this.box,
+    required this.segments,
+    required this.turning,
+  });
 
   final DateTime now;
   final BoxConstraints box;
+
+  /// The sounds of the ring, in play order.
+  final List<RecordSegment> segments;
 
   /// Whether it turns: not when no sound plays.
   final bool turning;
@@ -185,6 +196,7 @@ class _Record extends StatelessWidget {
     return SizedBox.square(
       dimension: diameter,
       child: SpinningRecord(
+        segments: segments,
         turning: turning,
         child: _Clock(TimeOfDay.fromDateTime(now)),
       ),

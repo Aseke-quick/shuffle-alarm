@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,9 +12,11 @@ import 'package:shuffle_alarm/core/models/clock_time.dart';
 import 'package:shuffle_alarm/core/models/ring_event.dart';
 import 'package:shuffle_alarm/core/models/ring_session.dart';
 import 'package:shuffle_alarm/core/models/sound.dart';
+import 'package:shuffle_alarm/core/ring_plan.dart';
 import 'package:shuffle_alarm/data/alarm_repository.dart';
 import 'package:shuffle_alarm/data/database.dart';
 import 'package:shuffle_alarm/data/providers.dart';
+import 'package:shuffle_alarm/data/ring_plan_repository.dart';
 import 'package:shuffle_alarm/data/ring_session_repository.dart';
 import 'package:shuffle_alarm/data/sound_repository.dart';
 import 'package:shuffle_alarm/data/weight_repository.dart';
@@ -979,6 +983,382 @@ void main() {
       expect(broken.player.plays, hasLength(1));
     });
   });
+
+  group('A stored plan', () {
+    // Without a gentle start, so that any order can be planned.
+    final alarm = Alarm(
+      id: 'a',
+      time: ClockTime(hour: 7, minute: 0),
+      repeatDays: _everyDay,
+      gentleStart: false,
+    );
+    const order = ['strong', 'gentle', 'medium', 'gentle', 'strong', 'medium'];
+    RingPlan planOf({
+      List<String> soundIds = order,
+      DateTime? ringAt,
+      String alarmId = 'a',
+      Set<String> notTonight = const {},
+    }) => RingPlan(
+      alarmId: alarmId,
+      ringAt: ringAt ?? _seven,
+      seed: 5,
+      soundIds: soundIds,
+      notTonight: notTonight,
+    );
+
+    /// The ids of the sounds that the player played, oldest first.
+    List<String> played(_Ring ring) => [
+      for (final play in ring.player.plays)
+        play.asset.split('/').last.replaceAll('.wav', ''),
+    ];
+
+    Future<void> nextClips(_Ring ring, int count) async {
+      for (var i = 0; i < count; i++) {
+        await ring.nextClip();
+      }
+    }
+
+    test('plays exactly its order, up to the end of the plan', () async {
+      await ring.save(alarm);
+      await ring.plans.save(planOf());
+
+      await ring.due(alarm);
+      await nextClips(ring, 5);
+
+      expect(played(ring), order);
+      expect(ring.player.plays.first, _play('strong', volume: 1));
+    });
+
+    test('shows and logs the sounds of its order', () async {
+      await ring.save(alarm);
+      await ring.plans.save(planOf());
+
+      await ring.due(alarm);
+      expect(ring.ringing?.sound, _sound('strong'));
+      await ring.nextClip();
+      expect(ring.ringing?.sound, _sound('gentle'));
+      await ring.stop();
+      await ring.settle();
+
+      expect((await ring.sessions).single.events, [
+        _event('strong', 0, 20, RingAction.timeout),
+        _event('gentle', 20, 20, RingAction.stop),
+      ]);
+    });
+
+    test('does not change with what the weights learned since', () async {
+      await ring.save(alarm);
+      await ring.plans.save(planOf());
+      await WeightRepository(ring.db)
+          .save(SoundWeights(const {'gentle': 3}), soundId: 'gentle');
+
+      await ring.due(alarm);
+      await nextClips(ring, 5);
+
+      expect(played(ring), order);
+    });
+
+    test('found late, joins its order where the clock says', () async {
+      await ring.save(alarm);
+      await ring.plans.save(planOf());
+
+      await ring.due(alarm, late: const Duration(seconds: 25));
+
+      expect(ring.player.plays, [
+        _play('gentle', volume: 1, from: const Duration(seconds: 5)),
+      ]);
+    });
+
+    test(
+      'of a sound deleted since skips it, and no sound plays twice',
+      () async {
+        await ring.save(alarm);
+        await ring.plans.save(planOf());
+        await SoundRepository(ring.db).delete('gentle');
+
+        await ring.due(alarm);
+        await nextClips(ring, 3);
+
+        expect(played(ring), ['strong', 'medium', 'strong', 'medium']);
+      },
+    );
+
+    test('leaves out a sound of Not tonight, whole ring long', () async {
+      await ring.save(alarm);
+      await ring.plans.save(planOf(notTonight: {'gentle'}));
+
+      await ring.due(alarm);
+      await nextClips(ring, 7);
+
+      expect(played(ring), [
+        'strong',
+        'medium',
+        'strong',
+        'medium',
+        'strong',
+        'medium',
+        'strong',
+        'medium',
+      ]);
+    });
+
+    test('rings on after its order ends, up to the time cap', () async {
+      await ring.save(alarm);
+      await ring.plans.save(planOf(soundIds: const ['strong', 'gentle']));
+
+      await ring.due(alarm);
+      await nextClips(ring, 29);
+
+      expect(ring.ringing?.over, isFalse);
+      expect(ring.player.plays, hasLength(30));
+      expect(played(ring).take(2), ['strong', 'gentle']);
+      final ids = played(ring);
+      for (var i = 1; i < ids.length; i++) {
+        expect(ids[i], isNot(ids[i - 1]), reason: 'Clip ${i + 1} of $ids');
+      }
+      await ring.nextClip();
+      expect(ring.ringing?.over, isTrue);
+    });
+
+    test('of another ring of the alarm stays out of this one', () async {
+      await ring.save(alarm);
+      await ring.plans.save(
+        planOf(
+          ringAt: _seven.add(const Duration(days: 1)),
+          notTonight: {'gentle', 'strong'},
+        ),
+      );
+
+      await ring.due(alarm);
+      await nextClips(ring, 2);
+
+      expect(played(ring), unorderedEquals(['gentle', 'medium', 'strong']));
+    });
+
+    test('of another alarm stays out of this one', () async {
+      await ring.save(alarm);
+      await ring.save(_alarm('other', days: _everyDay));
+      await ring.plans.save(
+        planOf(alarmId: 'other', notTonight: {'gentle', 'strong'}),
+      );
+
+      await ring.due(alarm);
+      await nextClips(ring, 2);
+
+      expect(played(ring), unorderedEquals(['gentle', 'medium', 'strong']));
+    });
+
+    group('that cannot help still lets the alarm ring:', () {
+      Future<void> expectItRings(_Ring ring) async {
+        await ring.due(alarm);
+        await nextClips(ring, 2);
+
+        expect(ring.ringing, isNotNull);
+        expect(played(ring), unorderedEquals(['gentle', 'medium', 'strong']));
+        expect(ring.ringing?.audible, isTrue);
+      }
+
+      test('none at all', () async {
+        await ring.save(alarm);
+
+        await expectItRings(ring);
+      });
+
+      test('an empty one', () async {
+        await ring.save(alarm);
+        await ring.plans.save(planOf(soundIds: const []));
+
+        await expectItRings(ring);
+      });
+
+      test('one whose sounds are all gone', () async {
+        await ring.save(alarm);
+        await ring.plans.save(planOf(soundIds: const ['gone', 'also-gone']));
+
+        await expectItRings(ring);
+      });
+
+      test('one that cannot be read', () async {
+        await ring.save(alarm);
+        await ring.plans.save(planOf());
+        await ring.db.customStatement(
+          "UPDATE ring_plans SET sound_ids = 'not json'",
+        );
+
+        await expectItRings(ring);
+      });
+
+      test('one that leaves out every sound', () async {
+        await ring.save(alarm);
+        await ring.plans.save(
+          planOf(notTonight: {'gentle', 'medium', 'strong'}),
+        );
+
+        await ring.due(alarm);
+
+        expect(ring.ringing?.sound, isNotNull);
+        expect(ring.player.plays, hasLength(1));
+      });
+
+      test('a store of plans that fails', () async {
+        final broken = await _Ring.open(
+          overrides: (db) => [
+            ringPlanRepositoryProvider.overrideWithValue(_BrokenPlans(db)),
+          ],
+        );
+        addTearDown(broken.close);
+        await broken.save(alarm);
+
+        await expectItRings(broken);
+      });
+
+      test('a store of plans that never answers', () async {
+        final stuck = await _Ring.open(
+          overrides: (db) => [
+            ringPlanRepositoryProvider.overrideWithValue(_StuckPlans(db)),
+          ],
+        );
+        addTearDown(stuck.close);
+        await stuck.save(alarm);
+
+        await stuck.due(alarm);
+        expect(stuck.player.plays, isEmpty);
+        await Future<void>.delayed(
+          RingingController.planLimit + const Duration(milliseconds: 100),
+        );
+
+        expect(stuck.player.plays, hasLength(1));
+        expect(stuck.ringing?.sound, isNotNull);
+      });
+
+      test('the tone, when no sound can be read at all', () async {
+        final silent = await _Ring.open(
+          withSounds: false,
+          overrides: (db) => [
+            libraryClipsProvider.overrideWithValue(
+              () async => throw StateError('No library'),
+            ),
+          ],
+        );
+        addTearDown(silent.close);
+        await silent.save(alarm);
+        await silent.plans.save(planOf());
+
+        await silent.due(alarm);
+
+        expect(silent.ringing?.sound, fallbackTone);
+        expect(played(silent), [fakeTone]);
+      });
+
+      test('the library from its files, by the plan', () async {
+        final fromFiles = await _Ring.open(
+          withSounds: false,
+          overrides: (db) => [
+            libraryClipsProvider.overrideWithValue(
+              () async => [
+                for (final id in ['gentle', 'medium', 'strong'])
+                  StoredSound(_sound(id), audioPath: _asset(id)),
+              ],
+            ),
+          ],
+        );
+        addTearDown(fromFiles.close);
+        await fromFiles.save(alarm);
+        await fromFiles.plans.save(planOf());
+
+        await fromFiles.due(alarm);
+        await nextClips(fromFiles, 2);
+
+        expect(played(fromFiles), order.take(3));
+      });
+    });
+
+    group('after Snooze', () {
+      test(
+        'the ring builds a new order, without the snoozed sound first',
+        () async {
+          await ring.save(alarm);
+          await ring.plans.save(planOf());
+          await ring.due(alarm);
+
+          await ring.snooze();
+          await ring.settle();
+          ring.player.plays.clear();
+          await ring.comeBack();
+
+          expect(played(ring).single, isNot('strong'));
+        },
+      );
+
+      test('Not tonight still holds', () async {
+        await ring.save(alarm);
+        await ring.plans.save(planOf(notTonight: {'gentle'}));
+        await ring.due(alarm);
+
+        await ring.snooze();
+        await ring.settle();
+        ring.player.plays.clear();
+        await ring.comeBack();
+        await nextClips(ring, 7);
+
+        expect(played(ring), isNot(contains('gentle')));
+        expect(played(ring), hasLength(8));
+      });
+
+      test('Not tonight still holds after a reload of the app', () async {
+        final reloaded = await _Ring.open(
+          alarms: [alarm],
+          history: [
+            RingSession(
+              id: 's',
+              alarmId: 'a',
+              scheduledFor: _seven,
+              events: [_event('strong', 0, 7, RingAction.snooze)],
+            ),
+          ],
+        );
+        addTearDown(reloaded.close);
+        await reloaded.plans.save(planOf(notTonight: {'gentle'}));
+
+        await reloaded.comeBack();
+        await nextClips(reloaded, 7);
+
+        expect(played(reloaded), isNot(contains('gentle')));
+        expect(played(reloaded).first, 'medium');
+      });
+
+      test('it rings when the plan cannot be read', () async {
+        await ring.save(alarm);
+        await ring.plans.save(planOf());
+        await ring.due(alarm);
+        await ring.snooze();
+        await ring.settle();
+        await ring.db.customStatement(
+          "UPDATE ring_plans SET sound_ids = 'not json'",
+        );
+
+        await ring.comeBack();
+
+        expect(ring.ringing?.sound, isNotNull);
+      });
+    });
+
+    test('the first round of a ring is there for the record', () async {
+      await ring.save(alarm);
+      await ring.plans.save(planOf());
+
+      await ring.due(alarm);
+
+      expect(
+        [
+          for (final clip
+              in ring.container.read(ringingProvider.notifier).round)
+            clip.sound.id,
+        ],
+        ['strong', 'gentle', 'medium'],
+      );
+    });
+  });
 }
 
 const _everyDay = {1, 2, 3, 4, 5, 6, 7};
@@ -1053,6 +1433,23 @@ class _BrokenSounds extends SoundRepository {
   Future<List<StoredSound>> all() async => throw StateError('Broken');
 }
 
+class _BrokenPlans extends RingPlanRepository {
+  _BrokenPlans(super._db);
+
+  @override
+  Future<RingPlan?> forRing(String alarmId, DateTime ringAt) async =>
+      throw StateError('Broken');
+}
+
+/// A store of plans that never answers.
+class _StuckPlans extends RingPlanRepository {
+  _StuckPlans(super._db);
+
+  @override
+  Future<RingPlan?> forRing(String alarmId, DateTime ringAt) =>
+      Completer<RingPlan?>().future;
+}
+
 /// A ring controller on a database in memory, by default with three sounds of
 /// 20 s, a gentle, a medium and a strong one, and a clock that the test moves.
 class _Ring {
@@ -1098,6 +1495,8 @@ class _Ring {
   DateTime now = _seven;
 
   late final alarms = AlarmRepository(db);
+
+  late final plans = RingPlanRepository(db);
 
   FakeAlarmScheduler get scheduler =>
       container.read(alarmSchedulerProvider) as FakeAlarmScheduler;

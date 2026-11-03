@@ -115,6 +115,8 @@ class FakeSoundPlayer implements SoundPlayer {
   }) async {
     if (blocked) throw const SoundBlockedException();
     if (broken.contains(asset)) throw StateError('Cannot read $asset');
+    // A new sound ends the one before, as on every platform.
+    finishClip();
     plays.add((asset: asset, from: from, to: to, volume: volume));
     final clip = _clip = Completer<void>();
     await clip.future;
@@ -127,6 +129,7 @@ class FakeSoundPlayer implements SoundPlayer {
   }) async {
     if (blocked) throw const SoundBlockedException();
     if (toneBroken) throw StateError('Cannot make a tone');
+    finishClip();
     plays.add((
       asset: fakeTone,
       from: Duration.zero,

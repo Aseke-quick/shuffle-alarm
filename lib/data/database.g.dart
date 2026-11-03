@@ -2024,6 +2024,385 @@ class RingEventsCompanion extends UpdateCompanion<RingEventRow> {
   }
 }
 
+class $RingPlansTable extends RingPlans
+    with TableInfo<$RingPlansTable, RingPlanRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RingPlansTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _alarmIdMeta = const VerificationMeta(
+    'alarmId',
+  );
+  @override
+  late final GeneratedColumn<String> alarmId = GeneratedColumn<String>(
+    'alarm_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES alarms (id) ON DELETE CASCADE',
+    ),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<DateTime, int> ringAt =
+      GeneratedColumn<int>(
+        'ring_at',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      ).withConverter<DateTime>($RingPlansTable.$converterringAt);
+  static const VerificationMeta _seedMeta = const VerificationMeta('seed');
+  @override
+  late final GeneratedColumn<int> seed = GeneratedColumn<int>(
+    'seed',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _soundIdsMeta = const VerificationMeta(
+    'soundIds',
+  );
+  @override
+  late final GeneratedColumn<String> soundIds = GeneratedColumn<String>(
+    'sound_ids',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _notTonightMeta = const VerificationMeta(
+    'notTonight',
+  );
+  @override
+  late final GeneratedColumn<String> notTonight = GeneratedColumn<String>(
+    'not_tonight',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    alarmId,
+    ringAt,
+    seed,
+    soundIds,
+    notTonight,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'ring_plans';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RingPlanRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('alarm_id')) {
+      context.handle(
+        _alarmIdMeta,
+        alarmId.isAcceptableOrUnknown(data['alarm_id']!, _alarmIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_alarmIdMeta);
+    }
+    if (data.containsKey('seed')) {
+      context.handle(
+        _seedMeta,
+        seed.isAcceptableOrUnknown(data['seed']!, _seedMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_seedMeta);
+    }
+    if (data.containsKey('sound_ids')) {
+      context.handle(
+        _soundIdsMeta,
+        soundIds.isAcceptableOrUnknown(data['sound_ids']!, _soundIdsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_soundIdsMeta);
+    }
+    if (data.containsKey('not_tonight')) {
+      context.handle(
+        _notTonightMeta,
+        notTonight.isAcceptableOrUnknown(data['not_tonight']!, _notTonightMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_notTonightMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {alarmId, ringAt};
+  @override
+  RingPlanRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RingPlanRow(
+      alarmId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}alarm_id'],
+      )!,
+      ringAt: $RingPlansTable.$converterringAt.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}ring_at'],
+        )!,
+      ),
+      seed: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}seed'],
+      )!,
+      soundIds: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sound_ids'],
+      )!,
+      notTonight: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}not_tonight'],
+      )!,
+    );
+  }
+
+  @override
+  $RingPlansTable createAlias(String alias) {
+    return $RingPlansTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<DateTime, int> $converterringAt = const _TimeConverter();
+}
+
+class RingPlanRow extends DataClass implements Insertable<RingPlanRow> {
+  final String alarmId;
+
+  /// In microseconds since 1970 UTC.
+  final DateTime ringAt;
+  final int seed;
+
+  /// A JSON list in play order, such as `["warm-tape","mom"]`. The sounds have
+  /// no foreign key: a plan stays when one is deleted, and the ring skips it.
+  /// Plain text, not a converter: a row that cannot be read then counts as no
+  /// plan, and does not fail the query (`RingPlanRepository`).
+  final String soundIds;
+
+  /// A JSON list, like [soundIds].
+  final String notTonight;
+  const RingPlanRow({
+    required this.alarmId,
+    required this.ringAt,
+    required this.seed,
+    required this.soundIds,
+    required this.notTonight,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['alarm_id'] = Variable<String>(alarmId);
+    {
+      map['ring_at'] = Variable<int>(
+        $RingPlansTable.$converterringAt.toSql(ringAt),
+      );
+    }
+    map['seed'] = Variable<int>(seed);
+    map['sound_ids'] = Variable<String>(soundIds);
+    map['not_tonight'] = Variable<String>(notTonight);
+    return map;
+  }
+
+  RingPlansCompanion toCompanion(bool nullToAbsent) {
+    return RingPlansCompanion(
+      alarmId: Value(alarmId),
+      ringAt: Value(ringAt),
+      seed: Value(seed),
+      soundIds: Value(soundIds),
+      notTonight: Value(notTonight),
+    );
+  }
+
+  factory RingPlanRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RingPlanRow(
+      alarmId: serializer.fromJson<String>(json['alarmId']),
+      ringAt: serializer.fromJson<DateTime>(json['ringAt']),
+      seed: serializer.fromJson<int>(json['seed']),
+      soundIds: serializer.fromJson<String>(json['soundIds']),
+      notTonight: serializer.fromJson<String>(json['notTonight']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'alarmId': serializer.toJson<String>(alarmId),
+      'ringAt': serializer.toJson<DateTime>(ringAt),
+      'seed': serializer.toJson<int>(seed),
+      'soundIds': serializer.toJson<String>(soundIds),
+      'notTonight': serializer.toJson<String>(notTonight),
+    };
+  }
+
+  RingPlanRow copyWith({
+    String? alarmId,
+    DateTime? ringAt,
+    int? seed,
+    String? soundIds,
+    String? notTonight,
+  }) => RingPlanRow(
+    alarmId: alarmId ?? this.alarmId,
+    ringAt: ringAt ?? this.ringAt,
+    seed: seed ?? this.seed,
+    soundIds: soundIds ?? this.soundIds,
+    notTonight: notTonight ?? this.notTonight,
+  );
+  RingPlanRow copyWithCompanion(RingPlansCompanion data) {
+    return RingPlanRow(
+      alarmId: data.alarmId.present ? data.alarmId.value : this.alarmId,
+      ringAt: data.ringAt.present ? data.ringAt.value : this.ringAt,
+      seed: data.seed.present ? data.seed.value : this.seed,
+      soundIds: data.soundIds.present ? data.soundIds.value : this.soundIds,
+      notTonight: data.notTonight.present
+          ? data.notTonight.value
+          : this.notTonight,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RingPlanRow(')
+          ..write('alarmId: $alarmId, ')
+          ..write('ringAt: $ringAt, ')
+          ..write('seed: $seed, ')
+          ..write('soundIds: $soundIds, ')
+          ..write('notTonight: $notTonight')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(alarmId, ringAt, seed, soundIds, notTonight);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RingPlanRow &&
+          other.alarmId == this.alarmId &&
+          other.ringAt == this.ringAt &&
+          other.seed == this.seed &&
+          other.soundIds == this.soundIds &&
+          other.notTonight == this.notTonight);
+}
+
+class RingPlansCompanion extends UpdateCompanion<RingPlanRow> {
+  final Value<String> alarmId;
+  final Value<DateTime> ringAt;
+  final Value<int> seed;
+  final Value<String> soundIds;
+  final Value<String> notTonight;
+  final Value<int> rowid;
+  const RingPlansCompanion({
+    this.alarmId = const Value.absent(),
+    this.ringAt = const Value.absent(),
+    this.seed = const Value.absent(),
+    this.soundIds = const Value.absent(),
+    this.notTonight = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RingPlansCompanion.insert({
+    required String alarmId,
+    required DateTime ringAt,
+    required int seed,
+    required String soundIds,
+    required String notTonight,
+    this.rowid = const Value.absent(),
+  }) : alarmId = Value(alarmId),
+       ringAt = Value(ringAt),
+       seed = Value(seed),
+       soundIds = Value(soundIds),
+       notTonight = Value(notTonight);
+  static Insertable<RingPlanRow> custom({
+    Expression<String>? alarmId,
+    Expression<int>? ringAt,
+    Expression<int>? seed,
+    Expression<String>? soundIds,
+    Expression<String>? notTonight,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (alarmId != null) 'alarm_id': alarmId,
+      if (ringAt != null) 'ring_at': ringAt,
+      if (seed != null) 'seed': seed,
+      if (soundIds != null) 'sound_ids': soundIds,
+      if (notTonight != null) 'not_tonight': notTonight,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RingPlansCompanion copyWith({
+    Value<String>? alarmId,
+    Value<DateTime>? ringAt,
+    Value<int>? seed,
+    Value<String>? soundIds,
+    Value<String>? notTonight,
+    Value<int>? rowid,
+  }) {
+    return RingPlansCompanion(
+      alarmId: alarmId ?? this.alarmId,
+      ringAt: ringAt ?? this.ringAt,
+      seed: seed ?? this.seed,
+      soundIds: soundIds ?? this.soundIds,
+      notTonight: notTonight ?? this.notTonight,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (alarmId.present) {
+      map['alarm_id'] = Variable<String>(alarmId.value);
+    }
+    if (ringAt.present) {
+      map['ring_at'] = Variable<int>(
+        $RingPlansTable.$converterringAt.toSql(ringAt.value),
+      );
+    }
+    if (seed.present) {
+      map['seed'] = Variable<int>(seed.value);
+    }
+    if (soundIds.present) {
+      map['sound_ids'] = Variable<String>(soundIds.value);
+    }
+    if (notTonight.present) {
+      map['not_tonight'] = Variable<String>(notTonight.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RingPlansCompanion(')
+          ..write('alarmId: $alarmId, ')
+          ..write('ringAt: $ringAt, ')
+          ..write('seed: $seed, ')
+          ..write('soundIds: $soundIds, ')
+          ..write('notTonight: $notTonight, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   late final $AlarmsTable alarms = $AlarmsTable(this);
@@ -2031,6 +2410,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $WeightsTable weights = $WeightsTable(this);
   late final $RingSessionsTable ringSessions = $RingSessionsTable(this);
   late final $RingEventsTable ringEvents = $RingEventsTable(this);
+  late final $RingPlansTable ringPlans = $RingPlansTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2041,6 +2421,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     weights,
     ringSessions,
     ringEvents,
+    ringPlans,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -2057,6 +2438,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('ring_events', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'alarms',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('ring_plans', kind: UpdateKind.delete)],
     ),
   ]);
 }

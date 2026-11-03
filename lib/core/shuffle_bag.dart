@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:math';
 
 import 'package:shuffle_alarm/core/adaptive_weights.dart';
@@ -21,6 +22,12 @@ import 'package:shuffle_alarm/core/models/sound.dart';
 /// among the sounds the bag rules allow, so every sound still plays once per
 /// bag.
 ///
+/// A bag can follow a plan, the order of sounds that a ring stored ahead
+/// (`RingPlan`): among the sounds the bag rules allow, it takes the one that
+/// comes first in the plan, and uses chance only when the plan names none of
+/// them. So the same sounds give the plan back exactly, and with a sound less
+/// or more the bag rules still hold.
+///
 /// All chance comes from the [Random] the bag gets, so the same sounds, the
 /// same weights and a `Random` with the same seed give the same sounds in the
 /// same order.
@@ -37,6 +44,10 @@ class ShuffleBag {
   /// Snooze. The bag does not start with it, as if it were the last sound of
   /// a bag before.
   ///
+  /// `planned` is the order of a stored plan, by `Sound.id`. It can name a
+  /// sound more than once, one time per bag, and sounds that are not in
+  /// [pool].
+  ///
   /// Throws an [ArgumentError] if [pool] is empty, as there is nothing to
   /// play. An alarm without sounds gets all the built-in sounds instead
   /// (`buildRingSequence`), so it still rings.
@@ -45,7 +56,9 @@ class ShuffleBag {
     required this._random,
     this._weights = const SoundWeights.start(),
     this._lastId,
-  }) : _pool = _oneSoundPerId(pool) {
+    Iterable<String> planned = const [],
+  }) : _pool = _oneSoundPerId(pool),
+       _plannedAt = _placesById(planned) {
     if (_pool.isEmpty) throw ArgumentError('Must not be empty', 'pool');
   }
 
@@ -55,6 +68,9 @@ class ShuffleBag {
   final Random _random;
 
   final SoundWeights _weights;
+
+  /// Where the plan still names each sound, by id, the earliest place first.
+  final Map<String, ListQueue<int>> _plannedAt;
 
   /// The sounds left in the current bag.
   final _left = <Sound>[];
@@ -83,14 +99,37 @@ class ShuffleBag {
     );
     _left.remove(sound);
     _lastId = sound.id;
+    final places = _plannedAt[sound.id];
+    if (places != null && places.isNotEmpty) places.removeFirst();
     return sound;
   }
 
+  /// Chooses one of [candidates]: the one that comes first in the plan, or
+  /// else one at random.
+  Sound _pick(List<Sound> candidates) =>
+      _firstPlanned(candidates) ?? _pickByWeight(candidates);
+
+  /// The one of [candidates] that comes first in what is left of the plan, or
+  /// null if the plan names none of them.
+  Sound? _firstPlanned(List<Sound> candidates) {
+    Sound? first;
+    int? firstPlace;
+    for (final sound in candidates) {
+      final places = _plannedAt[sound.id];
+      if (places == null || places.isEmpty) continue;
+      if (firstPlace == null || places.first < firstPlace) {
+        first = sound;
+        firstPlace = places.first;
+      }
+    }
+    return first;
+  }
+
   /// Chooses one of [candidates] at random, each as likely as its weight
-  /// says: a sound of weight 2 is twice as likely as one of weight 1. The bag
-  /// makes every choice here, with one number from the [Random] per [next],
-  /// so the same seed gives the same sounds.
-  Sound _pick(List<Sound> candidates) {
+  /// says: a sound of weight 2 is twice as likely as one of weight 1. Every
+  /// choice by chance comes here, with one number from the [Random], so the
+  /// same seed gives the same sounds.
+  Sound _pickByWeight(List<Sound> candidates) {
     final weights = [
       for (final sound in candidates) _weights.weightOf(sound.id),
     ];
@@ -113,6 +152,15 @@ List<Sound> _oneSoundPerId(Iterable<Sound> sounds) {
     byId.putIfAbsent(sound.id, () => sound);
   }
   return byId.values.toList()..sort((a, b) => a.id.compareTo(b.id));
+}
+
+/// The places of each id in [ids], by id, the earliest first.
+Map<String, ListQueue<int>> _placesById(Iterable<String> ids) {
+  final places = <String, ListQueue<int>>{};
+  for (final (place, id) in ids.indexed) {
+    (places[id] ??= ListQueue<int>()).add(place);
+  }
+  return places;
 }
 
 /// The sounds of [sounds] whose intensity is nearest to [intensity]. If a

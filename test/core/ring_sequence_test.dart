@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:shuffle_alarm/core/adaptive_weights.dart';
 import 'package:shuffle_alarm/core/clip_rule.dart';
+import 'package:shuffle_alarm/core/escalation.dart';
 import 'package:shuffle_alarm/core/models/alarm.dart';
 import 'package:shuffle_alarm/core/models/clock_time.dart';
 import 'package:shuffle_alarm/core/models/sound.dart';
@@ -429,6 +430,257 @@ void main() {
       );
     });
   });
+
+  group('buildRingSequence with a planned order', () {
+    test(
+      'plays the plan back clip for clip, whatever the seed and weights',
+      () {
+        final other = SoundWeights(const {'sound-1': 3, 'sound-2': 0.2});
+        for (final seed in _seeds) {
+          final pool = _randomPool(seed);
+          final ring = _ring(pool, seed: seed);
+
+          expect(
+            buildRingSequence(
+              _alarm(),
+              pool,
+              other,
+              seed + 1,
+              planned: _ids(ring),
+            ),
+            ring,
+            reason: 'Seed $seed',
+          );
+        }
+      },
+    );
+
+    test('with a plan of no use, plays what it would play without one', () {
+      for (final planned in const [
+        <String>[],
+        ['gone', 'also-gone'],
+      ]) {
+        for (final seed in _seeds) {
+          final pool = _randomPool(seed);
+          expect(
+            buildRingSequence(
+              _alarm(),
+              pool,
+              const SoundWeights.start(),
+              seed,
+              planned: planned,
+            ),
+            _ring(pool, seed: seed),
+            reason: 'Plan $planned, seed $seed',
+          );
+        }
+      }
+    });
+
+    test('skips a sound that left the pool, and still fills the ring', () {
+      final breaks = <String>[];
+      for (final seed in _seeds) {
+        final pool = _randomPool(seed);
+        final planned = _ids(_ring(pool, seed: seed));
+        final gone = pool[seed % pool.length];
+        final left = [...pool]..remove(gone);
+        final ring = buildRingSequence(
+          _alarm(),
+          left,
+          const SoundWeights.start(),
+          seed,
+          planned: planned,
+        );
+
+        breaks.addAll(_ruleBreaks(ring, 'Seed $seed'));
+        if (_ids(ring).contains(gone.id)) breaks.add('Seed $seed: $gone');
+      }
+
+      expect(breaks, isEmpty);
+    });
+
+    test('keeps the order of the other sounds when one leaves the pool', () {
+      final pool = [for (var i = 1; i <= 5; i++) _sound('sound-$i')];
+      final ring = _ring(pool, seed: 3, gentleStart: false);
+      final firstBag = _ids(ring).take(5).toList();
+      final gone = firstBag[2];
+
+      final left = buildRingSequence(
+        _alarm(gentleStart: false),
+        [
+          for (final sound in pool)
+            if (sound.id != gone) sound,
+        ],
+        const SoundWeights.start(),
+        3,
+        planned: _ids(ring),
+      );
+
+      expect(_ids(left).take(4), [
+        for (final id in firstBag)
+          if (id != gone) id,
+      ]);
+    });
+
+    test('still starts gently when the first planned sound left the pool', () {
+      final pool = [
+        _sound('gentle-a'),
+        _sound('gentle-b'),
+        _sound('medium', intensity: 2),
+        _sound('strong', intensity: 3),
+      ];
+      final planned = ['gentle-a', 'medium', 'strong', 'gentle-b', 'medium'];
+
+      final ring = buildRingSequence(
+        _alarm(),
+        pool.skip(1),
+        const SoundWeights.start(),
+        1,
+        planned: planned,
+      );
+
+      expect(_ids(ring).take(3), ['gentle-b', 'medium', 'strong']);
+      expect(_volumes(ring.take(3)), Escalation.volumes);
+    });
+
+    test('plays a sound the plan does not name after the planned ones', () {
+      final pool = [_sound('a'), _sound('b'), _sound('new')];
+
+      final ring = buildRingSequence(
+        _alarm(gentleStart: false),
+        pool,
+        const SoundWeights.start(),
+        1,
+        planned: const ['b', 'a', 'b', 'a'],
+      );
+
+      expect(_ids(ring).take(3), ['b', 'a', 'new']);
+    });
+
+    test('plays only the sounds of the ring, whatever the plan names', () {
+      final ring = buildRingSequence(
+        _alarm(genres: const {'rock'}),
+        _library,
+        const SoundWeights.start(),
+        1,
+        planned: const ['pop-1', 'pop-2', 'rock-1', 'jazz-3'],
+      );
+
+      expect(_builtinIds(ring), {'rock-1', 'rock-2', 'rock-3'});
+    });
+  });
+
+  group('buildRingSequence with sounds to skip', () {
+    test('leaves them out of the whole ring, by every other rule', () {
+      final breaks = <String>[];
+      for (final seed in _seeds) {
+        final pool = _randomPool(seed);
+        final skipped = {pool[seed % pool.length].id, pool.last.id};
+        final ring = buildRingSequence(
+          _alarm(),
+          pool,
+          const SoundWeights.start(),
+          seed,
+          skipped: skipped,
+        );
+
+        breaks.addAll(_ruleBreaks(ring, 'Seed $seed'));
+        for (final clip in ring) {
+          if (skipped.contains(clip.sound.id)) {
+            breaks.add('Seed $seed: ${clip.sound.id} plays');
+          }
+        }
+      }
+
+      expect(breaks, isEmpty);
+    });
+
+    test('plays them after all if nothing else is left: it must ring', () {
+      final pool = [_sound('a'), _sound('b')];
+
+      final ring = buildRingSequence(
+        _alarm(),
+        pool,
+        const SoundWeights.start(),
+        1,
+        skipped: const {'a', 'b'},
+      );
+
+      expect(_ids(ring).toSet(), {'a', 'b'});
+      expect(ring.last.endsAt, defaultRingCap);
+    });
+
+    test('holds for a ring after Snooze too', () {
+      final pool = [_sound('a'), _sound('b'), _sound('c')];
+      for (final seed in _seeds) {
+        final ring = buildRingSequence(
+          _alarm(),
+          pool,
+          const SoundWeights.start(),
+          seed,
+          snoozedSoundId: 'b',
+          skipped: const {'a'},
+        );
+
+        expect(_ids(ring).first, 'c', reason: 'Seed $seed');
+        expect(_ids(ring), isNot(contains('a')), reason: 'Seed $seed');
+      }
+    });
+
+    test('a sound it does not know changes nothing', () {
+      final pool = _randomPool(1);
+
+      expect(
+        buildRingSequence(
+          _alarm(),
+          pool,
+          const SoundWeights.start(),
+          1,
+          skipped: const {'gone'},
+        ),
+        _ring(pool, seed: 1),
+      );
+    });
+  });
+
+  group('soundsOfRing', () {
+    test('has the built-in sounds of the genres and the own sounds', () {
+      expect(
+        _soundIds(soundsOfRing(_alarm(genres: const {'rock'}), _library)),
+        {'rock-1', 'rock-2', 'rock-3', 'my-song', 'mom'},
+      );
+    });
+
+    test('has every built-in sound if the genres have none', () {
+      expect(
+        _soundIds(soundsOfRing(_alarm(genres: const {'folk'}), _library)),
+        unorderedEquals(_soundIds(_library)),
+      );
+    });
+
+    test('leaves out the sounds to skip, unless that leaves none', () {
+      final alarm = _alarm(genres: const {'rock'});
+      final pool = [
+        for (final sound in _library)
+          if (sound.genre == 'rock') sound,
+      ];
+
+      expect(_soundIds(soundsOfRing(alarm, pool, skipped: const {'rock-1'})), [
+        'rock-2',
+        'rock-3',
+      ]);
+      expect(
+        _soundIds(
+          soundsOfRing(
+            alarm,
+            pool,
+            skipped: const {'rock-1', 'rock-2', 'rock-3'},
+          ),
+        ),
+        ['rock-1', 'rock-2', 'rock-3'],
+      );
+    });
+  });
 }
 
 /// Seeds for the random number generator, so each check runs many times.
@@ -575,3 +827,23 @@ List<String> _bagRuleBreaks(List<String> ids, int poolSize) => [
   for (var i = 1; i < ids.length; i++)
     if (ids[i] == ids[i - 1]) 'clips $i and ${i + 1}: ${ids[i]}',
 ];
+
+/// Where the clips of [ring] break a rule of a ring: a gap, a clip longer than
+/// the clip rule allows, an end that is not the cap, or a sound twice in a
+/// row in a ring of more than one sound.
+List<String> _ruleBreaks(List<RingClip> ring, String where) {
+  final ids = _ids(ring);
+  return [
+    if (ring.last.endsAt != defaultRingCap)
+      '$where: the ring ends at ${ring.last.endsAt}',
+    for (final clip in ring)
+      if (clip.window.length > ClipWindow.maxLengthFor(clip.sound.source))
+        '$where: $clip is too long',
+    for (var i = 1; i < ring.length; i++) ...[
+      if (ring[i].startsAt != ring[i - 1].endsAt)
+        '$where: a gap before clip ${i + 1}',
+      if (ids[i] == ids[i - 1] && ids.toSet().length > 1)
+        '$where: ${ids[i]} twice in a row, at clip ${i + 1}',
+    ],
+  ];
+}

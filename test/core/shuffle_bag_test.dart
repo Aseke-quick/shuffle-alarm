@@ -471,6 +471,138 @@ void main() {
       }
     });
   });
+
+  group('A bag with a plan', () {
+    test('takes the planned sounds in their order, whatever the Random', () {
+      const planned = ['sound-3', 'sound-1', 'sound-5', 'sound-2', 'sound-4'];
+
+      for (final seed in _seeds) {
+        final bag = ShuffleBag(
+          _pool(5),
+          random: Random(seed),
+          planned: planned,
+        );
+
+        expect(_next(bag, 5), planned, reason: 'Seed $seed');
+      }
+    });
+
+    test('follows the plan into the next bag too', () {
+      final bag = ShuffleBag(
+        _pool(3),
+        random: Random(1),
+        planned: const [
+          'sound-1',
+          'sound-2',
+          'sound-3',
+          'sound-2',
+          'sound-3',
+          'sound-1',
+        ],
+      );
+
+      expect(_next(bag, 6), [
+        'sound-1',
+        'sound-2',
+        'sound-3',
+        'sound-2',
+        'sound-3',
+        'sound-1',
+      ]);
+    });
+
+    test('skips a planned sound that is not in the pool', () {
+      final bag = ShuffleBag(
+        _pool(2),
+        random: Random(1),
+        planned: const ['gone', 'sound-2', 'gone', 'sound-1'],
+      );
+
+      expect(_next(bag, 2), ['sound-2', 'sound-1']);
+    });
+
+    test('takes a sound the plan does not name after the planned ones', () {
+      for (final seed in _seeds) {
+        final bag = ShuffleBag(
+          _pool(3),
+          random: Random(seed),
+          planned: const ['sound-3', 'sound-1'],
+        );
+
+        expect(_next(bag, 3), [
+          'sound-3',
+          'sound-1',
+          'sound-2',
+        ], reason: 'Seed $seed');
+      }
+    });
+
+    test('never plays a sound twice in a row, whatever the plan says', () {
+      final bag = ShuffleBag(
+        _pool(2),
+        random: Random(1),
+        planned: const ['sound-1', 'sound-1', 'sound-2', 'sound-2'],
+      );
+
+      expect(_next(bag, 4), ['sound-1', 'sound-2', 'sound-1', 'sound-2']);
+    });
+
+    test('does not start with the sound before it, whatever the plan says', () {
+      final bag = ShuffleBag(
+        _pool(2),
+        random: Random(1),
+        lastId: 'sound-1',
+        planned: const ['sound-1', 'sound-2'],
+      );
+
+      expect(bag.next().id, 'sound-2');
+    });
+
+    test('asked for an intensity, takes the first planned sound of it', () {
+      final gentle = _sound('gentle');
+      final soft = _sound('soft');
+      final medium = _sound('medium', intensity: 2);
+      final bag = ShuffleBag(
+        [gentle, soft, medium],
+        random: Random(1),
+        planned: const ['medium', 'soft', 'gentle'],
+      );
+
+      expect(bag.next(intensity: 1).id, 'soft');
+      expect(bag.next(intensity: 2).id, 'medium');
+      expect(bag.next().id, 'gentle');
+    });
+
+    test('with a plan of no use, picks as a bag without a plan', () {
+      for (final planned in const [
+        <String>[],
+        ['gone', 'also-gone'],
+      ]) {
+        for (final seed in _seeds) {
+          final pool = _pool(4);
+          expect(
+            _next(ShuffleBag(pool, random: Random(seed), planned: planned), 20),
+            _next(ShuffleBag(pool, random: Random(seed)), 20),
+            reason: 'Plan $planned, seed $seed',
+          );
+        }
+      }
+    });
+
+    test('goes on with the Random after the plan ends, by the bag rules', () {
+      for (final seed in _seeds) {
+        final bag = ShuffleBag(
+          _pool(4),
+          random: Random(seed),
+          planned: const ['sound-4', 'sound-2'],
+        );
+        final ids = _next(bag, 40);
+
+        expect(ids.take(2), ['sound-4', 'sound-2']);
+        expect(_bagRuleBreaks(ids, 4), isEmpty, reason: 'Seed $seed');
+      }
+    });
+  });
 }
 
 /// Seeds for the random number generator, so each check runs many times.

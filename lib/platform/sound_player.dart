@@ -18,7 +18,8 @@ abstract interface class SoundPlayer {
 
   /// Plays the part from [from] to [to] of the sound at [asset], an asset
   /// path such as `assets/library/lo-fi/warm-tape.wav`, at [volume] from 0
-  /// to 1. Completes when it ends, or when [stop] ends it.
+  /// to 1. Completes when it ends, or when [stop] or a newer sound ends it,
+  /// also before it started, such as while its file still loads.
   ///
   /// Throws a [SoundBlockedException] when the platform does not let it
   /// play, such as a browser before a tap. Throws another error when the
@@ -33,7 +34,7 @@ abstract interface class SoundPlayer {
 
   /// Plays a tone of [length] that needs no file and no network, at [volume]
   /// from 0 to 1, for a ring that has no sound it can read. Completes when it
-  /// ends, or when [stop] ends it.
+  /// ends, or when [stop] or a newer sound ends it.
   ///
   /// Throws a [SoundBlockedException] when the platform does not let it play.
   Future<void> playTone({required Duration length, required double volume});

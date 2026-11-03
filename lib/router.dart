@@ -6,6 +6,7 @@ import 'package:shuffle_alarm/design/components/nav_bar.dart';
 import 'package:shuffle_alarm/design/tokens.dart';
 import 'package:shuffle_alarm/features/alarms/alarm_editor_screen.dart';
 import 'package:shuffle_alarm/features/alarms/alarms_screen.dart';
+import 'package:shuffle_alarm/features/alarms/tonight_mix_screen.dart';
 import 'package:shuffle_alarm/features/insights/insights_screen.dart';
 import 'package:shuffle_alarm/features/library/library_screen.dart';
 import 'package:shuffle_alarm/features/ringing/ringing_controller.dart';
@@ -55,6 +56,14 @@ final routerProvider = Provider<GoRouter>((ref) {
                     parentNavigatorKey: rootNavigatorKey,
                     pageBuilder: (context, state) =>
                         _page(context, state, const AlarmEditorScreen()),
+                  ),
+                  // TonightMixScreen.path. Before the alarm's address, as an id
+                  // would match it too.
+                  GoRoute(
+                    path: 'tonight',
+                    parentNavigatorKey: rootNavigatorKey,
+                    pageBuilder: (context, state) =>
+                        _page(context, state, const TonightMixScreen()),
                   ),
                   GoRoute(
                     path: ':id',

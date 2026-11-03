@@ -100,6 +100,40 @@ void main() {
     });
   }
 
+  for (final brightness in brightnesses) {
+    testWidgets("Tonight's mix fits, with a sound left out, "
+        'in ${brightness.name}', (tester) async {
+      setTextScale(tester, 2);
+      tester.platformDispatcher.platformBrightnessTestValue = brightness;
+      addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+      await AlarmRepository(db).save(
+        Alarm(
+          id: 'long',
+          time: ClockTime(hour: 10, minute: 45),
+          repeatDays: const {1, 3, 5, 6},
+          label: 'Morning run with the dog, then a swim',
+        ),
+      );
+      await syncLibrary(db, [
+        for (final entry in library) entry.toStoredSound(),
+      ]);
+      await openAlarms(tester, db: db, now: wednesdayEvening, size: phone);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.textContaining("Tonight's mix"));
+      await tester.pumpAndSettle();
+      await _scrollThrough(tester);
+      expect(find.text('Reshuffle'), findsOneWidget);
+
+      await tester.drag(find.byType(ListView).first, const Offset(0, 4000));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Not tonight').first);
+      await tester.pumpAndSettle();
+      await _scrollThrough(tester);
+      expect(find.text('Bring back'), findsOneWidget);
+    });
+  }
+
   testWidgets('the other tabs and Settings fit', (tester) async {
     setTextScale(tester, 2);
     await openAlarms(tester, db: db, now: wednesdayEvening, size: phone);
