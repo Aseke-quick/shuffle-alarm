@@ -85,12 +85,7 @@ class _TonightMixScreenState extends ConsumerState<TonightMixScreen> {
       audioPath: mix.audioPathOf(sound.id),
       volume: volume,
     );
-    final message = switch (outcome) {
-      PreviewOutcome.blocked =>
-        'The browser did not let the sound play. Try again.',
-      PreviewOutcome.failed => 'Could not play this sound.',
-      PreviewOutcome.played || PreviewOutcome.notNow => null,
-    };
+    final message = previewProblem(outcome);
     if (message != null) {
       messenger.showSnackBar(SnackBar(content: Text(message)));
     }

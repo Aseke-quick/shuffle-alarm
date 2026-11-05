@@ -8,7 +8,8 @@ import 'package:shuffle_alarm/features/ringing/ringing_controller.dart';
 import 'package:shuffle_alarm/platform/providers.dart';
 import 'package:shuffle_alarm/platform/sound_player.dart';
 
-/// The preview of a sound of Tonight's mix that plays or loads now.
+/// The preview that plays or loads now, of a sound of Tonight's mix or of the
+/// Morning card.
 @immutable
 class MixPreview {
   const MixPreview(this.soundId, {this.loading = false});
@@ -46,13 +47,22 @@ enum PreviewOutcome {
   notNow,
 }
 
+/// What to tell the person after a tap on a preview that ended as [outcome],
+/// or null when it played.
+String? previewProblem(PreviewOutcome outcome) => switch (outcome) {
+  PreviewOutcome.blocked =>
+    'The browser did not let the sound play. Try again.',
+  PreviewOutcome.failed => 'Could not play this sound.',
+  PreviewOutcome.played || PreviewOutcome.notNow => null,
+};
+
 /// The preview that plays or loads now, or null.
 final mixPreviewProvider = NotifierProvider<MixPreviewController, MixPreview?>(
   MixPreviewController.new,
 );
 
-/// Plays a preview of a sound of the mix: one clip, by the clip rule, and never
-/// while an alarm rings. A ring that starts takes the player over.
+/// Plays a preview of a sound: one clip, by the clip rule, and never while an
+/// alarm rings. A ring that starts takes the player over.
 class MixPreviewController extends Notifier<MixPreview?> {
   /// Counts the taps. A newer tap or a ring ends the one before.
   var _request = 0;

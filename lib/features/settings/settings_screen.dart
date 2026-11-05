@@ -12,6 +12,7 @@ import 'package:shuffle_alarm/design/components/section_label.dart';
 import 'package:shuffle_alarm/design/components/setting_switch_row.dart';
 import 'package:shuffle_alarm/features/alarms/alarm_texts.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
+import 'package:shuffle_alarm/features/ringing/morning_card.dart';
 import 'package:shuffle_alarm/features/settings/bedtime_reminder.dart';
 import 'package:shuffle_alarm/features/settings/bedtime_reminder_screen.dart';
 import 'package:shuffle_alarm/platform/system_notifications.dart';
@@ -29,9 +30,33 @@ class SettingsScreen extends StatelessWidget {
       appBar: const ContentAppBar(title: Text('Settings')),
       body: ContentWidth(
         child: ListView(
-          children: const [SectionLabel('Sleep'), _BedtimeReminderRow()],
+          children: const [
+            SectionLabel('Sleep'),
+            _BedtimeReminderRow(),
+            _MorningCardRow(),
+          ],
         ),
       ),
+    );
+  }
+}
+
+/// The switch of the Morning card, which is on until the person turns it off.
+class _MorningCardRow extends ConsumerWidget {
+  const _MorningCardRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final on = ref.watch(morningCardOnProvider);
+    return SettingSwitchRow(
+      title: 'Morning card',
+      description:
+          'After Stop: when you woke, your snoozes, the sounds that played, '
+          'and which one woke you.',
+      status: on ? 'On' : 'Off',
+      value: on,
+      onChanged: (on) =>
+          unawaited(ref.read(morningCardOnProvider.notifier).turn(on: on)),
     );
   }
 }

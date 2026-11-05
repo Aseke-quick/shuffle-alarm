@@ -18,6 +18,8 @@ import 'package:shuffle_alarm/design/tokens.dart';
 import 'package:shuffle_alarm/features/alarms/alarms_screen.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
 import 'package:shuffle_alarm/features/alarms/tonight_mix.dart';
+import 'package:shuffle_alarm/features/ringing/morning_card.dart';
+import 'package:shuffle_alarm/features/ringing/morning_card_screen.dart';
 import 'package:shuffle_alarm/features/ringing/ringing_controller.dart';
 
 /// The ringing screen (task 2.5): filled with the accent, above everything
@@ -36,14 +38,20 @@ class _RingingScreenState extends ConsumerState<RingingScreen> {
   /// The ring it shows: the last one, so nothing jumps while the page closes.
   Ringing? _shown;
 
-  /// Runs a tap on Stop, Snooze or Close, then leaves the page.
+  /// Runs a tap on Stop, Snooze or Close, then leaves the page: for the Morning
+  /// card that a Stop left, or else for the page below.
   Future<void> _thenLeave(Future<void> Function() tap) async {
     await tap();
     if (!mounted) return;
+    final card = ref.read(morningCardProvider) != null;
     if (context.canPop()) {
-      context.pop();
+      if (card) {
+        context.pushReplacement(MorningCardScreen.path);
+      } else {
+        context.pop();
+      }
     } else {
-      context.go(AlarmsScreen.path);
+      context.go(card ? MorningCardScreen.path : AlarmsScreen.path);
     }
   }
 

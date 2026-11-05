@@ -8,6 +8,7 @@ import 'package:shuffle_alarm/core/adaptive_weights.dart';
 import 'package:shuffle_alarm/core/due_rings.dart';
 import 'package:shuffle_alarm/core/fallback_tone.dart';
 import 'package:shuffle_alarm/core/models/alarm.dart';
+import 'package:shuffle_alarm/core/models/morning_answer.dart';
 import 'package:shuffle_alarm/core/models/ring_event.dart';
 import 'package:shuffle_alarm/core/models/ring_session.dart';
 import 'package:shuffle_alarm/core/models/sound.dart';
@@ -19,6 +20,7 @@ import 'package:shuffle_alarm/data/ids.dart';
 import 'package:shuffle_alarm/data/providers.dart';
 import 'package:shuffle_alarm/data/sound_repository.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
+import 'package:shuffle_alarm/features/ringing/morning_card.dart';
 import 'package:shuffle_alarm/platform/providers.dart';
 import 'package:shuffle_alarm/platform/sound_player.dart';
 
@@ -136,6 +138,10 @@ class SnoozedRings extends Notifier<List<SnoozedRing>> {
 /// else the tone that the player makes itself ([fallbackTone]), which also
 /// takes the place of a clip that cannot be read. Only a platform that blocks
 /// the sound makes it ring without one, and says so ([Ringing.audible]).
+///
+/// A Stop leaves a Morning card, unless the person turned it off, and a ring
+/// that starts takes its place: the card never holds a ring up. Its answer goes
+/// through [answerMorning], with the other writes.
 class RingingController extends Notifier<Ringing?> {
   /// How long a ring waits for its stored plan.
   static const planLimit = Duration(seconds: 2);
@@ -280,6 +286,8 @@ class RingingController extends Notifier<Ringing?> {
     });
     state = Ringing(due);
     unawaited(_play(due));
+    // The ring has taken over: a question that still shows is gone.
+    ref.read(morningCardProvider.notifier).session = null;
   }
 
   /// The sounds of the device, or of the library. None when neither can be
@@ -438,8 +446,8 @@ class RingingController extends Notifier<Ringing?> {
     unawaited(_play(ringing.due));
   }
 
-  /// Stops the ring: the log gets the Stop, and the sound at the tap gets
-  /// heavier. After its time cap it only closes the ring.
+  /// Stops the ring: the log gets the Stop, the sound at the tap gets heavier,
+  /// and the Morning card opens. After its time cap it only closes the ring.
   Future<void> stop() async {
     final ringing = state;
     if (ringing == null) return;
@@ -449,6 +457,7 @@ class RingingController extends Notifier<Ringing?> {
         RingAction.stop,
         learn: (weights, id) => weights.afterStop(id),
       );
+      _leaveMorningCard(_session);
     }
     state = null;
     await ref.read(soundPlayerProvider).stop();
@@ -501,12 +510,48 @@ class RingingController extends Notifier<Ringing?> {
     return soundId;
   }
 
-  /// Ends the snooze of [ring], so it does not come back: a Stop in the log,
-  /// without length, as no sound played.
-  void stopSnoozed(SnoozedRing ring) {
+  /// Ends the snooze of [ring] with a tap, so it does not come back, and the
+  /// Morning card opens, as after any Stop.
+  void stopSnoozed(SnoozedRing ring) => _leaveMorningCard(_endSnooze(ring));
+
+  /// Ends the snooze of [ring]: a Stop in the log, without length, as no sound
+  /// played. Returns its session.
+  RingSession _endSnooze(SnoozedRing ring) {
     ref.read(alarmSchedulerProvider).cancel(ring.due);
     _snoozed.remove(ring);
-    _log(_stopped(ring.session));
+    final session = _stopped(ring.session);
+    _log(session);
+    return session;
+  }
+
+  /// What the Stop of [session] leaves: its Morning card, or none when the
+  /// person turned it off.
+  void _leaveMorningCard(RingSession session) {
+    ref.read(morningCardProvider.notifier).session =
+        ref.read(morningCardOnProvider) ? session : null;
+  }
+
+  /// The answer to "Which sound woke you?" on the Morning card: the id of the
+  /// sound, which gets heavier on top of what its taps taught, or null for "Not
+  /// sure", which teaches nothing. It ends the card, so it counts once. Without
+  /// a card, such as after a ring took over, it does nothing.
+  void answerMorning(String? soundId) {
+    final card = ref.read(morningCardProvider.notifier);
+    final session = card.session;
+    if (session == null) return;
+    card.session = null;
+    final answer = MorningAnswer(
+      sessionId: session.id,
+      soundId: soundId,
+      answeredAt: _now,
+    );
+    _write(
+      () => ref.read(morningAnswerRepositoryProvider).save(answer),
+      failure: 'Could not save the answer of the Morning card',
+    );
+    if (soundId != null) {
+      _learn(soundId, (weights, id) => weights.afterWoke(id));
+    }
   }
 
   RingSession _stopped(RingSession session) => session.withEvent(
@@ -524,7 +569,7 @@ class RingingController extends Notifier<Ringing?> {
     for (final snoozed in ref.read(snoozedRingsProvider)) {
       final alarm = byId[snoozed.due.alarm.id];
       if (alarm == null || (alarm.repeatDays.isNotEmpty && !alarm.enabled)) {
-        stopSnoozed(snoozed);
+        _endSnooze(snoozed);
       }
     }
   }

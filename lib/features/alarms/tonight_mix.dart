@@ -97,11 +97,15 @@ List<RecordSegment> recordSegmentsOf(List<RingClip> round) => [
   for (final clip in round)
     RecordSegment(
       length: clip.window.length,
-      strength:
-          (clip.sound.intensity - Sound.minIntensity) /
-          (Sound.maxIntensity - Sound.minIntensity),
+      strength: recordStrengthOf(clip.sound),
     ),
 ];
+
+/// How strong [sound] is on a record: from 0 (the gentlest) to 1 (the
+/// strongest).
+double recordStrengthOf(Sound sound) =>
+    (sound.intensity - Sound.minIntensity) /
+    (Sound.maxIntensity - Sound.minIntensity);
 
 /// The mix of the next ring, or null without one: no alarm is on, there is no
 /// sound, or its plan cannot be read or saved. A ring then makes its own, so

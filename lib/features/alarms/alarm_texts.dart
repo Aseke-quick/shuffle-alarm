@@ -149,6 +149,26 @@ String clipStartText(Duration startsAt) {
       '${rest.toString().padLeft(2, '0')}';
 }
 
+/// How long after the alarm at [alarmTime] someone woke, in the whole minutes
+/// the clock shows: "4 min after your 7:00 AM alarm", or "Under 1 min after
+/// your 7:00 AM alarm".
+String wokeAfterText(Duration afterAlarm, {required String alarmTime}) {
+  final minutes = afterAlarm.inMinutes;
+  return '${minutes < 1 ? 'Under 1 min' : _span(minutes)} after your '
+      '$alarmTime alarm';
+}
+
+/// The snoozes and the sounds of a morning: "1 snooze · 4 sounds", or only
+/// "No snoozes" when no sound played.
+String morningFacts({required int snoozes, required int sounds}) => [
+  switch (snoozes) {
+    0 => 'No snoozes',
+    1 => '1 snooze',
+    _ => '$snoozes snoozes',
+  },
+  if (sounds > 0) soundCount(sounds),
+].join(' · ');
+
 /// What a sound is: "Lo-fi · Gentle", "Your song" or "Voice message".
 String soundDetails(Sound sound) => switch (sound.source) {
   SoundSource.builtin =>

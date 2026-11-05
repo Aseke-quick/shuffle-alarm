@@ -1,8 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:shuffle_alarm/core/models/alarm.dart';
 import 'package:shuffle_alarm/data/database.dart';
+import 'package:shuffle_alarm/data/settings_repository.dart';
+import 'package:shuffle_alarm/design/components/setting_switch_row.dart';
 import 'package:shuffle_alarm/features/settings/bedtime_reminder_screen.dart';
 import 'package:shuffle_alarm/features/settings/settings_screen.dart';
 import 'package:shuffle_alarm/platform/system_notifications.dart';
@@ -39,8 +42,74 @@ void main() {
     await openSettings(tester);
   }
 
-  Switch reminderSwitch(WidgetTester tester) =>
-      tester.widget<Switch>(find.byType(Switch));
+  /// The first switch of the page.
+  final reminder = find.byType(Switch).first;
+
+  Switch reminderSwitch(WidgetTester tester) => tester.widget<Switch>(reminder);
+
+  group('The Morning card row', () {
+    Finder cardSwitch() => find.descendant(
+      of: find.widgetWithText(SettingSwitchRow, 'Morning card'),
+      matching: find.byType(Switch),
+    );
+
+    testWidgets('is on until someone turns it off', (tester) async {
+      await open(tester, FakeSystemNotifications());
+
+      expect(find.text('Morning card'), findsOneWidget);
+      expect(
+        find.text(
+          'After Stop: when you woke, your snoozes, the sounds that played, '
+          'and which one woke you.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('On'), findsOneWidget);
+      expect(tester.widget<Switch>(cardSwitch()).value, isTrue);
+    });
+
+    testWidgets('turns off, says so, and saves it', (tester) async {
+      await open(tester, FakeSystemNotifications());
+
+      await tester.tap(cardSwitch());
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<Switch>(cardSwitch()).value, isFalse);
+      expect(find.text('On'), findsNothing);
+      expect(
+        await SettingsRepository(SharedPreferencesAsync()).morningCard(),
+        isFalse,
+      );
+    });
+
+    testWidgets('turns on again', (tester) async {
+      await SettingsRepository(SharedPreferencesAsync())
+          .saveMorningCard(on: false);
+      await open(tester, FakeSystemNotifications());
+      expect(tester.widget<Switch>(cardSwitch()).value, isFalse);
+
+      await tester.tap(cardSwitch());
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<Switch>(cardSwitch()).value, isTrue);
+      expect(
+        await SettingsRepository(SharedPreferencesAsync()).morningCard(),
+        isTrue,
+      );
+    });
+
+    testWidgets('leaves the bedtime reminder as it is', (tester) async {
+      final notifications = FakeSystemNotifications();
+      await open(tester, notifications);
+
+      await tester.tap(cardSwitch());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(BedtimeReminderScreen), findsNothing);
+      expect(notifications.askCalls, 0);
+      expect(await savedReminder(), isFalse);
+    });
+  });
 
   group('The bedtime reminder row', () {
     testWidgets('is off until someone turns it on', (tester) async {
@@ -64,7 +133,7 @@ void main() {
       final notifications = FakeSystemNotifications();
       await open(tester, notifications, saved: false);
 
-      await tester.tap(find.byType(Switch));
+      await tester.tap(reminder);
       await tester.pumpAndSettle();
 
       expect(find.byType(BedtimeReminderScreen), findsOneWidget);
@@ -85,7 +154,7 @@ void main() {
         findsOneWidget,
       );
 
-      await tester.tap(find.byType(Switch));
+      await tester.tap(reminder);
       await tester.pumpAndSettle();
 
       expect(find.text('Notifications are blocked'), findsOneWidget);
@@ -97,7 +166,7 @@ void main() {
       final notifications = allowedNotifications();
       await open(tester, notifications, saved: false);
 
-      await tester.tap(find.byType(Switch));
+      await tester.tap(reminder);
       await tester.pumpAndSettle();
 
       expect(find.byType(BedtimeReminderScreen), findsNothing);
@@ -110,7 +179,7 @@ void main() {
       await open(tester, allowedNotifications(), saved: true);
       expect(reminderSwitch(tester).value, isTrue);
 
-      await tester.tap(find.byType(Switch));
+      await tester.tap(reminder);
       await tester.pumpAndSettle();
 
       expect(reminderSwitch(tester).value, isFalse);

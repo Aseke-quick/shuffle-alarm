@@ -43,6 +43,65 @@ void main() {
       );
     });
 
+    test('multiplies the weight of the sound that woke the user by 1.2', () {
+      final weights = SoundWeights(const {'sound-2': 2});
+
+      expect(SoundWeights.wokeFactor, 1.2);
+      expect(weights.afterWoke('sound-1').weightOf('sound-1'), 1.2);
+      expect(
+        weights.afterWoke('sound-2').weightOf('sound-2'),
+        closeTo(2.4, 1e-9),
+      );
+    });
+
+    test('the answer adds to what Stop taught the same sound', () {
+      final weights = SoundWeights().afterStop('sound-1').afterWoke('sound-1');
+
+      expect(weights.weightOf('sound-1'), closeTo(1.32, 1e-9));
+    });
+
+    test('the answer leaves what Stop taught another sound', () {
+      final weights = SoundWeights().afterStop('sound-1').afterWoke('sound-2');
+
+      expect(weights.weightOf('sound-1'), 1.1);
+      expect(weights.weightOf('sound-2'), 1.2);
+    });
+
+    test('the answer adds to what Snooze taught the same sound', () {
+      final weights = SoundWeights()
+          .afterSnooze('sound-1')
+          .afterWoke('sound-1');
+
+      expect(weights.weightOf('sound-1'), closeTo(0.96, 1e-9));
+    });
+
+    test('the answer changes no other sound, in a new value', () {
+      final before = SoundWeights(const {'sound-1': 2, 'sound-2': 0.5});
+      final after = before.afterWoke('sound-1');
+
+      expect(before, SoundWeights(const {'sound-1': 2, 'sound-2': 0.5}));
+      expect(after.weightOf('sound-2'), 0.5);
+      expect(after.weightOf('sound-3'), 1.0);
+    });
+
+    test('never goes above 3.0, however often a sound wakes the user', () {
+      final steps = _taps(100, (weights) => weights.afterWoke('sound-1'));
+
+      // 1.2 to the 6th is 2.99, and to the 7th 3.58: the 7th answer in a row
+      // takes a sound from 1.0 to the limit.
+      expect(steps[5], closeTo(2.985984, 1e-6));
+      expect(steps.skip(6), everyElement(3.0));
+    });
+
+    test('leaves the lower limit after an answer', () {
+      final weights = SoundWeights(const {'sound-1': 0.2});
+
+      expect(
+        weights.afterWoke('sound-1').weightOf('sound-1'),
+        closeTo(0.24, 1e-9),
+      );
+    });
+
     test('changes only the weight of that sound, in a new value', () {
       final before = SoundWeights(const {'sound-1': 2, 'sound-2': 0.5});
       final snoozed = before.afterSnooze('sound-1');

@@ -8,6 +8,7 @@ import 'package:shuffle_alarm/app.dart';
 import 'package:shuffle_alarm/data/database.dart';
 import 'package:shuffle_alarm/data/providers.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
+import 'package:shuffle_alarm/features/ringing/morning_card.dart';
 
 /// Opens the app on the Alarms tab, with its clock at [now] and [db] as its
 /// database. Returns the clock, which moves only when the test moves it.
@@ -38,6 +39,15 @@ Future<TestClock> openAlarms(
   );
   await tester.pumpAndSettle();
   return clock;
+}
+
+/// For the tests of what comes before the Morning card: it is turned off, so
+/// Stop goes back to the page below the ring.
+final Override noMorningCard = morningCardOnProvider.overrideWith(_CardOff.new);
+
+class _CardOff extends MorningCardSetting {
+  @override
+  bool build() => false;
 }
 
 /// A clock that shows the same time until a test moves it on.

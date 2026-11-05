@@ -1,6 +1,6 @@
 # Status
 
-- **Phase:** the first two tasks of the redesign are done and live (2026-10-29), and so are `PLAN.md` 2.4, the web scheduler (2026-10-30): armed alarms ring in an open tab; 2.4a, the bedtime reminder (2026-11-02); 2.5, the ringing screen with Snooze and the ring log (2026-11-02); and 2.5a, Tonight's mix (2026-11-03). Next: 2.5b, Morning card (`handoff.md`).
+- **Phase:** the first two tasks of the redesign are done and live (2026-10-29), and so are `PLAN.md` 2.4, the web scheduler (2026-10-30): armed alarms ring in an open tab; 2.4a, the bedtime reminder (2026-11-02); 2.5, the ringing screen with Snooze and the ring log (2026-11-02); 2.5a, Tonight's mix (2026-11-03); and 2.5b, the Morning card (2026-11-05). Next: 2.6, import own songs (`handoff.md`).
 - **Team setup (the user's choice, 2026-10-29):** this session leads the process and writes the spec. After the user approves it, two agents work in parallel, each in its own worktree and branch: the design system, and `PLAN.md` task 2.3. A QA review of each branch comes before it merges into `main`, and only on the user's yes. On 2026-10-29 the user delegated every decision ("choose the best option yourself"), which stood in for that yes.
 
 ## Sub-projects of the redesign
@@ -9,11 +9,11 @@ The user wants the app to look and work clearly differently from https://github.
 | Slug | What | State |
 | --- | --- | --- |
 | `visual-identity` | Own design system (colors, type, components, motion) and every screen restyled | Built in 2.2a and live since 2026-10-29: Mixtape with a **Cobalt** accent (`#5B8CFF` on dark), **Unbounded** for display and **Geist** for text (Geist Mono for small meta), the vinyl-record hero, the alarm tracklist with mini waveforms, the rotary time dial and a wide "New alarm" button (spec section 1, ADR-001). The ringing screen fills the page with the accent, with a spinning record, since 2.5. The record shows the real mix since 2.5a |
-| `signature-features` | Features of our own beyond `PLAN.md` | The sleep calculator (2.2a), the bedtime reminder (2.4a) and **Tonight's mix** (2.5a, ADR-002) are live. Still to come: 2.5b **Morning card**. Not chosen: Name that sound |
+| `signature-features` | Features of our own beyond `PLAN.md` | The sleep calculator (2.2a), the bedtime reminder (2.4a), **Tonight's mix** (2.5a, ADR-002) and the **Morning card** (2.5b, ADR-003) are live. Not chosen: Name that sound |
 | `brand-name` | A new app name instead of "Shuffle Alarm" | **Wakemix**, live since 2026-10-29: the display name only; package, app IDs, database name and site URL stay. First-pass trademark check on 2026-10-29: **low risk**, no live WAKEMIX mark, app, domain or business found; Kazpatent's own register could not be searched (docs/DECISIONS.md, 2026-10-30). Not legal advice: a lawyer's full search is due before filing and before task 8 |
 
 ## PLAN.md progress
-Phase 0 and Phase 1 done; 2.1, 2.2, 2.2a, 2.3, 2.4, 2.4a, 2.5 and 2.5a done. Next: 2.5b (Morning card).
+Phase 0 and Phase 1 done; 2.1, 2.2, 2.2a, 2.3, 2.4, 2.4a, 2.5, 2.5a and 2.5b done. Next: 2.6 (import own songs).
 
 ## Tasks
 - [x] 2.2a Wakemix look, name and sleep calculator: agent A, on `main` as `70fb5bf` (cherry-picked from `47951f4`); QA passed after two fixes in `049c165` (`reviews/2026-10-29-2.2a-qa.md`, `decisions/sde/visual-identity.md`)
@@ -23,5 +23,5 @@ Phase 0 and Phase 1 done; 2.1, 2.2, 2.2a, 2.3, 2.4, 2.4a, 2.5 and 2.5a done. Nex
 - [x] Security and SRE review of 2.2a and 2.3: pass, 2026-10-30 (`reviews/2026-10-30-2.2a-2.3-security.md`). Two risks for the first ring are in `decisions/sre/placeholder-library.md`
 
 ## Quality (QA, 2026-10-29)
-- 876 tests since 2.5a: 865 pass and 11 skip outside a time zone with daylight saving time, which CI runs in two such zones. Format and analyze clean, locally and in CI.
+- 1053 tests since 2.5b: 1041 pass and 12 skip outside a time zone with daylight saving time, which CI runs in two such zones. Format and analyze clean, locally and in CI.
 - The web test version is ready for testers: no open bug that blocks. Open low items (the 2.2a report): the switch thumb moves when less motion is asked for, Noto fonts for glyphs the bundled fonts lack, and tabs that screen readers call buttons.

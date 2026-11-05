@@ -14,12 +14,12 @@
 ///   --base-href /shuffle-alarm-web/ -o <folder>/shuffle-alarm-web
 /// ```
 ///
-/// It saves an alarm, a sound, a weight, a ring session and a ring plan through
-/// the repositories and reads each one back. It also says whether it found what
-/// the visit before saved: reload the page to see that the data stays. It
-/// uses a database of its own, so it never touches the app's data. Every line
-/// goes to the browser console too. Run it after changing drift, sqlite3 or
-/// the files in `web/`.
+/// It saves an alarm, a sound, a weight, a ring session, a ring plan and an
+/// answer of the Morning card through the repositories and reads each one back.
+/// It also says whether it found what the visit before saved: reload the page
+/// to see that the data stays. It uses a database of its own, so it never
+/// touches the app's data. Every line goes to the browser console too. Run it
+/// after changing drift, sqlite3 or the files in `web/`.
 library;
 
 import 'package:flutter/widgets.dart';
@@ -27,12 +27,14 @@ import 'package:flutter/widgets.dart';
 import 'package:shuffle_alarm/core/adaptive_weights.dart';
 import 'package:shuffle_alarm/core/models/alarm.dart';
 import 'package:shuffle_alarm/core/models/clock_time.dart';
+import 'package:shuffle_alarm/core/models/morning_answer.dart';
 import 'package:shuffle_alarm/core/models/ring_event.dart';
 import 'package:shuffle_alarm/core/models/ring_session.dart';
 import 'package:shuffle_alarm/core/models/sound.dart';
 import 'package:shuffle_alarm/core/ring_plan.dart';
 import 'package:shuffle_alarm/data/alarm_repository.dart';
 import 'package:shuffle_alarm/data/database.dart';
+import 'package:shuffle_alarm/data/morning_answer_repository.dart';
 import 'package:shuffle_alarm/data/ring_plan_repository.dart';
 import 'package:shuffle_alarm/data/ring_session_repository.dart';
 import 'package:shuffle_alarm/data/sound_repository.dart';
@@ -63,6 +65,7 @@ Future<void> main() async {
     final weights = WeightRepository(db);
     final sessions = RingSessionRepository(db);
     final plans = RingPlanRepository(db);
+    final answers = MorningAnswerRepository(db);
 
     final earlier = await alarms.byId('check');
     log(
@@ -129,11 +132,19 @@ Future<void> main() async {
     await plans.save(plan);
     check('The ring plan', await plans.forRing(alarm.id, now), plan);
 
+    final answer = MorningAnswer(
+      sessionId: session.id,
+      soundId: sound.sound.id,
+      answeredAt: now,
+    );
+    await answers.save(answer);
+    check('The answer', (await answers.all()).single, answer);
+
     await db.close();
     log(
       failures == 0
           ? 'PASS: the database works here.'
-          : 'FAIL: $failures of 5 checks failed.',
+          : 'FAIL: $failures of 6 checks failed.',
     );
   } on Object catch (error, stackTrace) {
     log('FAIL: $error\n$stackTrace');

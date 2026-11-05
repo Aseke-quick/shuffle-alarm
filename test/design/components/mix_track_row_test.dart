@@ -43,6 +43,18 @@ void main() {
     expect(action.style!.foregroundColor!.resolve(const {}), colors.textMuted);
   });
 
+  testWidgets('gives its action the accent when it is the point of the row', (
+    tester,
+  ) async {
+    await _pump(tester, accentAction: true);
+
+    final action = tester.widget<TextButton>(find.byType(TextButton));
+    expect(
+      action.style!.foregroundColor!.resolve(const {}),
+      WakemixColors.dark.accentText,
+    );
+  });
+
   testWidgets('shows that a preview loads, and it can be stopped', (
     tester,
   ) async {
@@ -222,6 +234,7 @@ Future<_Row> _pump(
   MixRowPreview preview = MixRowPreview.idle,
   bool hasPreview = true,
   bool hasAction = true,
+  bool accentAction = false,
   Brightness brightness = Brightness.dark,
 }) async {
   final row = _Row();
@@ -237,6 +250,7 @@ Future<_Row> _pump(
         actionLabel: 'Not tonight',
         actionSemanticsLabel: 'Not tonight: $title',
         onAction: hasAction ? () => row.actions++ : null,
+        accentAction: accentAction,
       ),
     ),
     brightness: brightness,

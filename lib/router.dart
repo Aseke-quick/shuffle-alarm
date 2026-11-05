@@ -9,6 +9,8 @@ import 'package:shuffle_alarm/features/alarms/alarms_screen.dart';
 import 'package:shuffle_alarm/features/alarms/tonight_mix_screen.dart';
 import 'package:shuffle_alarm/features/insights/insights_screen.dart';
 import 'package:shuffle_alarm/features/library/library_screen.dart';
+import 'package:shuffle_alarm/features/ringing/morning_card.dart';
+import 'package:shuffle_alarm/features/ringing/morning_card_screen.dart';
 import 'package:shuffle_alarm/features/ringing/ringing_controller.dart';
 import 'package:shuffle_alarm/features/ringing/ringing_screen.dart';
 import 'package:shuffle_alarm/features/settings/bedtime_reminder_screen.dart';
@@ -26,12 +28,17 @@ final routerProvider = Provider<GoRouter>((ref) {
     // A browser tells the app about its Back and Forward as a new address,
     // which no `PopScope` can stop. So while an alarm rings, every address
     // stays on the ringing screen: without it the sound would go on with no
-    // Stop in sight. Without a ring, its address opens the Alarms tab.
+    // Stop in sight. Without a ring, its address opens the Alarms tab, as the
+    // address of the Morning card does without a card.
     redirect: (context, state) {
       final ringing = ref.read(ringingProvider) != null;
       final onRinging = state.matchedLocation == RingingScreen.path;
       if (ringing && !onRinging) return RingingScreen.path;
       if (!ringing && onRinging) return AlarmsScreen.path;
+      if (state.matchedLocation == MorningCardScreen.path &&
+          ref.read(morningCardProvider) == null) {
+        return AlarmsScreen.path;
+      }
       return null;
     },
     routes: [
@@ -115,11 +122,28 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) =>
             _page(context, state, const RingingScreen()),
       ),
+      // In the place of the ringing page, after a Stop. The app opens it.
+      GoRoute(
+        path: MorningCardScreen.path,
+        parentNavigatorKey: rootNavigatorKey,
+        pageBuilder: (context, state) =>
+            _page(context, state, const MorningCardScreen()),
+      ),
     ],
   );
   ref.onDispose(router.dispose);
   return router;
 });
+
+/// Opens the ringing page above everything. It takes the place of a Morning
+/// card, whose question is gone by then, so no old card waits below the ring.
+Future<void> openRingingPage(GoRouter router) {
+  final pages = router.routerDelegate.currentConfiguration;
+  return pages.isNotEmpty &&
+          pages.last.matchedLocation == MorningCardScreen.path
+      ? router.pushReplacement(RingingScreen.path)
+      : router.push(RingingScreen.path);
+}
 
 /// A page above the tabs: it comes in with the platform's transition, or at
 /// once when the platform asks for less motion.

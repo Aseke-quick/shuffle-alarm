@@ -8,7 +8,8 @@ import 'package:meta/meta.dart';
 /// heavier ([afterStop]). That sound is the one of the last `RingEvent` of
 /// the ring, whose action is `snooze` or `stop`. A missed alarm, which
 /// reached its time cap without a tap, changes no weight: nobody may have
-/// been there to hear it.
+/// been there to hear it. The sound the user names on the Morning card gets
+/// heavier too ([afterWoke]), on top of what those taps taught.
 ///
 /// Weights are kept by `Sound.id`, one set for all alarms, and built-in
 /// sounds, user songs and voice messages learn alike. The shuffle bag still
@@ -43,6 +44,10 @@ class SoundWeights {
   /// What the weight of the sound at Stop is multiplied by.
   static const stopFactor = 1.1;
 
+  /// What the weight of the sound that woke the user is multiplied by: a clear
+  /// answer says more than a tap, which falls on whichever clip plays then.
+  static const wokeFactor = 1.2;
+
   /// The lightest a weight gets, so every sound can still come early.
   static const minWeight = 0.2;
 
@@ -62,6 +67,11 @@ class SoundWeights {
   /// These weights after the user tapped Stop while the sound with [soundId]
   /// played: its weight times [stopFactor], at most [maxWeight].
   SoundWeights afterStop(String soundId) => _scaled(soundId, stopFactor);
+
+  /// These weights after the user named the sound with [soundId] on the
+  /// Morning card: its weight times [wokeFactor], at most [maxWeight]. "Not
+  /// sure" changes no weight, and what Stop taught stays.
+  SoundWeights afterWoke(String soundId) => _scaled(soundId, wokeFactor);
 
   SoundWeights _scaled(String soundId, double factor) =>
       SoundWeights({..._byId, soundId: weightOf(soundId) * factor});

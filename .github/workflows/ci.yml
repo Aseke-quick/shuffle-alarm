@@ -61,7 +61,7 @@ jobs:
       - name: Test the clock changes of daylight saving time
         run: |
           for zone in Europe/Berlin America/New_York; do
-            TZ=$zone flutter test test/core/next_ring_test.dart test/core/bedtime_test.dart
+            TZ=$zone flutter test test/core/next_ring_test.dart test/core/bedtime_test.dart test/core/morning_test.dart
           done
 
   deploy:

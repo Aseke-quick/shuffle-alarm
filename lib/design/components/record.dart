@@ -107,6 +107,7 @@ void drawRecordSegments(
     Duration.zero,
     (sum, segment) => sum + segment.length,
   );
+  if (total == Duration.zero) return;
   var start = -math.pi / 2;
   for (final segment in segments) {
     final slice =

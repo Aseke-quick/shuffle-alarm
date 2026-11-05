@@ -12,6 +12,7 @@ import 'package:shuffle_alarm/design/components/alarm_track_row.dart';
 import 'package:shuffle_alarm/features/alarms/alarm_editor_screen.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
 import 'package:shuffle_alarm/features/alarms/tonight_mix_screen.dart';
+import 'package:shuffle_alarm/features/ringing/morning_card_screen.dart';
 import 'package:shuffle_alarm/features/ringing/ringing_screen.dart';
 import 'package:shuffle_alarm/features/settings/bedtime_reminder_screen.dart';
 import 'package:shuffle_alarm/features/settings/settings_screen.dart';
@@ -29,6 +30,7 @@ import 'settings/reminder_app.dart';
 void main() {
   _ringingScreenTest();
   _mixTest();
+  _morningCardTest();
 
   late AppDatabase db;
 
@@ -89,7 +91,7 @@ void main() {
       );
 
       // The explanation of the bedtime reminder, from its switch.
-      await tester.tap(find.byType(Switch));
+      await tester.tap(find.byType(Switch).first);
       await _twoFrames(tester);
       await _expectFinalAtOnce(
         tester,
@@ -216,6 +218,80 @@ void _ringingScreenTest() {
     await tester.pump(const Duration(milliseconds: 16));
     expect(tester.hasRunningAnimations, isFalse);
   });
+}
+
+/// The Morning card: its page, and the message of its answer. It opens from a
+/// snooze, as the record of the ringing screen never stops without the ask.
+void _morningCardTest() {
+  for (final lessMotion in [true, false]) {
+    final moves = lessMotion ? 'nothing moves' : 'they move';
+    testWidgets('the Morning card and its answer: with less motion asked for '
+        '$lessMotion, $moves', (tester) async {
+      if (lessMotion) askForLessMotion(tester);
+      final db = memoryDatabase();
+      final scheduler = FakeAlarmScheduler();
+      final player = FakeSoundPlayer(needsUnlock: false);
+      var now = DateTime(2026, 11, 12, 7);
+      await SoundRepository(db).save(
+        StoredSound(
+          Sound(
+            id: 'chime',
+            title: 'Chime',
+            source: SoundSource.builtin,
+            genre: 'calm',
+            intensity: 1,
+            duration: const Duration(seconds: 20),
+          ),
+          audioPath: 'assets/library/calm/chime.wav',
+        ),
+      );
+      final alarm = Alarm(id: 'a', time: ClockTime(hour: 7, minute: 0));
+      await AlarmRepository(db).save(alarm);
+      await openAlarms(
+        tester,
+        db: db,
+        now: wednesdayEvening,
+        overrides: [
+          alarmSchedulerProvider.overrideWithValue(scheduler),
+          soundPlayerProvider.overrideWithValue(player),
+          screenWakeLockProvider.overrideWithValue(FakeScreenWakeLock()),
+          nowProvider.overrideWithValue(() => now),
+        ],
+      );
+      scheduler.ring(DueRing(alarm, scheduledFor: now));
+      while (find.text('Snooze 5 min').evaluate().isEmpty) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      await tester.pump(const Duration(milliseconds: 500));
+      now = now.add(const Duration(seconds: 5));
+      await tester.tap(find.text('Snooze 5 min'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Stop alarm'));
+      await _twoFrames(tester);
+      await _expectFinalAtOnce(
+        tester,
+        find.byType(MorningCardScreen),
+        still: lessMotion,
+      );
+      expect(find.text('Which sound woke you?'), findsOneWidget);
+
+      await tester.tap(find.text('This one'));
+      // The page and the message move, or both are in place in this frame:
+      // the framework alone would still give the message one more.
+      await tester.pump();
+      expect(tester.hasRunningAnimations, !lessMotion);
+      await tester.pump(const Duration(milliseconds: 16));
+      expect(find.text('Thanks. Wakemix will remember that.'), findsWidgets);
+      // While it closes, it still shows the morning.
+      expect(
+        find.text('YOU WOKE AT'),
+        lessMotion ? findsNothing : findsOneWidget,
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(MorningCardScreen), findsNothing);
+    });
+  }
 }
 
 /// The frame of a change, and one 16 ms later: a page that comes in with a

@@ -282,6 +282,30 @@ void main() {
     test('draws nothing without sounds', () {
       expect(draw(const []), isEmpty);
     });
+
+    test('draws nothing when the sounds together have no length', () {
+      // A clock that jumped back can leave a morning like this: an arc would
+      // have no number for its angle.
+      expect(
+        draw(const [
+          RecordSegment(length: Duration.zero),
+          RecordSegment(length: Duration.zero),
+        ]),
+        isEmpty,
+      );
+    });
+
+    test('leaves out only the sound without a length', () {
+      final arcs = draw(const [
+        RecordSegment(length: Duration.zero),
+        RecordSegment(length: Duration(seconds: 20)),
+      ]);
+
+      expect(arcs.where((arc) => arc.sweep > 0), hasLength(1));
+      for (final arc in arcs) {
+        expect(arc.sweep.isNaN, isFalse);
+      }
+    });
   });
 
   test('segments are equal by their values', () {

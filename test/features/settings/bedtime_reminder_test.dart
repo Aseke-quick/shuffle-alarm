@@ -249,7 +249,7 @@ void main() {
     /// Opens the explanation from the switch in Settings.
     Future<void> openExplanation(WidgetTester tester) async {
       await openSettings(tester);
-      await tester.tap(find.byType(Switch));
+      await tester.tap(find.byType(Switch).first);
       await tester.pumpAndSettle();
     }
 
@@ -334,7 +334,7 @@ void main() {
 
     // Turned on, it still works until the app closes.
     await openSettings(tester);
-    await tester.tap(find.byType(Switch));
+    await tester.tap(find.byType(Switch).first);
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     clock.moveTo(DateTime(2026, 11, 12, 23));

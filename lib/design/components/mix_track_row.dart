@@ -18,6 +18,7 @@ class MixTrackRow extends StatelessWidget {
     this.preview = MixRowPreview.idle,
     this.previewLabel,
     this.onPreview,
+    this.accentAction = false,
     super.key,
   });
 
@@ -41,6 +42,10 @@ class MixTrackRow extends StatelessWidget {
 
   /// Null for no preview button.
   final VoidCallback? onPreview;
+
+  /// Whether the action is the point of the row, such as an answer: it gets
+  /// the accent. Otherwise it stays quiet.
+  final bool accentAction;
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +71,9 @@ class MixTrackRow extends StatelessWidget {
       onTap: onAction,
       // Quiet at night: the list keeps the accent for the preview that plays.
       child: TextButton(
-        style: TextButton.styleFrom(foregroundColor: c.textMuted),
+        style: TextButton.styleFrom(
+          foregroundColor: accentAction ? c.accentText : c.textMuted,
+        ),
         onPressed: onAction,
         child: Text(actionLabel),
       ),

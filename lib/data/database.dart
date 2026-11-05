@@ -18,13 +18,22 @@ const webSqliteFile = 'sqlite3.wasm';
 const webWorkerFile = 'drift_worker.js';
 
 /// The app's database: the alarms, the sounds with their weights, the ring
-/// history, and the stored plans of the next rings.
+/// history with the answers of the Morning card, and the stored plans of the
+/// next rings.
 ///
 /// Read and write it through the repositories in `lib/data/`, which turn its
 /// rows into the core models. After a change to the tables, run
 /// `dart run build_runner build` to update `database.g.dart`.
 @DriftDatabase(
-  tables: [Alarms, Sounds, Weights, RingSessions, RingEvents, RingPlans],
+  tables: [
+    Alarms,
+    Sounds,
+    Weights,
+    RingSessions,
+    RingEvents,
+    RingPlans,
+    MorningAnswers,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   /// The database on the executor [e], such as `NativeDatabase.memory()` in
@@ -53,7 +62,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -61,6 +70,11 @@ class AppDatabase extends _$AppDatabase {
       // Version 2 (task 2.5a): the stored plan of a ring. Nothing else changed,
       // so the alarms, weights and ring log stay as they are.
       if (from < 2) await migrator.createTable(ringPlans);
+      // Version 3 (task 2.5b): the answers of the Morning card. A table of its
+      // own, as creating one can run twice (ADR-003): a tab of an older version
+      // sets the version back when it opens the database, and an error in this
+      // step would mean no alarm at all.
+      if (from < 3) await migrator.createTable(morningAnswers);
     },
     beforeOpen: (details) async {
       // SQLite checks foreign keys only on a connection that asks for it.
@@ -185,6 +199,25 @@ class RingPlans extends Table {
 
   @override
   Set<Column<Object>> get primaryKey => {alarmId, ringAt};
+}
+
+/// The answer to "Which sound woke you?" of a ring session (`MorningAnswer`),
+/// kept apart from the ring log, which an alarm depends on. A session without
+/// an answer has no row. An answer goes when its session is deleted.
+@DataClassName('MorningAnswerRow')
+class MorningAnswers extends Table {
+  TextColumn get sessionId =>
+      text().references(RingSessions, #id, onDelete: KeyAction.cascade)();
+
+  /// The `Sound.id`, or null for "Not sure". Without a foreign key: the ring
+  /// history stays when the sound is deleted.
+  TextColumn get soundId => text().nullable()();
+
+  /// In microseconds since 1970 UTC.
+  IntColumn get answeredAt => integer().map(const _TimeConverter())();
+
+  @override
+  Set<Column<Object>> get primaryKey => {sessionId};
 }
 
 /// A time as microseconds since 1970 UTC: exact, and in the order of time

@@ -43,6 +43,10 @@ class RingEvent {
   final DateTime endedAt;
   final RingAction action;
 
+  /// Whether a sound played: the event has a length, also one that a clock
+  /// jumping back made negative. Not a [RingEvent.silent].
+  bool get played => !endedAt.isAtSameMomentAs(startedAt);
+
   @override
   bool operator ==(Object other) =>
       other is RingEvent &&

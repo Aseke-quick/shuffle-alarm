@@ -45,6 +45,7 @@ void main() {
     soundPlayerProvider.overrideWithValue(player),
     screenWakeLockProvider.overrideWithValue(FakeScreenWakeLock()),
     nowProvider.overrideWithValue(() => now),
+    noMorningCard,
   ];
 
   /// The app on the Alarms tab, with two sounds and [alarm].

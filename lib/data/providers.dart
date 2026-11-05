@@ -11,6 +11,7 @@ import 'package:shuffle_alarm/data/alarm_repository.dart';
 import 'package:shuffle_alarm/data/database.dart';
 import 'package:shuffle_alarm/data/library_manifest.dart';
 import 'package:shuffle_alarm/data/library_sync.dart';
+import 'package:shuffle_alarm/data/morning_answer_repository.dart';
 import 'package:shuffle_alarm/data/ring_plan_repository.dart';
 import 'package:shuffle_alarm/data/ring_session_repository.dart';
 import 'package:shuffle_alarm/data/settings_repository.dart';
@@ -56,6 +57,10 @@ final ringSessionRepositoryProvider = Provider<RingSessionRepository>(
 
 final ringPlanRepositoryProvider = Provider<RingPlanRepository>(
   (ref) => RingPlanRepository(ref.watch(databaseProvider)),
+);
+
+final morningAnswerRepositoryProvider = Provider<MorningAnswerRepository>(
+  (ref) => MorningAnswerRepository(ref.watch(databaseProvider)),
 );
 
 /// The simple settings. Reading it throws where the platform has no store,

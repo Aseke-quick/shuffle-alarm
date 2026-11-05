@@ -57,6 +57,35 @@ void main() {
     );
   });
 
+  group('played', () {
+    test('an event with a length is a sound that played', () {
+      expect(_event().played, isTrue);
+    });
+
+    test('a silent event is not', () {
+      final event = RingEvent.silent(
+        soundId: 'pop-01',
+        at: DateTime(2026, 10, 29, 7, 5),
+        action: RingAction.stop,
+      );
+
+      expect(event.played, isFalse);
+    });
+
+    test('nor is an event whose times are one moment in two time zones', () {
+      final at = DateTime.utc(2026, 10, 29, 7);
+      final event = _event(startedAt: at, endedAt: at.toLocal());
+
+      expect(event.played, isFalse);
+    });
+
+    test('an end before its start played too: the clock jumped back', () {
+      final event = _event(endedAt: DateTime(2026, 10, 29, 6, 59, 58));
+
+      expect(event.played, isTrue);
+    });
+  });
+
   test('a sound ends by Stop, by Snooze, or when its time runs out', () {
     expect(RingAction.values.map((action) => action.name), [
       'stop',

@@ -36,7 +36,7 @@ void main() {
       saved: saved,
     );
     await openSettings(tester);
-    await tester.tap(find.byType(Switch));
+    await tester.tap(find.byType(Switch).first);
     await tester.pumpAndSettle();
   }
 
@@ -157,7 +157,7 @@ void main() {
       expect(await savedReminder(), isTrue);
       expect(find.byType(BedtimeReminderScreen), findsNothing);
       expect(find.byType(SettingsScreen), findsOneWidget);
-      expect(tester.widget<Switch>(find.byType(Switch)).value, isTrue);
+      expect(tester.widget<Switch>(find.byType(Switch).first).value, isTrue);
     });
 
     testWidgets('a no keeps it off, saves that and says what it means', (
@@ -210,7 +210,7 @@ void main() {
 
       expect(await savedReminder(), isTrue);
       expect(find.byType(SettingsScreen), findsOneWidget);
-      expect(tester.widget<Switch>(find.byType(Switch)).value, isTrue);
+      expect(tester.widget<Switch>(find.byType(Switch).first).value, isTrue);
     });
 
     testWidgets('no answer keeps it off, and says so', (tester) async {
@@ -284,7 +284,7 @@ void main() {
 
       expect(find.byType(SettingsScreen), findsOneWidget);
       expect(await savedReminder(), isTrue);
-      expect(tester.widget<Switch>(find.byType(Switch)).value, isTrue);
+      expect(tester.widget<Switch>(find.byType(Switch).first).value, isTrue);
     });
   });
 
@@ -301,7 +301,7 @@ void main() {
       expect(notifications.askCalls, 0);
       expect(await savedReminder(), isFalse);
       expect(find.byType(SettingsScreen), findsOneWidget);
-      expect(tester.widget<Switch>(find.byType(Switch)).value, isFalse);
+      expect(tester.widget<Switch>(find.byType(Switch).first).value, isFalse);
     });
 
     testWidgets('goes to Settings from a page opened by its address', (
@@ -340,7 +340,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(await savedReminder(), isTrue);
-      expect(tester.widget<Switch>(find.byType(Switch)).value, isTrue);
+      expect(tester.widget<Switch>(find.byType(Switch).first).value, isTrue);
     });
   });
 

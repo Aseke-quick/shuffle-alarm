@@ -9,18 +9,21 @@ import 'package:shuffle_alarm/core/due_rings.dart';
 import 'package:shuffle_alarm/core/fallback_tone.dart';
 import 'package:shuffle_alarm/core/models/alarm.dart';
 import 'package:shuffle_alarm/core/models/clock_time.dart';
+import 'package:shuffle_alarm/core/models/morning_answer.dart';
 import 'package:shuffle_alarm/core/models/ring_event.dart';
 import 'package:shuffle_alarm/core/models/ring_session.dart';
 import 'package:shuffle_alarm/core/models/sound.dart';
 import 'package:shuffle_alarm/core/ring_plan.dart';
 import 'package:shuffle_alarm/data/alarm_repository.dart';
 import 'package:shuffle_alarm/data/database.dart';
+import 'package:shuffle_alarm/data/morning_answer_repository.dart';
 import 'package:shuffle_alarm/data/providers.dart';
 import 'package:shuffle_alarm/data/ring_plan_repository.dart';
 import 'package:shuffle_alarm/data/ring_session_repository.dart';
 import 'package:shuffle_alarm/data/sound_repository.dart';
 import 'package:shuffle_alarm/data/weight_repository.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
+import 'package:shuffle_alarm/features/ringing/morning_card.dart';
 import 'package:shuffle_alarm/features/ringing/ringing_controller.dart';
 import 'package:shuffle_alarm/platform/providers.dart';
 
@@ -1359,6 +1362,468 @@ void main() {
       );
     });
   });
+
+  group('The Morning card', () {
+    test('comes with a Stop, with its whole session', () async {
+      final alarm = await ring.save(_alarm('a', days: _everyDay));
+      await ring.due(alarm);
+      await ring.nextClip();
+      ring.now = ring.now.add(const Duration(seconds: 3));
+
+      await ring.stop();
+
+      expect(ring.card?.outcome, RingOutcome.stopped);
+      expect(ring.card?.events, [
+        _event('gentle', 0, 20, RingAction.timeout),
+        _event('medium', 20, 23, RingAction.stop),
+      ]);
+    });
+
+    test('is not there before the Stop', () async {
+      final alarm = await ring.save(_alarm('a', days: _everyDay));
+
+      expect(ring.card, isNull);
+      await ring.due(alarm);
+      expect(ring.card, isNull);
+    });
+
+    test('does not come with a Snooze', () async {
+      final alarm = await ring.save(_alarm('a', days: _everyDay));
+      await ring.due(alarm);
+
+      await ring.snooze();
+
+      expect(ring.card, isNull);
+    });
+
+    test(
+      'comes with the Stop after a Snooze, with all of that morning',
+      () async {
+        final alarm = await ring.save(_alarm('a', days: _everyDay));
+        await ring.due(alarm);
+        await ring.snooze();
+        await ring.comeBack();
+
+        await ring.stop();
+
+        expect(ring.card?.events.map((event) => event.action), [
+          RingAction.snooze,
+          RingAction.stop,
+        ]);
+      },
+    );
+
+    test(
+      'does not come when a ring reached its cap, also after Close',
+      () async {
+        final alarm = await ring.save(_alarm('a', days: _everyDay));
+        await ring.due(alarm);
+        ring.now = ring.now.add(_cap);
+        ring.player.finishClip();
+        await ring.settle();
+        expect(ring.card, isNull);
+
+        await ring.stop();
+
+        expect(ring.card, isNull);
+      },
+    );
+
+    test('does not come for a ring found after its cap', () async {
+      final alarm = await ring.save(_alarm('a', days: _everyDay));
+
+      await ring.due(alarm, late: _cap);
+
+      expect(ring.card, isNull);
+    });
+
+    test('comes with a Stop with the sound blocked: nothing played', () async {
+      final alarm = await ring.save(_alarm('a', days: _everyDay));
+      ring.player.blocked = true;
+      await ring.due(alarm);
+
+      await ring.stop();
+
+      expect(ring.card?.outcome, RingOutcome.stopped);
+      expect(ring.card?.events.single.played, isFalse);
+    });
+
+    test('comes with Stop alarm during a snooze', () async {
+      final alarm = await ring.save(_alarm('a', days: _everyDay));
+      await ring.due(alarm);
+      await ring.snooze();
+      ring.now = ring.now.add(const Duration(minutes: 2));
+
+      ring.controller.stopSnoozed(ring.snoozed.single);
+
+      expect(ring.card?.outcome, RingOutcome.stopped);
+      expect(ring.card?.events.last.played, isFalse);
+    });
+
+    test('does not come when a snooze ends with its alarm', () async {
+      final alarm = await ring.save(_alarm('a', days: _everyDay));
+      await ring.due(alarm);
+      await ring.snooze();
+      await ring.settle();
+
+      await ring.alarms.delete('a');
+      await ring.settle();
+
+      expect((await ring.sessions).single.outcome, RingOutcome.stopped);
+      expect(ring.card, isNull);
+    });
+
+    test(
+      'does not come for a snooze that ended before the app started',
+      () async {
+        // Its alarm is gone, and the log says the ring was snoozed.
+        final restored = await _Ring.open(
+          history: [
+            RingSession(
+              id: 's',
+              alarmId: 'gone',
+              scheduledFor: _seven,
+              events: [_event('gentle', 0, 5, RingAction.snooze)],
+            ),
+          ],
+        );
+        addTearDown(restored.close);
+
+        expect((await restored.sessions).single.outcome, RingOutcome.stopped);
+        expect(restored.card, isNull);
+      },
+    );
+
+    group('turned off', () {
+      late _Ring off;
+
+      setUp(
+        () async => off = await _Ring.open(
+          overrides: (_) => [morningCardOnProvider.overrideWith(_CardOff.new)],
+        ),
+      );
+      tearDown(() => off.close());
+
+      test('does not come with a Stop, which works as ever', () async {
+        final alarm = await off.save(_alarm('a', days: _everyDay));
+        await off.due(alarm);
+
+        await off.stop();
+        await off.settle();
+
+        expect(off.card, isNull);
+        expect(off.ringing, isNull);
+        expect(off.player.stopCalls, 1);
+        expect((await off.sessions).single.outcome, RingOutcome.stopped);
+        expect((await off.weights).weightOf('gentle'), SoundWeights.stopFactor);
+      });
+
+      test('does not come with Stop alarm', () async {
+        final alarm = await off.save(_alarm('a', days: _everyDay));
+        await off.due(alarm);
+        await off.snooze();
+
+        off.controller.stopSnoozed(off.snoozed.single);
+
+        expect(off.card, isNull);
+      });
+    });
+
+    test('of a morning before goes when the card is turned off', () async {
+      // The person left the first card with Back, then turned it off.
+      final alarm = await ring.save(_alarm('a', days: _everyDay));
+      await ring.due(alarm);
+      await ring.snooze();
+      ring.container.read(morningCardProvider.notifier).session = RingSession(
+        id: 'old',
+        alarmId: 'a',
+        scheduledFor: _seven,
+      );
+      await ring.container.read(morningCardOnProvider.notifier).turn(on: false);
+
+      ring.controller.stopSnoozed(ring.snoozed.single);
+
+      expect(ring.card, isNull);
+    });
+  });
+
+  group('The answer', () {
+    /// Stops a ring on its second sound, with the card open.
+    Future<void> stopOnSecondSound() async {
+      final alarm = await ring.save(_alarm('a', days: _everyDay));
+      await ring.due(alarm);
+      await ring.nextClip();
+      await ring.stop();
+    }
+
+    test('is kept with the session, with the sound and the moment', () async {
+      await stopOnSecondSound();
+      final id = ring.card!.id;
+      ring.now = _seven.add(const Duration(minutes: 1));
+
+      ring.controller.answerMorning('gentle');
+      await ring.settle();
+
+      expect(await ring.answers, [
+        MorningAnswer(
+          sessionId: id,
+          soundId: 'gentle',
+          answeredAt: _seven.add(const Duration(minutes: 1)),
+        ),
+      ]);
+    });
+
+    test('makes the sound heavier, and leaves what Stop taught', () async {
+      await stopOnSecondSound();
+
+      ring.controller.answerMorning('gentle');
+      await ring.settle();
+
+      final weights = await ring.weights;
+      expect(weights.weightOf('gentle'), SoundWeights.wokeFactor);
+      expect(weights.weightOf('medium'), SoundWeights.stopFactor);
+      expect(weights.weightOf('strong'), SoundWeights.startWeight);
+    });
+
+    test('adds to Stop when it names the sound at the Stop', () async {
+      await stopOnSecondSound();
+
+      ring.controller.answerMorning('medium');
+      await ring.settle();
+
+      expect(
+        (await ring.weights).weightOf('medium'),
+        closeTo(SoundWeights.stopFactor * SoundWeights.wokeFactor, 1e-9),
+      );
+    });
+
+    test('adds to Snooze when it names the sound at the Snooze', () async {
+      final alarm = await ring.save(_alarm('a', days: _everyDay));
+      await ring.due(alarm);
+      await ring.snooze();
+      await ring.comeBack();
+      await ring.stop();
+      await ring.settle();
+      final snoozed = (await ring.sessions).single.events.first.soundId;
+      final before = (await ring.weights).weightOf(snoozed);
+      expect(before, closeTo(SoundWeights.snoozeFactor, 1e-9));
+
+      ring.controller.answerMorning(snoozed);
+      await ring.settle();
+
+      expect(
+        (await ring.weights).weightOf(snoozed),
+        closeTo(before * SoundWeights.wokeFactor, 1e-9),
+      );
+    });
+
+    test('"Not sure" is kept, and teaches nothing', () async {
+      await stopOnSecondSound();
+      final id = ring.card!.id;
+      await ring.settle();
+      final before = await ring.weights;
+
+      ring.controller.answerMorning(null);
+      await ring.settle();
+
+      final answer = (await ring.answers).single;
+      expect(answer.sessionId, id);
+      expect(answer.soundId, isNull);
+      expect(await ring.weights, before);
+    });
+
+    test('ends the card, so a second tap counts for nothing', () async {
+      await stopOnSecondSound();
+
+      ring.controller
+        ..answerMorning('gentle')
+        ..answerMorning('gentle')
+        ..answerMorning('strong');
+      await ring.settle();
+
+      expect(ring.card, isNull);
+      expect((await ring.answers).single.soundId, 'gentle');
+      final weights = await ring.weights;
+      expect(weights.weightOf('gentle'), SoundWeights.wokeFactor);
+      expect(weights.weightOf('strong'), SoundWeights.startWeight);
+    });
+
+    test('without a card does nothing', () async {
+      ring.controller.answerMorning('gentle');
+      await ring.settle();
+
+      expect(await ring.answers, isEmpty);
+      expect(await ring.weights, const SoundWeights.start());
+    });
+
+    test('about the tone is kept, and it has no weight to save', () async {
+      final toneOnly = await _Ring.open(
+        withSounds: false,
+        overrides: (_) => [
+          ringSoundsProvider.overrideWithValue(() async => const []),
+        ],
+      );
+      addTearDown(toneOnly.close);
+      final alarm = await toneOnly.save(_alarm('a', days: _everyDay));
+      await toneOnly.due(alarm);
+      await toneOnly.stop();
+      await toneOnly.settle();
+
+      toneOnly.controller.answerMorning(fallbackTone.id);
+      await toneOnly.settle();
+
+      expect((await toneOnly.answers).single.soundId, fallbackTone.id);
+      expect(await toneOnly.weights, const SoundWeights.start());
+    });
+
+    test('goes after the Stop in the log, so its session is there', () async {
+      // At once after the tap, with the writes of the Stop still to come.
+      final alarm = await ring.save(_alarm('a', days: _everyDay));
+      await ring.due(alarm);
+      unawaited(ring.stop());
+
+      ring.controller.answerMorning('gentle');
+      await ring.settle();
+
+      expect((await ring.sessions).single.outcome, RingOutcome.stopped);
+      expect((await ring.answers).single.soundId, 'gentle');
+    });
+
+    test('that cannot be saved only goes to the debug log', () async {
+      final broken = await _Ring.open(
+        overrides: (db) => [
+          morningAnswerRepositoryProvider.overrideWithValue(_BrokenAnswers(db)),
+        ],
+      );
+      addTearDown(broken.close);
+      final alarm = await broken.save(_alarm('a', days: _everyDay));
+      await broken.due(alarm);
+      await broken.stop();
+
+      broken.controller.answerMorning('gentle');
+      await broken.settle();
+
+      expect(broken.card, isNull);
+      // The rest still happens: what it taught, and the next ring.
+      expect(
+        (await broken.weights).weightOf('gentle'),
+        closeTo(SoundWeights.stopFactor * SoundWeights.wokeFactor, 1e-9),
+      );
+      await broken.due(alarm, at: _seven.add(const Duration(days: 1)));
+      expect(broken.ringing?.sound, isNotNull);
+    });
+
+    test('whose weight cannot be saved only goes to the debug log', () async {
+      final broken = await _Ring.open(
+        overrides: (db) => [
+          weightRepositoryProvider.overrideWithValue(_BrokenWeights(db)),
+        ],
+      );
+      addTearDown(broken.close);
+      final alarm = await broken.save(_alarm('a', days: _everyDay));
+      await broken.due(alarm);
+      await broken.stop();
+
+      broken.controller.answerMorning('gentle');
+      await broken.settle();
+
+      expect((await broken.answers).single.soundId, 'gentle');
+    });
+  });
+
+  group('A ring while the card shows', () {
+    /// A first ring that a Stop ended, with its card open, and the next alarm.
+    Future<Alarm> cardOpen() async {
+      final first = await ring.save(_alarm('first', days: _everyDay));
+      final next = await ring.save(_alarm('next', days: _everyDay));
+      await ring.due(first);
+      await ring.stop();
+      await ring.settle();
+      expect(ring.card, isNotNull);
+      return next;
+    }
+
+    test('takes over: it rings at once, and the card goes', () async {
+      final next = await cardOpen();
+
+      await ring.due(next, at: _seven.add(const Duration(minutes: 1)));
+
+      expect(ring.ringing?.due.alarm, next);
+      expect(ring.ringing?.sound, isNotNull);
+      expect(ring.player.plays, hasLength(2));
+      expect(ring.card, isNull);
+    });
+
+    test('leaves the question without an answer', () async {
+      final next = await cardOpen();
+
+      await ring.due(next, at: _seven.add(const Duration(minutes: 1)));
+      ring.controller.answerMorning('gentle');
+      await ring.settle();
+
+      expect(await ring.answers, isEmpty);
+      expect((await ring.weights).weightOf('gentle'), SoundWeights.stopFactor);
+    });
+
+    test('has a card of its own after its Stop', () async {
+      final next = await cardOpen();
+      await ring.due(next, at: _seven.add(const Duration(minutes: 1)));
+
+      await ring.stop();
+
+      expect(ring.card?.alarmId, next.id);
+    });
+
+    test('after a Snooze has no card yet', () async {
+      final next = await cardOpen();
+      await ring.due(next, at: _seven.add(const Duration(minutes: 1)));
+
+      await ring.snooze();
+
+      expect(ring.card, isNull);
+    });
+
+    test('that was missed leaves the card', () async {
+      // Found after its cap: it makes no sound, so nothing takes over.
+      final next = await cardOpen();
+
+      await ring.due(next, late: _cap);
+
+      expect(ring.ringing, isNull);
+      expect(ring.card?.alarmId, 'first');
+    });
+
+    test('rings also when the answer before it never finishes', () async {
+      final stuck = await _Ring.open(
+        overrides: (db) => [
+          morningAnswerRepositoryProvider.overrideWithValue(_StuckAnswers(db)),
+        ],
+      );
+      addTearDown(stuck.close);
+      final alarm = await stuck.save(_alarm('a', days: _everyDay));
+      await stuck.due(alarm);
+      await stuck.stop();
+      await stuck.settle();
+      stuck.controller.answerMorning('gentle');
+      await stuck.settle();
+
+      await stuck.due(alarm, at: _seven.add(const Duration(days: 1)));
+
+      expect(stuck.ringing?.sound, isNotNull);
+      expect(stuck.player.plays, hasLength(2));
+    });
+
+    test('rings also when the setting cannot be read', () async {
+      // There is no settings store in these tests: it stays on.
+      final alarm = await ring.save(_alarm('a', days: _everyDay));
+
+      await ring.due(alarm);
+      await ring.stop();
+
+      expect(ring.container.read(morningCardOnProvider), isTrue);
+      expect(ring.card, isNotNull);
+    });
+  });
 }
 
 const _everyDay = {1, 2, 3, 4, 5, 6, 7};
@@ -1424,6 +1889,28 @@ class _BrokenWeights extends WeightRepository {
 
   @override
   Future<SoundWeights> load() async => throw StateError('Broken');
+}
+
+/// A store of answers whose database always fails.
+class _BrokenAnswers extends MorningAnswerRepository {
+  _BrokenAnswers(super._db);
+
+  @override
+  Future<void> save(MorningAnswer answer) async => throw StateError('Broken');
+}
+
+/// A store of answers that never answers.
+class _StuckAnswers extends MorningAnswerRepository {
+  _StuckAnswers(super._db);
+
+  @override
+  Future<void> save(MorningAnswer answer) => Completer<void>().future;
+}
+
+/// The Morning card, turned off by the person.
+class _CardOff extends MorningCardSetting {
+  @override
+  bool build() => false;
 }
 
 class _BrokenSounds extends SoundRepository {
@@ -1505,6 +1992,12 @@ class _Ring {
       container.read(soundPlayerProvider) as FakeSoundPlayer;
 
   Ringing? get ringing => container.read(ringingProvider);
+
+  RingingController get controller => container.read(ringingProvider.notifier);
+
+  RingSession? get card => container.read(morningCardProvider);
+
+  Future<List<MorningAnswer>> get answers => MorningAnswerRepository(db).all();
 
   List<SnoozedRing> get snoozed => container.read(snoozedRingsProvider);
 

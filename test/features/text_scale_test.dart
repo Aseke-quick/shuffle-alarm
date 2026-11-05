@@ -12,7 +12,9 @@ import 'package:shuffle_alarm/data/library_manifest.dart';
 import 'package:shuffle_alarm/data/library_sync.dart';
 import 'package:shuffle_alarm/design/components/alarm_track_row.dart';
 import 'package:shuffle_alarm/design/components/nav_bar.dart';
+import 'package:shuffle_alarm/design/tokens.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
+import 'package:shuffle_alarm/features/ringing/morning_card_screen.dart';
 import 'package:shuffle_alarm/features/ringing/ringing_screen.dart';
 import 'package:shuffle_alarm/features/settings/bedtime_reminder_screen.dart';
 import 'package:shuffle_alarm/features/settings/settings_screen.dart';
@@ -173,7 +175,7 @@ void main() {
     expect(find.text('Off'), findsOneWidget);
 
     // The explanation, from the switch.
-    await tester.tap(find.byType(Switch));
+    await tester.tap(find.byType(Switch).first);
     await tester.pumpAndSettle();
     expect(find.byType(BedtimeReminderScreen), findsOneWidget);
     await _scrollThrough(tester);
@@ -315,6 +317,94 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Close'), findsOneWidget);
     await _scrollThrough(tester);
+  });
+
+  /// A ring of every sound of the library, stopped after [after], on a screen
+  /// of [size], with long titles and a long time after the alarm.
+  Future<void> openMorningCard(
+    WidgetTester tester, {
+    required Size size,
+    bool blocked = false,
+    Duration after = const Duration(hours: 1, minutes: 5),
+  }) async {
+    askForLessMotion(tester);
+    final scheduler = FakeAlarmScheduler();
+    final player = FakeSoundPlayer(needsUnlock: false, blocked: blocked);
+    final ring = DateTime(2026, 11, 12, 10, 45);
+    var now = ring;
+    final alarm = Alarm(id: 'long', time: ClockTime(hour: 10, minute: 45));
+    await AlarmRepository(db).save(alarm);
+    await syncLibrary(db, [for (final entry in library) entry.toStoredSound()]);
+    await openAlarms(
+      tester,
+      db: db,
+      now: wednesdayEvening,
+      size: size,
+      overrides: [
+        alarmSchedulerProvider.overrideWithValue(scheduler),
+        soundPlayerProvider.overrideWithValue(player),
+        screenWakeLockProvider.overrideWithValue(FakeScreenWakeLock()),
+        nowProvider.overrideWithValue(() => now),
+      ],
+    );
+    scheduler.ring(DueRing(alarm, scheduledFor: ring));
+    await tester.pumpAndSettle();
+    if (!blocked) {
+      for (var i = 0; i < library.length; i++) {
+        now = now.add(const Duration(seconds: 30));
+        player.finishClip();
+        await tester.pumpAndSettle();
+      }
+    }
+    now = ring.add(after);
+    await tester.tap(find.text('Stop'));
+    await tester.pumpAndSettle();
+    expect(find.byType(MorningCardScreen), findsOneWidget);
+  }
+
+  testWidgets('the Morning card fits, with every sound', (tester) async {
+    setTextScale(tester, 2);
+    await openMorningCard(tester, size: phone);
+
+    expect(find.text('Which sound woke you?'), findsOneWidget);
+    await _scrollThrough(tester);
+    expect(
+      find.text('You can turn this card off in Settings.'),
+      findsOneWidget,
+    );
+    expect(find.text('Not sure'), findsOneWidget);
+  });
+
+  testWidgets('the Morning card fits, when no sound played', (tester) async {
+    setTextScale(tester, 2);
+    await openMorningCard(tester, size: phone, blocked: true);
+
+    expect(find.text('No sound played'), findsOneWidget);
+    await _scrollThrough(tester);
+    expect(find.text('Done'), findsOneWidget);
+  });
+
+  for (final (name, size) in [
+    ('a small phone', const Size(320, 568)),
+    ('a phone on its side', const Size(844, 390)),
+    ('a wide window', const Size(1280, 800)),
+  ]) {
+    testWidgets('the Morning card fits $name, at the normal text size', (
+      tester,
+    ) async {
+      await openMorningCard(tester, size: size);
+
+      await _scrollThrough(tester);
+      expect(find.text('Not sure'), findsOneWidget);
+    });
+  }
+
+  testWidgets('the Morning card keeps the width of a phone in a wide window', (
+    tester,
+  ) async {
+    await openMorningCard(tester, size: const Size(1280, 800));
+
+    expect(tester.getSize(find.byType(ListView)).width, Layout.maxContentWidth);
   });
 
   for (final (name, size) in [

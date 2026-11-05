@@ -166,7 +166,7 @@ Scale (sp):
   - The task writes its own ADR.
 - **2.5b Morning card (after 2.5):**
   - After Stop: when the user woke, how many minutes after the alarm, the snoozes, and the sounds that played.
-  - "Which sound woke you?": one tap on a sound, or "Not sure". The answer adjusts that sound's weight (the exact rule and an ADR come with the task), is kept with the ring session (a schema change), and feeds Insights (2.8).
+  - "Which sound woke you?": one tap on a sound, or "Not sure". The answer adjusts that sound's weight (×1.2 on top of what Stop taught, ADR-003), is kept with the ring session (schema version 3), and feeds Insights (2.8).
   - It can be turned off.
 
 ## 4. Delivery: two agents

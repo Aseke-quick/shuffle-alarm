@@ -2403,6 +2403,288 @@ class RingPlansCompanion extends UpdateCompanion<RingPlanRow> {
   }
 }
 
+class $MorningAnswersTable extends MorningAnswers
+    with TableInfo<$MorningAnswersTable, MorningAnswerRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MorningAnswersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _sessionIdMeta = const VerificationMeta(
+    'sessionId',
+  );
+  @override
+  late final GeneratedColumn<String> sessionId = GeneratedColumn<String>(
+    'session_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES ring_sessions (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _soundIdMeta = const VerificationMeta(
+    'soundId',
+  );
+  @override
+  late final GeneratedColumn<String> soundId = GeneratedColumn<String>(
+    'sound_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<DateTime, int> answeredAt =
+      GeneratedColumn<int>(
+        'answered_at',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      ).withConverter<DateTime>($MorningAnswersTable.$converteransweredAt);
+  @override
+  List<GeneratedColumn> get $columns => [sessionId, soundId, answeredAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'morning_answers';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MorningAnswerRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('session_id')) {
+      context.handle(
+        _sessionIdMeta,
+        sessionId.isAcceptableOrUnknown(data['session_id']!, _sessionIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sessionIdMeta);
+    }
+    if (data.containsKey('sound_id')) {
+      context.handle(
+        _soundIdMeta,
+        soundId.isAcceptableOrUnknown(data['sound_id']!, _soundIdMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {sessionId};
+  @override
+  MorningAnswerRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MorningAnswerRow(
+      sessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}session_id'],
+      )!,
+      soundId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sound_id'],
+      ),
+      answeredAt: $MorningAnswersTable.$converteransweredAt.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}answered_at'],
+        )!,
+      ),
+    );
+  }
+
+  @override
+  $MorningAnswersTable createAlias(String alias) {
+    return $MorningAnswersTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<DateTime, int> $converteransweredAt =
+      const _TimeConverter();
+}
+
+class MorningAnswerRow extends DataClass
+    implements Insertable<MorningAnswerRow> {
+  final String sessionId;
+
+  /// The `Sound.id`, or null for "Not sure". Without a foreign key: the ring
+  /// history stays when the sound is deleted.
+  final String? soundId;
+
+  /// In microseconds since 1970 UTC.
+  final DateTime answeredAt;
+  const MorningAnswerRow({
+    required this.sessionId,
+    this.soundId,
+    required this.answeredAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['session_id'] = Variable<String>(sessionId);
+    if (!nullToAbsent || soundId != null) {
+      map['sound_id'] = Variable<String>(soundId);
+    }
+    {
+      map['answered_at'] = Variable<int>(
+        $MorningAnswersTable.$converteransweredAt.toSql(answeredAt),
+      );
+    }
+    return map;
+  }
+
+  MorningAnswersCompanion toCompanion(bool nullToAbsent) {
+    return MorningAnswersCompanion(
+      sessionId: Value(sessionId),
+      soundId: soundId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(soundId),
+      answeredAt: Value(answeredAt),
+    );
+  }
+
+  factory MorningAnswerRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MorningAnswerRow(
+      sessionId: serializer.fromJson<String>(json['sessionId']),
+      soundId: serializer.fromJson<String?>(json['soundId']),
+      answeredAt: serializer.fromJson<DateTime>(json['answeredAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'sessionId': serializer.toJson<String>(sessionId),
+      'soundId': serializer.toJson<String?>(soundId),
+      'answeredAt': serializer.toJson<DateTime>(answeredAt),
+    };
+  }
+
+  MorningAnswerRow copyWith({
+    String? sessionId,
+    Value<String?> soundId = const Value.absent(),
+    DateTime? answeredAt,
+  }) => MorningAnswerRow(
+    sessionId: sessionId ?? this.sessionId,
+    soundId: soundId.present ? soundId.value : this.soundId,
+    answeredAt: answeredAt ?? this.answeredAt,
+  );
+  MorningAnswerRow copyWithCompanion(MorningAnswersCompanion data) {
+    return MorningAnswerRow(
+      sessionId: data.sessionId.present ? data.sessionId.value : this.sessionId,
+      soundId: data.soundId.present ? data.soundId.value : this.soundId,
+      answeredAt: data.answeredAt.present
+          ? data.answeredAt.value
+          : this.answeredAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MorningAnswerRow(')
+          ..write('sessionId: $sessionId, ')
+          ..write('soundId: $soundId, ')
+          ..write('answeredAt: $answeredAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(sessionId, soundId, answeredAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MorningAnswerRow &&
+          other.sessionId == this.sessionId &&
+          other.soundId == this.soundId &&
+          other.answeredAt == this.answeredAt);
+}
+
+class MorningAnswersCompanion extends UpdateCompanion<MorningAnswerRow> {
+  final Value<String> sessionId;
+  final Value<String?> soundId;
+  final Value<DateTime> answeredAt;
+  final Value<int> rowid;
+  const MorningAnswersCompanion({
+    this.sessionId = const Value.absent(),
+    this.soundId = const Value.absent(),
+    this.answeredAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MorningAnswersCompanion.insert({
+    required String sessionId,
+    this.soundId = const Value.absent(),
+    required DateTime answeredAt,
+    this.rowid = const Value.absent(),
+  }) : sessionId = Value(sessionId),
+       answeredAt = Value(answeredAt);
+  static Insertable<MorningAnswerRow> custom({
+    Expression<String>? sessionId,
+    Expression<String>? soundId,
+    Expression<int>? answeredAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (sessionId != null) 'session_id': sessionId,
+      if (soundId != null) 'sound_id': soundId,
+      if (answeredAt != null) 'answered_at': answeredAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MorningAnswersCompanion copyWith({
+    Value<String>? sessionId,
+    Value<String?>? soundId,
+    Value<DateTime>? answeredAt,
+    Value<int>? rowid,
+  }) {
+    return MorningAnswersCompanion(
+      sessionId: sessionId ?? this.sessionId,
+      soundId: soundId ?? this.soundId,
+      answeredAt: answeredAt ?? this.answeredAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (sessionId.present) {
+      map['session_id'] = Variable<String>(sessionId.value);
+    }
+    if (soundId.present) {
+      map['sound_id'] = Variable<String>(soundId.value);
+    }
+    if (answeredAt.present) {
+      map['answered_at'] = Variable<int>(
+        $MorningAnswersTable.$converteransweredAt.toSql(answeredAt.value),
+      );
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MorningAnswersCompanion(')
+          ..write('sessionId: $sessionId, ')
+          ..write('soundId: $soundId, ')
+          ..write('answeredAt: $answeredAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   late final $AlarmsTable alarms = $AlarmsTable(this);
@@ -2411,6 +2693,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $RingSessionsTable ringSessions = $RingSessionsTable(this);
   late final $RingEventsTable ringEvents = $RingEventsTable(this);
   late final $RingPlansTable ringPlans = $RingPlansTable(this);
+  late final $MorningAnswersTable morningAnswers = $MorningAnswersTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2422,6 +2705,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     ringSessions,
     ringEvents,
     ringPlans,
+    morningAnswers,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -2445,6 +2729,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('ring_plans', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'ring_sessions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('morning_answers', kind: UpdateKind.delete)],
     ),
   ]);
 }

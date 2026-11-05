@@ -52,6 +52,7 @@ void main() {
     soundPlayerProvider.overrideWithValue(player),
     screenWakeLockProvider.overrideWithValue(wakeLock),
     nowProvider.overrideWithValue(() => now),
+    noMorningCard,
   ];
 
   /// The app on the Alarms tab, with [count] sounds of different lengths and

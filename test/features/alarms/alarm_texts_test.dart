@@ -366,4 +366,59 @@ void main() {
       expect(soundDetails(sound(SoundSource.voice)), 'Voice message');
     });
   });
+
+  group('wokeAfterText', () {
+    String text(Duration after) => wokeAfterText(after, alarmTime: '7:00 AM');
+
+    test('says the minutes after the alarm', () {
+      expect(
+        text(const Duration(minutes: 4)),
+        '4 min after your 7:00 AM alarm',
+      );
+    });
+
+    test('counts whole minutes, as the clock shows them', () {
+      // A Stop at 7:04:50 shows 7:04 on the clock.
+      expect(
+        text(const Duration(minutes: 4, seconds: 50)),
+        '4 min after your 7:00 AM alarm',
+      );
+    });
+
+    test('says hours too, without the parts that are 0', () {
+      expect(
+        text(const Duration(hours: 1, minutes: 5)),
+        '1 h 5 min after your 7:00 AM alarm',
+      );
+      expect(text(const Duration(hours: 2)), '2 h after your 7:00 AM alarm');
+    });
+
+    test('says "Under 1 min" for the first minute', () {
+      expect(text(Duration.zero), 'Under 1 min after your 7:00 AM alarm');
+      expect(
+        text(const Duration(seconds: 59)),
+        'Under 1 min after your 7:00 AM alarm',
+      );
+      expect(
+        text(const Duration(minutes: 1)),
+        '1 min after your 7:00 AM alarm',
+      );
+    });
+  });
+
+  group('morningFacts', () {
+    test('says the snoozes and the sounds', () {
+      expect(morningFacts(snoozes: 1, sounds: 4), '1 snooze · 4 sounds');
+      expect(morningFacts(snoozes: 2, sounds: 1), '2 snoozes · 1 sound');
+    });
+
+    test('says when there was no snooze', () {
+      expect(morningFacts(snoozes: 0, sounds: 3), 'No snoozes · 3 sounds');
+    });
+
+    test('leaves out the sounds when none played', () {
+      expect(morningFacts(snoozes: 0, sounds: 0), 'No snoozes');
+      expect(morningFacts(snoozes: 1, sounds: 0), '1 snooze');
+    });
+  });
 }
