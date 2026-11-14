@@ -150,7 +150,9 @@ class RingingController extends Notifier<Ringing?> {
 
   /// Counts the playbacks. Stop and each new playback end the one before.
   var _playback = 0;
-  var _starting = false;
+
+  /// The starts of the rings that came due, one after the other.
+  Future<void> _starts = Future.value();
   List<RingClip> _clips = const [];
   Map<String, String> _assets = const {};
 
@@ -206,16 +208,31 @@ class RingingController extends Notifier<Ringing?> {
           alarmId: due.alarm.id,
           scheduledFor: due.scheduledFor,
         );
+    // One at a time: a ring that comes due while another one starts waits to
+    // know whether that one rings. The other may be found after its cap, such
+    // as after a laptop slept through it, and then this one must ring.
+    final start = _starts.then((_) => _startUnlessRinging(due, session));
+    // The next start goes on also after one that failed, which is reported
+    // as before.
+    _starts = start.then(
+      (_) {},
+      onError: (Object error, StackTrace stack) =>
+          Zone.current.handleUncaughtError(error, stack),
+    );
+  }
+
+  /// Starts the ring of [due], unless another one rings: then it is missed.
+  Future<void> _startUnlessRinging(DueRing due, RingSession session) async {
+    if (!ref.mounted) return;
     final ringing = state;
-    if (_starting || (ringing != null && !ringing.over)) {
+    if (ringing != null && !ringing.over) {
       debugPrint(
         'Missed the alarm set for ${due.scheduledFor}: another one rings',
       );
       _log(session.missedAt(_now));
       return;
     }
-    _starting = true;
-    unawaited(_start(due, session).whenComplete(() => _starting = false));
+    await _start(due, session);
   }
 
   /// Takes the snoozed ring that came due as [due] out of the list.

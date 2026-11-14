@@ -128,6 +128,53 @@ void main() {
     });
 
     test(
+      'rings when a ring found after its cap came due just before it, as '
+      'after a laptop slept through one alarm and woke for the next',
+      () async {
+        final stale = await ring.save(_alarm('stale', days: _everyDay));
+        final fresh = await ring.save(_alarm('fresh', days: _everyDay));
+        final half = _seven.add(const Duration(minutes: 30));
+
+        // 07:32: one check finds the ring of 07:00 and the one of 07:30, the
+        // oldest first.
+        ring.now = half.add(const Duration(minutes: 2));
+        ring.scheduler
+          ..ring(DueRing(stale, scheduledFor: _seven))
+          ..ring(DueRing(fresh, scheduledFor: half));
+        await ring.settle();
+
+        expect(ring.ringing?.due.alarm, fresh);
+        expect(ring.player.plays, hasLength(1));
+        final sessions = await ring.sessions;
+        expect(sessions, hasLength(2));
+        expect(
+          sessions.singleWhere((session) => session.alarmId == 'stale').outcome,
+          RingOutcome.missed,
+        );
+      },
+    );
+
+    test(
+      'two rings due in one check: the first rings, the other is missed',
+      () async {
+        final first = await ring.save(_alarm('first', days: _everyDay));
+        final second = await ring.save(_alarm('second', days: _everyDay));
+
+        ring.scheduler
+          ..ring(DueRing(first, scheduledFor: _seven))
+          ..ring(DueRing(second, scheduledFor: _seven));
+        await ring.settle();
+
+        expect(ring.ringing?.due.alarm, first);
+        expect(ring.player.plays, hasLength(1));
+        final other = (await ring.sessions).singleWhere(
+          (session) => session.alarmId == 'second',
+        );
+        expect(other.outcome, RingOutcome.missed);
+      },
+    );
+
+    test(
       'found after its time cap is missed: no sound, and in the log',
       () async {
         final alarm = await ring.save(_alarm('a', days: _everyDay));
