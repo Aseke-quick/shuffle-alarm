@@ -32,6 +32,16 @@ void main() {
       expect(ringsIn(const Duration(microseconds: 1)), 'Rings in 1 min');
     });
 
+    test('says "now" for a ring whose time has come or passed', () {
+      // Such as for a moment on a page that still shows the ring of 07:00
+      // when the clock turns to 07:00.
+      expect(ringsIn(Duration.zero), 'Rings now');
+      expect(ringsIn(const Duration(minutes: -5)), 'Rings now');
+      expect(countdownText(Duration.zero), 'now');
+      expect(countdownText(const Duration(minutes: -5)), 'now');
+      expect(countdownText(const Duration(seconds: 1)), 'in 1 min');
+    });
+
     test('says days from 24 hours on, and leaves out the parts that are 0', () {
       expect(ringsIn(const Duration(hours: 24)), 'Rings in 1 d');
       expect(

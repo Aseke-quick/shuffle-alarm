@@ -8,10 +8,15 @@ import 'package:shuffle_alarm/core/models/sound.dart';
 /// Rounded up, as the clock counts: at 23:40:30 the clock shows 23:40, and an
 /// alarm at 07:00 rings in 7 h 20 min. From 24 hours on it says days too,
 /// such as "Rings in 1 d 2 h 5 min", and it leaves out the parts that are 0.
-String ringsIn(Duration untilRing) => 'Rings in ${_untilRing(untilRing)}';
+/// "Rings now" for a ring whose time has come or passed.
+String ringsIn(Duration untilRing) => untilRing > Duration.zero
+    ? 'Rings in ${_untilRing(untilRing)}'
+    : 'Rings now';
 
-/// "in 7 h 20 min": the countdown on the record, rounded up like [ringsIn].
-String countdownText(Duration untilRing) => 'in ${_untilRing(untilRing)}';
+/// "in 7 h 20 min": the countdown of the next alarm, rounded up like
+/// [ringsIn]. "now" for a ring whose time has come or passed.
+String countdownText(Duration untilRing) =>
+    untilRing > Duration.zero ? 'in ${_untilRing(untilRing)}' : 'now';
 
 String _untilRing(Duration untilRing) =>
     _span((untilRing.inMicroseconds / Duration.microsecondsPerMinute).ceil());
