@@ -1,5 +1,7 @@
 # Status
 
+- **Now (2026-11-14):** redesign 2, slug `visual-identity-2`: the user rejected the Mixtape look and approved "Soft depth" from pictures (spec `specs/2026-11-14-wakemix-redesign-2-design.md`, ADR-005). In work on `main` in the primary checkout: the new tokens and layout, the time wheels, the sound deck, and Analytics in the place of Insights (task 2.8). Task 2.6 waits in its worktree.
+
 - **Phase:** the first two tasks of the redesign are done and live (2026-10-29), and so are `PLAN.md` 2.4, the web scheduler (2026-10-30): armed alarms ring in an open tab; 2.4a, the bedtime reminder (2026-11-02); 2.5, the ringing screen with Snooze and the ring log (2026-11-02); 2.5a, Tonight's mix (2026-11-03); and 2.5b, the Morning card (2026-11-05). Next: 2.6, import own songs (`handoff.md`).
 - **Team setup (the user's choice, 2026-10-29):** this session leads the process and writes the spec. After the user approves it, two agents work in parallel, each in its own worktree and branch: the design system, and `PLAN.md` task 2.3. A QA review of each branch comes before it merges into `main`, and only on the user's yes. On 2026-10-29 the user delegated every decision ("choose the best option yourself"), which stood in for that yes.
 
