@@ -57,7 +57,10 @@ void main() {
       for (final entry in await LicenseRegistry.licenses.toList())
         ...entry.packages,
     };
-    expect(packages, containsAll(['Unbounded', 'Geist', 'Geist Mono']));
+    expect(packages, contains('Geist'));
+    // The fonts that left the bundle with ADR-005.
+    expect(packages, isNot(contains('Unbounded')));
+    expect(packages, isNot(contains('Geist Mono')));
   });
 }
 

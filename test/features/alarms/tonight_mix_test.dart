@@ -15,7 +15,7 @@ import 'package:shuffle_alarm/data/providers.dart';
 import 'package:shuffle_alarm/data/ring_plan_repository.dart';
 import 'package:shuffle_alarm/data/sound_repository.dart';
 import 'package:shuffle_alarm/data/weight_repository.dart';
-import 'package:shuffle_alarm/design/components/record.dart';
+import 'package:shuffle_alarm/design/components/mix_bars.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
 import 'package:shuffle_alarm/features/alarms/tonight_mix.dart';
 import 'package:shuffle_alarm/features/ringing/ringing_controller.dart';
@@ -438,7 +438,7 @@ void main() {
     });
   });
 
-  group('recordSegmentsOf', () {
+  group('mixSegmentsOf', () {
     test('has the length and the strength of each clip, in play order', () {
       final clips = buildRingSequence(
         _alarm('a'),
@@ -451,16 +451,16 @@ void main() {
         1,
       );
 
-      expect(recordSegmentsOf(firstRound(clips)), [
+      expect(mixSegmentsOf(firstRound(clips)), [
         for (final clip in firstRound(clips))
-          RecordSegment(
+          MixSegment(
             length: clip.window.length,
             strength: (clip.sound.intensity - 1) / 2,
           ),
       ]);
       expect(
         {
-          for (final segment in recordSegmentsOf(firstRound(clips)))
+          for (final segment in mixSegmentsOf(firstRound(clips)))
             segment.length.inSeconds: segment.strength,
         },
         {10: 0.0, 20: 0.5, 29: 1.0},

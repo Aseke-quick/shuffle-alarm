@@ -17,7 +17,7 @@ void main() {
   setUp(() => db = memoryDatabase());
   // Not closed: see memoryDatabase().
 
-  testWidgets('the bottom tabs switch between Alarms, Library and Insights', (
+  testWidgets('the bottom tabs switch between Alarms, Library and Analytics', (
     tester,
   ) async {
     await _openApp(tester, db);
@@ -27,8 +27,8 @@ void main() {
     _expectTab(tester, 'Library', index: 1);
     expect(find.text('No sounds yet.'), findsOneWidget);
 
-    await _tapTab(tester, 'Insights');
-    _expectTab(tester, 'Insights', index: 2);
+    await _tapTab(tester, 'Analytics');
+    _expectTab(tester, 'Analytics', index: 2);
     expect(find.text('No mornings to show yet.'), findsOneWidget);
 
     await _tapTab(tester, 'Alarms');
@@ -57,7 +57,7 @@ void main() {
 
   testWidgets('the home address opens the Alarms tab', (tester) async {
     await _openApp(tester, db);
-    await _tapTab(tester, 'Insights');
+    await _tapTab(tester, 'Analytics');
 
     tester.container().read(routerProvider).go('/');
     await tester.pumpAndSettle();

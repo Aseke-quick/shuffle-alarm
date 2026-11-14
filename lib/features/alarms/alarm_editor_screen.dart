@@ -9,12 +9,12 @@ import 'package:shuffle_alarm/core/next_ring.dart';
 import 'package:shuffle_alarm/data/ids.dart';
 import 'package:shuffle_alarm/data/providers.dart';
 import 'package:shuffle_alarm/design/components/day_keys.dart';
+import 'package:shuffle_alarm/design/components/glass_card.dart';
 import 'package:shuffle_alarm/design/components/layout.dart';
-import 'package:shuffle_alarm/design/components/rotary_time_dial.dart';
 import 'package:shuffle_alarm/design/components/section_label.dart';
 import 'package:shuffle_alarm/design/components/status_view.dart';
+import 'package:shuffle_alarm/design/components/time_wheels.dart';
 import 'package:shuffle_alarm/design/components/wide_button.dart';
-import 'package:shuffle_alarm/design/theme.dart';
 import 'package:shuffle_alarm/design/tokens.dart';
 import 'package:shuffle_alarm/features/alarms/alarm_texts.dart';
 import 'package:shuffle_alarm/features/alarms/alarm_writes.dart';
@@ -76,7 +76,7 @@ class _Message extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PageScaffold(
       appBar: const ContentAppBar(title: Text('Edit alarm')),
       body: child,
     );
@@ -138,18 +138,122 @@ class _AlarmFormState extends ConsumerState<_AlarmForm> {
     enabled: true,
   );
 
+  /// How warm the page is for [time]: warmest in the morning, coolest at
+  /// night, so the page says what kind of hour the wheels show.
+  static double _warmth(ClockTime time) {
+    final hours = time.hour + time.minute / TimeOfDay.minutesPerHour;
+    final fromMorning = (hours - 7.5).abs();
+    final away = fromMorning > 12 ? 24 - fromMorning : fromMorning;
+    return (1 - away / 9).clamp(0.1, 1);
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = WakemixColors.of(context);
-    final type = WakemixType.of(context);
-    final hint = Theme.of(context).textTheme.bodySmall!
-        .copyWith(color: c.textMuted);
+    final theme = Theme.of(context);
+    final hint = theme.textTheme.bodySmall!.copyWith(color: c.textMuted);
     final now = ref.watch(clockProvider);
     // Switched on, so it has a next ring.
     final ring = nextRing(_edited(), now)!;
     const gutter = EdgeInsets.symmetric(horizontal: Layout.gutter);
-    return Scaffold(
+    final wide = Layout.isWide(context);
+    final save = WideButton(
+      label: 'Save alarm',
+      onPressed: _busy ? null : _save,
+    );
+    final time = [
+      Padding(
+        padding: gutter,
+        child: GlassCard(
+          radius: Corners.hero,
+          padding: const EdgeInsets.symmetric(
+            horizontal: Space.s8,
+            vertical: Space.s16,
+          ),
+          child: Column(
+            children: [
+              TimeWheels(
+                time: TimeOfDay(hour: _time.hour, minute: _time.minute),
+                onChanged: (time) => setState(
+                  () => _time = ClockTime(hour: time.hour, minute: time.minute),
+                ),
+              ),
+              const SizedBox(height: Space.s12),
+              Text(
+                ringsIn(ring.difference(now)),
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium!.copyWith(
+                  color: c.accentText,
+                ),
+              ),
+              const SizedBox(height: Space.s4),
+              Text(
+                sleepText(
+                  sleepAdvice(ring: ring, now: now),
+                  now: now,
+                  clock: (time) => TimeOfDay.fromDateTime(time).format(context),
+                ),
+                textAlign: TextAlign.center,
+                style: hint,
+              ),
+            ],
+          ),
+        ),
+      ),
+    ];
+    final form = [
+      const SectionLabel('Repeat'),
+      // Narrower margins: on a phone 360 px wide, each key keeps
+      // a touch target of 48 dp.
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: Space.s12),
+        child: DayKeys(
+          selected: _days,
+          label: dayName,
+          semanticsLabel: fullDayName,
+          onChanged: (day, {required selected}) => setState(() {
+            selected ? _days.add(day) : _days.remove(day);
+          }),
+        ),
+      ),
+      if (_days.isEmpty)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            Layout.gutter,
+            Space.s8,
+            Layout.gutter,
+            0,
+          ),
+          child: Text('No days chosen, so it rings once.', style: hint),
+        ),
+      const SizedBox(height: Space.s24),
+      Padding(
+        padding: gutter,
+        child: TextField(
+          controller: _label,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(
+            labelText: 'Label',
+            hintText: 'For example: Gym',
+          ),
+        ),
+      ),
+      const SectionLabel('Genres'),
+      Padding(
+        padding: gutter,
+        child: _GenreChoice(
+          chosen: _genres,
+          onChanged: (genre, {required chosen}) => setState(() {
+            chosen ? _genres.add(genre) : _genres.remove(genre);
+          }),
+        ),
+      ),
+      const SizedBox(height: Space.s24),
+    ];
+    return PageScaffold(
+      warmth: _warmth(_time),
       appBar: ContentAppBar(
+        wide: wide,
         title: Text(_isNew ? 'New alarm' : 'Edit alarm'),
         actions: [
           if (!_isNew)
@@ -160,110 +264,43 @@ class _AlarmFormState extends ConsumerState<_AlarmForm> {
             ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ContentWidth(
-              child: ListView(
-                padding: const EdgeInsets.only(top: Space.s8),
+      body: wide
+          ? ContentWidth(
+              wide: true,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Padding(
-                    padding: gutter,
-                    child: RotaryTimeDial(
-                      time: TimeOfDay(hour: _time.hour, minute: _time.minute),
-                      onChanged: (time) => setState(
-                        () => _time = ClockTime(
-                          hour: time.hour,
-                          minute: time.minute,
-                        ),
-                      ),
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.only(top: Space.s8),
+                      children: time,
                     ),
                   ),
-                  const SizedBox(height: Space.s16),
-                  Padding(
-                    padding: gutter,
-                    child: Column(
+                  Expanded(
+                    child: ListView(
                       children: [
-                        Text(
-                          ringsIn(ring.difference(now)),
-                          textAlign: TextAlign.center,
-                          style: type.meta.copyWith(color: c.accentText),
-                        ),
-                        Text(
-                          sleepText(
-                            sleepAdvice(ring: ring, now: now),
-                            now: now,
-                            clock: (time) =>
-                                TimeOfDay.fromDateTime(time).format(context),
-                          ),
-                          textAlign: TextAlign.center,
-                          style: type.meta,
-                        ),
+                        ...form,
+                        Padding(padding: gutter, child: save),
+                        const SizedBox(height: Space.s24),
                       ],
                     ),
                   ),
-                  const SectionLabel('Repeat'),
-                  // Narrower margins: on a phone 360 px wide, each key keeps
-                  // a touch target of 48 dp.
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: Space.s12),
-                    child: DayKeys(
-                      selected: _days,
-                      label: dayName,
-                      semanticsLabel: fullDayName,
-                      onChanged: (day, {required selected}) => setState(() {
-                        selected ? _days.add(day) : _days.remove(day);
-                      }),
-                    ),
-                  ),
-                  if (_days.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        Layout.gutter,
-                        Space.s8,
-                        Layout.gutter,
-                        0,
-                      ),
-                      child: Text(
-                        'No days chosen, so it rings once.',
-                        style: hint,
-                      ),
-                    ),
-                  const SizedBox(height: Space.s24),
-                  Padding(
-                    padding: gutter,
-                    child: TextField(
-                      controller: _label,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: const InputDecoration(
-                        labelText: 'Label',
-                        hintText: 'For example: Gym',
-                      ),
-                    ),
-                  ),
-                  const SectionLabel('Genres'),
-                  Padding(
-                    padding: gutter,
-                    child: _GenreChoice(
-                      chosen: _genres,
-                      onChanged: (genre, {required chosen}) => setState(() {
-                        chosen ? _genres.add(genre) : _genres.remove(genre);
-                      }),
-                    ),
-                  ),
-                  const SizedBox(height: Space.s24),
                 ],
               ),
+            )
+          : Column(
+              children: [
+                Expanded(
+                  child: ContentWidth(
+                    child: ListView(
+                      padding: const EdgeInsets.only(top: Space.s8),
+                      children: [...time, ...form],
+                    ),
+                  ),
+                ),
+                BottomAction(child: save),
+              ],
             ),
-          ),
-          BottomAction(
-            child: WideButton(
-              label: 'Save alarm',
-              onPressed: _busy ? null : _save,
-            ),
-          ),
-        ],
-      ),
     );
   }
 

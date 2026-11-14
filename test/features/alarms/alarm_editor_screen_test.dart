@@ -13,7 +13,7 @@ import 'package:shuffle_alarm/data/providers.dart';
 import 'package:shuffle_alarm/data/sound_repository.dart';
 import 'package:shuffle_alarm/design/components/alarm_track_row.dart';
 import 'package:shuffle_alarm/design/components/nav_bar.dart';
-import 'package:shuffle_alarm/design/components/rotary_time_dial.dart';
+import 'package:shuffle_alarm/design/components/time_wheels.dart';
 import 'package:shuffle_alarm/features/alarms/alarm_editor_screen.dart';
 import 'package:shuffle_alarm/router.dart';
 
@@ -42,11 +42,8 @@ void main() {
       expect(find.widgetWithText(AppBar, 'New alarm'), findsOneWidget);
       expect(find.byType(WakemixNavBar), findsNothing);
       expect(
-        find.descendant(
-          of: find.byType(RotaryTimeDial),
-          matching: find.text('11:40 PM'),
-        ),
-        findsOneWidget,
+        tester.widget<TimeWheels>(find.byType(TimeWheels)).time,
+        const TimeOfDay(hour: 23, minute: 40),
       );
       expect(find.text('Rings in 1 d'), findsOneWidget);
       // Thursday 23:40, so bed by Thursday 15:40.
@@ -64,7 +61,10 @@ void main() {
       await tester.pumpAndSettle();
 
       await _pickTime(tester, hour: '6', minute: '45', period: 'AM');
-      expect(find.text('6:45 AM'), findsOneWidget);
+      expect(
+        tester.widget<TimeWheels>(find.byType(TimeWheels)).time,
+        const TimeOfDay(hour: 6, minute: 45),
+      );
       expect(find.text('Rings in 7 h 5 min'), findsOneWidget);
       // Thursday 06:45: the bedtime, 22:45, has passed.
       expect(find.text('Sleep now: 7 h 5 min'), findsOneWidget);
@@ -324,7 +324,7 @@ Future<void> _pickTime(
   required String minute,
   required String period,
 }) async {
-  await tester.tap(find.byTooltip('Type the time'));
+  await tester.tap(find.text('Type the time'));
   await tester.pumpAndSettle();
   final fields = find.descendant(
     of: find.byType(Dialog),
@@ -332,7 +332,9 @@ Future<void> _pickTime(
   );
   await tester.enterText(fields.at(0), hour);
   await tester.enterText(fields.at(1), minute);
-  await tester.tap(find.text(period));
+  await tester.tap(
+    find.descendant(of: find.byType(Dialog), matching: find.text(period)),
+  );
   await tester.tap(find.text('OK'));
   await tester.pumpAndSettle();
 }

@@ -17,8 +17,11 @@ import 'package:shuffle_alarm/data/database.dart';
 import 'package:shuffle_alarm/data/providers.dart';
 import 'package:shuffle_alarm/data/ring_plan_repository.dart';
 import 'package:shuffle_alarm/data/sound_repository.dart';
+import 'package:shuffle_alarm/design/components/info_tile.dart';
+import 'package:shuffle_alarm/design/components/mix_bars.dart';
 import 'package:shuffle_alarm/design/components/mix_track_row.dart';
-import 'package:shuffle_alarm/design/components/record.dart';
+import 'package:shuffle_alarm/design/components/next_alarm_card.dart';
+import 'package:shuffle_alarm/design/components/sound_deck.dart';
 import 'package:shuffle_alarm/design/components/status_view.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
 import 'package:shuffle_alarm/features/alarms/tonight_mix_screen.dart';
@@ -104,8 +107,14 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// The titles of the rows of the mix, from the top.
+  /// The cards of the deck, in play order.
+  List<DeckCard> deck(WidgetTester tester) =>
+      tester.widget<SoundDeck>(find.byType(SoundDeck)).cards;
+
+  /// The titles of the sounds of the mix: the cards of the deck in play
+  /// order, then the pile of the sounds left out.
   List<String> rows(WidgetTester tester) => [
+    for (final card in deck(tester)) card.title,
     for (final row in tester.widgetList<MixTrackRow>(find.byType(MixTrackRow)))
       row.title,
   ];
@@ -128,16 +137,14 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  group('The record of the Alarms tab', () {
-    testWidgets('shows one segment per sound, and says how many', (
-      tester,
-    ) async {
+  group('The mix on the Alarms tab', () {
+    testWidgets('shows one bar per sound, and says how many', (tester) async {
       await open(tester);
 
-      final record = tester.widget<RecordArt>(
+      final record = tester.widget<MixBars>(
         find.descendant(
-          of: find.byType(RecordHero),
-          matching: find.byType(RecordArt),
+          of: find.byType(InfoTile),
+          matching: find.byType(MixBars),
         ),
       );
       expect(record.segments, hasLength(4));
@@ -150,10 +157,10 @@ void main() {
       await open(tester);
       final titles = await plannedTitles();
 
-      final record = tester.widget<RecordArt>(
+      final record = tester.widget<MixBars>(
         find.descendant(
-          of: find.byType(RecordHero),
-          matching: find.byType(RecordArt),
+          of: find.byType(InfoTile),
+          matching: find.byType(MixBars),
         ),
       );
       expect(
@@ -163,13 +170,13 @@ void main() {
       );
     });
 
-    testWidgets('opens the mix with a tap on the record', (tester) async {
+    testWidgets('opens the mix with a tap on its tile', (tester) async {
       await open(tester);
 
       await tester.tap(
         find.descendant(
-          of: find.byType(RecordHero),
-          matching: find.byType(RecordArt),
+          of: find.byType(InfoTile),
+          matching: find.byType(MixBars),
         ),
       );
       await tester.pumpAndSettle();
@@ -196,12 +203,8 @@ void main() {
       await openAlarms(tester, db: db, now: now, overrides: web());
 
       expect(find.textContaining("Tonight's mix"), findsNothing);
-      final record = find.descendant(
-        of: find.byType(RecordHero),
-        matching: find.byType(RecordArt),
-      );
-      expect(tester.widget<RecordArt>(record).segments, isEmpty);
-      await tester.tap(record);
+      expect(find.byType(MixBars), findsNothing);
+      await tester.tap(find.byType(NextAlarmCard));
       await tester.pumpAndSettle();
       expect(find.byType(TonightMixScreen), findsNothing);
     });
@@ -227,10 +230,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(await plannedTitles(), isNot(before));
-      final record = tester.widget<RecordArt>(
+      final record = tester.widget<MixBars>(
         find.descendant(
-          of: find.byType(RecordHero),
-          matching: find.byType(RecordArt),
+          of: find.byType(InfoTile),
+          matching: find.byType(MixBars),
         ),
       );
       expect(
@@ -297,7 +300,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(TonightMixScreen), findsNothing);
-      expect(find.byType(RecordHero), findsOneWidget);
+      expect(find.byType(NextAlarmCard), findsOneWidget);
     });
 
     testWidgets('its address opens with no alarm too, and says so', (
@@ -305,7 +308,7 @@ void main() {
     ) async {
       await openAlarms(tester, db: db, now: now, overrides: web());
 
-      final context = tester.element(find.byType(RecordHero));
+      final context = tester.element(find.byType(NextAlarmCard));
       unawaited(context.push<void>(TonightMixScreen.path));
       await tester.pumpAndSettle();
 
@@ -415,7 +418,7 @@ void main() {
           if (title != skipped) title,
         skipped,
       ]);
-      expect(find.text('NOT TONIGHT'), findsOneWidget);
+      expect(find.byType(MixTrackRow), findsOneWidget);
       expect(find.text('Bring back'), findsOneWidget);
       expect(await plannedTitles(), hasLength(3));
     });
@@ -428,7 +431,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        tester.widget<RecordArt>(find.byType(RecordArt).first).segments,
+        tester.widget<MixBars>(find.byType(MixBars).first).segments,
         hasLength(3),
       );
     });
@@ -445,7 +448,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(rows(tester), before);
-      expect(find.text('NOT TONIGHT'), findsNothing);
+      expect(find.byType(MixTrackRow), findsNothing);
       expect(await plannedTitles(), before);
     });
 
@@ -460,7 +463,7 @@ void main() {
       await tester.tap(find.bySemanticsLabel('Not tonight: ${before.first}'));
       await tester.pumpAndSettle();
 
-      final last = tester.widget<MixTrackRow>(find.byType(MixTrackRow).first);
+      final last = deck(tester).single;
       expect(last.title, before.last);
       expect(last.onAction, isNull);
       expect(
@@ -688,7 +691,7 @@ void main() {
   ) async {
     await open(tester);
     final container = ProviderScope.containerOf(
-      tester.element(find.byType(RecordHero)),
+      tester.element(find.byType(NextAlarmCard)),
     );
     final router = container.read(routerProvider)..go(TonightMixScreen.path);
     await tester.pumpAndSettle();

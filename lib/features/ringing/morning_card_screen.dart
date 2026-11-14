@@ -7,9 +7,10 @@ import 'package:material_ui/material_ui.dart';
 import 'package:shuffle_alarm/core/escalation.dart';
 import 'package:shuffle_alarm/core/models/ring_session.dart';
 import 'package:shuffle_alarm/core/morning.dart';
+import 'package:shuffle_alarm/design/components/glass_card.dart';
 import 'package:shuffle_alarm/design/components/layout.dart';
+import 'package:shuffle_alarm/design/components/mix_bars.dart';
 import 'package:shuffle_alarm/design/components/mix_track_row.dart';
-import 'package:shuffle_alarm/design/components/record.dart';
 import 'package:shuffle_alarm/design/components/time_text.dart';
 import 'package:shuffle_alarm/design/components/wide_button.dart';
 import 'package:shuffle_alarm/design/theme.dart';
@@ -95,10 +96,12 @@ class _MorningCardScreenState extends ConsumerState<MorningCardScreen> {
   Widget build(BuildContext context) {
     final session = _shown = ref.watch(morningCardProvider) ?? _shown;
     final morning = session == null ? null : Morning.of(session);
-    return Scaffold(
+    return PageScaffold(
+      // A morning page: the warm end of the color fields.
+      warmth: 0.85,
       appBar: const ContentAppBar(title: Text('Morning card')),
       body: session == null || morning == null
-          ? null
+          ? const SizedBox.shrink()
           : _Card(
               alarmAt: session.scheduledFor,
               morning: morning,
@@ -142,7 +145,7 @@ class _Card extends ConsumerWidget {
                 _Header(
                   alarmAt: alarmAt,
                   morning: morning,
-                  segments: morningRecordSegments(rows ?? const []),
+                  segments: morningMixSegments(rows ?? const []),
                 ),
                 const SizedBox(height: Space.s24),
                 if (morning.sounds.isEmpty) const _NoSound(),
@@ -183,7 +186,8 @@ class _Card extends ConsumerWidget {
   }
 }
 
-/// A small record of the sounds that played, and when the user woke.
+/// When the user woke, as a glass card: the time big, how long after the
+/// alarm, the snoozes and sounds, and the sounds that played as bars.
 class _Header extends StatelessWidget {
   const _Header({
     required this.alarmAt,
@@ -193,10 +197,7 @@ class _Header extends StatelessWidget {
 
   final DateTime alarmAt;
   final Morning morning;
-  final List<RecordSegment> segments;
-
-  /// The size of the record.
-  static const _record = 96.0;
+  final List<MixSegment> segments;
 
   @override
   Widget build(BuildContext context) {
@@ -211,45 +212,37 @@ class _Header extends StatelessWidget {
         Layout.gutter,
         0,
       ),
-      child: Row(
-        children: [
-          SizedBox.square(
-            dimension: _record,
-            child: ExcludeSemantics(child: RecordArt(segments: segments)),
-          ),
-          const SizedBox(width: Space.s16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Read in sentence case: screen readers may spell out capitals.
-                Text(
-                  'YOU WOKE AT',
-                  style: type.caption,
-                  semanticsLabel: 'You woke at',
-                ),
-                TimeText(
-                  TimeOfDay.fromDateTime(morning.wokeAt.toLocal()),
-                  style: theme.textTheme.headlineSmall!,
-                ),
-                Text(
-                  wokeAfterText(morning.afterAlarm, alarmTime: alarmTime),
-                  style: theme.textTheme.bodySmall!.copyWith(
-                    color: c.textMuted,
-                  ),
-                ),
-                const SizedBox(height: Space.s4),
-                Text(
-                  morningFacts(
-                    snoozes: morning.snoozes,
-                    sounds: morning.sounds.length,
-                  ),
-                  style: type.meta,
-                ),
-              ],
+      child: GlassCard(
+        radius: Corners.hero,
+        padding: const EdgeInsets.all(Space.s24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('You woke at', style: type.caption),
+            const SizedBox(height: Space.s4),
+            TimeText(
+              TimeOfDay.fromDateTime(morning.wokeAt.toLocal()),
+              style: theme.textTheme.displaySmall!,
             ),
-          ),
-        ],
+            const SizedBox(height: Space.s4),
+            Text(
+              wokeAfterText(morning.afterAlarm, alarmTime: alarmTime),
+              style: theme.textTheme.bodyMedium!.copyWith(color: c.textMuted),
+            ),
+            const SizedBox(height: Space.s4),
+            Text(
+              morningFacts(
+                snoozes: morning.snoozes,
+                sounds: morning.sounds.length,
+              ),
+              style: type.meta,
+            ),
+            if (segments.isNotEmpty) ...[
+              const SizedBox(height: Space.s16),
+              ExcludeSemantics(child: MixBars(segments: segments)),
+            ],
+          ],
+        ),
       ),
     );
   }

@@ -22,9 +22,9 @@ import 'package:shuffle_alarm/data/ring_session_repository.dart';
 import 'package:shuffle_alarm/data/settings_repository.dart';
 import 'package:shuffle_alarm/data/sound_repository.dart';
 import 'package:shuffle_alarm/data/weight_repository.dart';
+import 'package:shuffle_alarm/design/components/mix_bars.dart';
 import 'package:shuffle_alarm/design/components/mix_track_row.dart';
 import 'package:shuffle_alarm/design/components/nav_bar.dart';
-import 'package:shuffle_alarm/design/components/record.dart';
 import 'package:shuffle_alarm/design/components/time_text.dart';
 import 'package:shuffle_alarm/features/alarms/alarms_screen.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
@@ -158,7 +158,7 @@ void main() {
 
       await stop(tester);
 
-      expect(find.text('YOU WOKE AT'), findsOneWidget);
+      expect(find.text('You woke at'), findsOneWidget);
       final time = tester.widget<TimeText>(find.byType(TimeText));
       expect(time.time, const TimeOfDay(hour: 7, minute: 4));
       expect(find.text('4 min after your 7:00 AM alarm'), findsOneWidget);
@@ -233,15 +233,15 @@ void main() {
 
       await stop(tester);
 
-      final record = tester.widget<RecordArt>(
+      final record = tester.widget<MixBars>(
         find.descendant(
           of: find.byType(MorningCardScreen),
-          matching: find.byType(RecordArt),
+          matching: find.byType(MixBars),
         ),
       );
       expect(record.segments, const [
-        RecordSegment(length: Duration(seconds: 20), strength: 0),
-        RecordSegment(length: Duration(seconds: 5), strength: 0.5),
+        MixSegment(length: Duration(seconds: 20), strength: 0),
+        MixSegment(length: Duration(seconds: 5), strength: 0.5),
       ]);
     });
 
@@ -692,7 +692,7 @@ void main() {
 
       await stop(tester);
 
-      expect(find.text('YOU WOKE AT'), findsOneWidget);
+      expect(find.text('You woke at'), findsOneWidget);
       expect(find.byType(MixTrackRow), findsNothing);
       expect(find.text('Which sound woke you?'), findsNothing);
       await tester.tap(find.text('Done'));

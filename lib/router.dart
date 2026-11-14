@@ -2,18 +2,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'package:shuffle_alarm/design/components/layout.dart';
 import 'package:shuffle_alarm/design/components/nav_bar.dart';
+import 'package:shuffle_alarm/design/components/wordmark.dart';
 import 'package:shuffle_alarm/design/tokens.dart';
 import 'package:shuffle_alarm/features/alarms/alarm_editor_screen.dart';
 import 'package:shuffle_alarm/features/alarms/alarms_screen.dart';
 import 'package:shuffle_alarm/features/alarms/tonight_mix_screen.dart';
-import 'package:shuffle_alarm/features/insights/insights_screen.dart';
+import 'package:shuffle_alarm/features/insights/analytics_screen.dart';
 import 'package:shuffle_alarm/features/library/library_screen.dart';
 import 'package:shuffle_alarm/features/ringing/morning_card.dart';
 import 'package:shuffle_alarm/features/ringing/morning_card_screen.dart';
 import 'package:shuffle_alarm/features/ringing/ringing_controller.dart';
 import 'package:shuffle_alarm/features/ringing/ringing_screen.dart';
 import 'package:shuffle_alarm/features/settings/bedtime_reminder_screen.dart';
+import 'package:shuffle_alarm/features/settings/settings_button.dart';
 import 'package:shuffle_alarm/features/settings/settings_screen.dart';
 
 /// All pages of the app: three bottom tabs, and Settings above them.
@@ -44,6 +47,11 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       // The home address, such as the web site root, opens the Alarms tab.
       GoRoute(path: '/', redirect: (context, state) => AlarmsScreen.path),
+      // The address of this tab before it became Analytics.
+      GoRoute(
+        path: '/insights',
+        redirect: (context, state) => AnalyticsScreen.path,
+      ),
       // Each tab keeps its own pages and scroll position while another tab
       // is open.
       StatefulShellRoute.indexedStack(
@@ -96,8 +104,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: InsightsScreen.path,
-                builder: (context, state) => const InsightsScreen(),
+                path: AnalyticsScreen.path,
+                builder: (context, state) => const AnalyticsScreen(),
               ),
             ],
           ),
@@ -152,42 +160,72 @@ Page<void> _page(BuildContext context, GoRouterState state, Widget child) =>
     ? NoTransitionPage<void>(key: state.pageKey, child: child)
     : MaterialPage<void>(key: state.pageKey, child: child);
 
-/// The frame around the tabs: the open tab and the bottom navigation bar.
-class AppShell extends StatelessWidget {
+/// The frame around the tabs: the open tab, with the tabs in a bar across
+/// the bottom on a phone, and across the top on a wide screen, next to the
+/// wordmark and Settings (ADR-005).
+class AppShell extends ConsumerWidget {
   const AppShell({required this.navigationShell, super.key});
 
   final StatefulNavigationShell navigationShell;
 
+  /// The place of the Analytics tab in [_destinations].
+  static const _analyticsTab = 2;
+
+  // Same order as the branches in [routerProvider].
+  static const _destinations = [
+    NavDestination(
+      icon: Icons.alarm_outlined,
+      selectedIcon: Icons.alarm,
+      label: 'Alarms',
+    ),
+    NavDestination(
+      icon: Icons.library_music_outlined,
+      selectedIcon: Icons.library_music,
+      label: 'Library',
+    ),
+    NavDestination(
+      icon: Icons.bar_chart_outlined,
+      selectedIcon: Icons.bar_chart,
+      label: 'Analytics',
+    ),
+  ];
+
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: navigationShell,
-      bottomNavigationBar: WakemixNavBar(
-        selectedIndex: navigationShell.currentIndex,
-        onSelected: (index) => navigationShell.goBranch(
-          index,
-          // Tapping the open tab again goes back to its first page.
-          initialLocation: index == navigationShell.currentIndex,
-        ),
-        // Same order as the branches in [routerProvider].
-        destinations: const [
-          NavDestination(
-            icon: Icons.alarm_outlined,
-            selectedIcon: Icons.alarm,
-            label: 'Alarms',
-          ),
-          NavDestination(
-            icon: Icons.library_music_outlined,
-            selectedIcon: Icons.library_music,
-            label: 'Library',
-          ),
-          NavDestination(
-            icon: Icons.insights_outlined,
-            selectedIcon: Icons.insights,
-            label: 'Insights',
-          ),
-        ],
-      ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final wide = Layout.isWide(context);
+    void select(int index) {
+      // Analytics reads the log again each time its tab opens.
+      if (index == _analyticsTab) ref.invalidate(analyticsProvider);
+      navigationShell.goBranch(
+        index,
+        // Tapping the open tab again goes back to its first page.
+        initialLocation: index == navigationShell.currentIndex,
+      );
+    }
+
+    return PageScaffold(
+      body: wide
+          ? Column(
+              children: [
+                WakemixNavBar(
+                  top: true,
+                  leading: const Wordmark(),
+                  trailing: const SettingsButton(),
+                  selectedIndex: navigationShell.currentIndex,
+                  onSelected: select,
+                  destinations: _destinations,
+                ),
+                Expanded(child: navigationShell),
+              ],
+            )
+          : navigationShell,
+      bottomNavigationBar: wide
+          ? null
+          : WakemixNavBar(
+              selectedIndex: navigationShell.currentIndex,
+              onSelected: select,
+              destinations: _destinations,
+            ),
     );
   }
 }

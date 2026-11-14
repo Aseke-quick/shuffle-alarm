@@ -16,7 +16,7 @@ void main() {
     expect(find.text('7:00 AM'), findsOneWidget);
     expect(find.text('Work · Weekdays'), findsOneWidget);
     expect(find.text('Rings in 7 h 20 min'), findsOneWidget);
-    expect(find.byType(MiniWaveform), findsOneWidget);
+    expect(find.byType(WaveformTile), findsOneWidget);
     expect(tester.widget<Switch>(find.byType(Switch)).value, isTrue);
 
     await tester.tap(find.text('7:00 AM'));
@@ -36,7 +36,7 @@ void main() {
     // Never by color alone: the row says "Off" too.
     expect(find.text('Off'), findsOneWidget);
     expect(
-      tester.widget<MiniWaveform>(find.byType(MiniWaveform)).active,
+      tester.widget<WaveformTile>(find.byType(WaveformTile)).active,
       isFalse,
     );
   });
@@ -66,11 +66,11 @@ void main() {
   ) async {
     setScreenSize(tester, const Size(360, 740));
     await _pumpRow(tester, enabled: true);
-    expect(find.byType(MiniWaveform), findsOneWidget);
+    expect(find.byType(WaveformTile), findsOneWidget);
 
     setTextScale(tester, 2);
     await tester.pump();
-    expect(find.byType(MiniWaveform), findsNothing);
+    expect(find.byType(WaveformTile), findsNothing);
   });
 }
 

@@ -13,8 +13,8 @@ import 'package:shuffle_alarm/data/alarm_repository.dart';
 import 'package:shuffle_alarm/data/database.dart';
 import 'package:shuffle_alarm/data/ring_session_repository.dart';
 import 'package:shuffle_alarm/data/sound_repository.dart';
-import 'package:shuffle_alarm/design/components/record.dart';
-import 'package:shuffle_alarm/design/components/spinning_record.dart';
+import 'package:shuffle_alarm/design/components/backdrop.dart';
+import 'package:shuffle_alarm/design/components/mix_bars.dart';
 import 'package:shuffle_alarm/design/tokens.dart';
 import 'package:shuffle_alarm/features/alarms/alarms_screen.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
@@ -95,19 +95,17 @@ void main() {
       find.descendant(of: find.byType(RingingScreen), matching: finder);
 
   group('The ringing screen', () {
-    testWidgets('shows the sounds of the ring on the edge of its record', (
-      tester,
-    ) async {
+    testWidgets('shows the sounds of the ring as bars', (tester) async {
       final alarm = Alarm(id: 'a', time: ClockTime(hour: 7, minute: 0));
       await open(tester, alarm);
 
       scheduler.ring(DueRing(alarm, scheduledFor: now));
       await tester.pumpAndSettle();
 
-      final record = tester.widget<SpinningRecord>(find.byType(SpinningRecord));
+      final record = tester.widget<MixBars>(find.byType(MixBars));
       expect(record.segments, const [
-        RecordSegment(length: Duration(seconds: 20), strength: 0),
-        RecordSegment(length: Duration(seconds: 20), strength: 0.5),
+        MixSegment(length: Duration(seconds: 20), strength: 0),
+        MixSegment(length: Duration(seconds: 20), strength: 0.5),
       ]);
     });
 
@@ -122,9 +120,9 @@ void main() {
         expect(find.byType(RingingScreen), findsOneWidget);
         expect(find.text('7:00'), findsOneWidget);
         expect(find.text('AM'), findsOneWidget);
-        expect(find.text('ALARM 7:00 AM'), findsOneWidget);
+        expect(find.text('Alarm 7:00 AM'), findsOneWidget);
         expect(find.text('Gym'), findsOneWidget);
-        expect(find.text('NOW PLAYING'), findsOneWidget);
+        expect(find.text('Now playing'), findsOneWidget);
         expect(find.text('Chime'), findsOneWidget);
         expect(find.text('Snooze 5 min'), findsOneWidget);
         expect(find.text('Stop'), findsOneWidget);
@@ -142,7 +140,7 @@ void main() {
       await ring(tester, alarm);
 
       expect(find.text('7:03'), findsOneWidget);
-      expect(find.text('ALARM 7:00 AM'), findsOneWidget);
+      expect(find.text('Alarm 7:00 AM'), findsOneWidget);
     });
 
     testWidgets('keeps its clock on time, at each minute', (tester) async {
@@ -172,7 +170,7 @@ void main() {
     });
 
     for (final brightness in brightnesses) {
-      testWidgets('fills the screen with the accent, in ${brightness.name}', (
+      testWidgets('is the warm end of the page, in ${brightness.name}', (
         tester,
       ) async {
         tester.platformDispatcher.platformBrightnessTestValue = brightness;
@@ -184,24 +182,29 @@ void main() {
         final colors = brightness == Brightness.dark
             ? WakemixColors.dark
             : WakemixColors.light;
-        final page = tester.widget<Scaffold>(inScreen(find.byType(Scaffold)));
-        final theme = Theme.of(tester.element(inScreen(find.byType(Scaffold))));
         expect(
-          page.backgroundColor ?? theme.scaffoldBackgroundColor,
-          colors.accent,
+          tester.widget<Backdrop>(inScreen(find.byType(Backdrop))).warmth,
+          1,
         );
+        // Stop is the filled one, and the bigger one.
+        final stop = find.widgetWithText(FilledButton, 'Stop');
         expect(
           tester
               .widget<RichText>(
-                find.descendant(
-                  of: find.widgetWithText(FilledButton, 'Stop'),
-                  matching: find.byType(RichText),
-                ),
+                find.descendant(of: stop, matching: find.byType(RichText)),
               )
               .text
               .style
               ?.color,
-          colors.accent,
+          colors.onAccent,
+        );
+        expect(
+          tester.getSize(stop).height,
+          greaterThan(
+            tester
+                .getSize(find.widgetWithText(OutlinedButton, 'Snooze 5 min'))
+                .height,
+          ),
         );
       });
     }
@@ -227,7 +230,7 @@ void main() {
       final alarm = _alarm(label: 'Gym');
       await open(tester, alarm, lessMotion: false);
       scheduler.ring(DueRing(alarm, scheduledFor: now));
-      while (find.byType(SpinningRecord).evaluate().isEmpty) {
+      while (find.text('Stop').evaluate().isEmpty) {
         await tester.pump(const Duration(milliseconds: 100));
       }
       await tester.pump(const Duration(seconds: 1));
@@ -238,7 +241,7 @@ void main() {
 
       expect(find.byType(RingingScreen), findsOneWidget);
       expect(find.text('Gym'), findsOneWidget);
-      expect(find.text('ALARM 7:00 AM'), findsOneWidget);
+      expect(find.text('Alarm 7:00 AM'), findsOneWidget);
 
       await tester.pumpAndSettle();
       expect(find.byType(RingingScreen), findsNothing);
@@ -315,7 +318,7 @@ void main() {
       await ring(tester, alarm);
 
       expect(find.text('The sound did not play.'), findsOneWidget);
-      expect(find.text('NOW PLAYING'), findsNothing);
+      expect(find.text('Now playing'), findsNothing);
       expect(find.text('Snooze 5 min'), findsOneWidget);
       expect(find.text('Stop'), findsOneWidget);
       await tester.tap(find.text('Play sound'));
@@ -324,7 +327,7 @@ void main() {
       expect(player.unlockCalls, 1);
       expect(player.plays, hasLength(1));
       expect(find.text('Play sound'), findsNothing);
-      expect(find.text('NOW PLAYING'), findsOneWidget);
+      expect(find.text('Now playing'), findsOneWidget);
     });
 
     testWidgets('a ring that reached its cap says so, and only Close stays', (
@@ -342,7 +345,7 @@ void main() {
         find.text('It rang for 10 min, and nobody stopped it.'),
         findsOneWidget,
       );
-      expect(find.text('NOW PLAYING'), findsNothing);
+      expect(find.text('Now playing'), findsNothing);
       expect(find.text('Snooze 5 min'), findsNothing);
       expect(find.text('Stop'), findsNothing);
       await tester.tap(find.text('Close'));
@@ -371,89 +374,35 @@ void main() {
       semantics.dispose();
     });
 
-    group('The record', () {
-      double turns(WidgetTester tester) => tester
-          .widget<RotationTransition>(
-            find.descendant(
-              of: find.byType(SpinningRecord),
-              matching: find.byType(RotationTransition),
-            ),
-          )
-          .turns
-          .value;
+    group('The bars of the mix', () {
+      MixBars bars(WidgetTester tester) =>
+          tester.widget<MixBars>(find.byType(MixBars));
 
-      testWidgets('spins while it rings', (tester) async {
+      testWidgets('light the sound that plays', (tester) async {
         final alarm = _alarm();
-        await open(tester, alarm, lessMotion: false);
-        scheduler.ring(DueRing(alarm, scheduledFor: now));
-        // The ring reads its sounds first, and `pumpAndSettle` never ends
-        // here.
-        while (find.byType(SpinningRecord).evaluate().isEmpty) {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
-        await tester.pump(const Duration(milliseconds: 500));
+        await open(tester, alarm);
+        await ring(tester, alarm);
 
-        final before = turns(tester);
-        await tester.pump(const Duration(milliseconds: 500));
-
-        expect(turns(tester), isNot(before));
-
-        // So the test can end: nothing keeps turning without the screen.
-        await tester.tap(find.text('Stop'));
-        await tester.pumpAndSettle();
-        expect(find.byType(SpinningRecord), findsNothing);
+        expect(bars(tester).active, 0);
       });
 
-      testWidgets('stands still when no sound plays', (tester) async {
+      testWidgets('light no sound when none plays', (tester) async {
         player.blocked = true;
         final alarm = _alarm();
         await open(tester, alarm, lessMotion: false);
         await ring(tester, alarm);
         expect(find.text('The sound did not play.'), findsOneWidget);
 
-        final before = turns(tester);
-        await tester.pump(const Duration(seconds: 1));
-
-        expect(turns(tester), before);
+        expect(bars(tester).active, isNull);
         expect(tester.hasRunningAnimations, isFalse);
       });
 
-      testWidgets('stands still once the ring went quiet at its cap', (
-        tester,
-      ) async {
+      testWidgets('stand still while it rings', (tester) async {
         final alarm = _alarm();
         await open(tester, alarm, lessMotion: false);
-        scheduler.ring(DueRing(alarm, scheduledFor: now));
-        while (find.byType(SpinningRecord).evaluate().isEmpty) {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
-
-        now = now.add(const Duration(minutes: 10));
-        player.finishClip();
-        await tester.pumpAndSettle();
-
-        expect(find.text('Close'), findsOneWidget);
-        expect(tester.hasRunningAnimations, isFalse);
-      });
-
-      testWidgets('stands still when less motion is asked for', (tester) async {
-        final alarm = _alarm();
-        await open(tester, alarm);
         await ring(tester, alarm);
 
-        final before = turns(tester);
-        await tester.pump(const Duration(seconds: 1));
-
-        expect(turns(tester), before);
         expect(tester.hasRunningAnimations, isFalse);
-      });
-
-      testWidgets('is not on the Alarms tab: it spins only here', (
-        tester,
-      ) async {
-        await open(tester, _alarm());
-
-        expect(find.byType(SpinningRecord), findsNothing);
       });
     });
   });
@@ -498,7 +447,7 @@ void main() {
 
       expect(find.byType(RingingScreen), findsOneWidget);
       expect(find.text('7:05'), findsOneWidget);
-      expect(find.text('ALARM 7:00 AM'), findsOneWidget);
+      expect(find.text('Alarm 7:00 AM'), findsOneWidget);
       expect(player.plays, hasLength(2));
       expect(player.plays.last.volume, 1);
       expect(

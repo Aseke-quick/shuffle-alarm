@@ -37,7 +37,7 @@ void main() {
     expect(tester.getSize(find.byType(ContentWidth)).height, 64);
   });
 
-  testWidgets('a wide button is full width and 52 px tall, in two kinds', (
+  testWidgets('a wide button is full width and 56 px tall, in two kinds', (
     tester,
   ) async {
     setScreenSize(tester, const Size(390, 844));
@@ -60,7 +60,11 @@ void main() {
         of: find.text(label),
         matching: find.byType(kind),
       );
-      expect(tester.getSize(button), const Size(390, 52), reason: label);
+      expect(
+        tester.getSize(button),
+        const Size(390, Layout.wideButtonHeight),
+        reason: label,
+      );
       await tester.tap(button);
     }
     expect(pressed, 2);
@@ -92,18 +96,18 @@ void main() {
     await pumpDesign(tester, const Wordmark());
 
     final text = tester.widget<Text>(find.text('wakemix'));
-    expect(text.style!.fontFamily, 'Unbounded');
+    expect(text.style!.fontFamily, 'Geist');
     expect(find.bySemanticsLabel('Wakemix'), findsOneWidget);
     semantics.dispose();
   });
 
-  testWidgets('a section label is a caption, and a header for readers', (
+  testWidgets('a section label is a title, and a header for readers', (
     tester,
   ) async {
     final semantics = tester.ensureSemantics();
     await pumpDesign(tester, const SectionLabel('All alarms', trailing: '3'));
 
-    expect(find.text('ALL ALARMS'), findsOneWidget);
+    expect(find.text('All alarms'), findsOneWidget);
     expect(find.text('3'), findsOneWidget);
     expect(
       tester.getSemantics(find.bySemanticsLabel('All alarms, 3')),

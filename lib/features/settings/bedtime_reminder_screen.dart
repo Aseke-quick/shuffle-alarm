@@ -64,7 +64,9 @@ class _BedtimeReminderScreenState extends ConsumerState<BedtimeReminderScreen> {
       bedtimeReminderProvider.select((reminder) => reminder.access),
     );
     final theme = Theme.of(context);
-    return Scaffold(
+    return PageScaffold(
+      // A page about the night: the cool end of the color fields.
+      warmth: 0.2,
       appBar: const ContentAppBar(title: Text('Bedtime reminder')),
       body: ContentWidth(
         child: ListView(

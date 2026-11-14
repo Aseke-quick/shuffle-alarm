@@ -29,13 +29,9 @@ Future<void> pumpDesign(
 /// Without it, a widget test draws every glyph as a square of the test
 /// font.
 Future<void> loadWakemixFonts() async {
-  for (final (family, asset) in [
-    (WakemixFonts.display, 'assets/fonts/unbounded/Unbounded-Latin.ttf'),
-    (WakemixFonts.text, 'assets/fonts/geist/Geist.ttf'),
-    (WakemixFonts.meta, 'assets/fonts/geist_mono/GeistMono-Latin.ttf'),
-  ]) {
-    await (FontLoader(family)..addFont(rootBundle.load(asset))).load();
-  }
+  await (FontLoader(
+    WakemixFonts.text,
+  )..addFont(rootBundle.load('assets/fonts/geist/Geist.ttf'))).load();
 }
 
 /// Makes the screen [size] logical pixels, as on a phone, until the test

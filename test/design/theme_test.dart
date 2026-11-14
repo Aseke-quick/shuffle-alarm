@@ -34,46 +34,45 @@ void main() {
         }
       });
 
-      test(
-        'uses Unbounded for display, Geist for text, Geist Mono for meta',
-        () {
-          final text = theme.textTheme;
-          for (final style in [
-            text.displayLarge,
-            text.displayMedium,
-            text.headlineSmall,
-            text.titleLarge,
-          ]) {
-            expect(style!.fontFamily, WakemixFonts.display);
-          }
-          for (final style in [
-            text.titleMedium,
-            text.bodyLarge,
-            text.bodyMedium,
-            text.bodySmall,
-            text.labelLarge,
-            text.labelMedium,
-            text.labelSmall,
-          ]) {
-            expect(style!.fontFamily, WakemixFonts.text);
-          }
-          final type = theme.extension<WakemixType>()!;
-          expect(type.meta.fontFamily, WakemixFonts.meta);
-          expect(type.caption.fontFamily, WakemixFonts.meta);
-        },
-      );
+      test('uses Geist for everything: display, text and meta', () {
+        expect(WakemixFonts.display, 'Geist');
+        expect(WakemixFonts.text, 'Geist');
+        expect(WakemixFonts.meta, 'Geist');
+        final text = theme.textTheme;
+        for (final style in [
+          text.displayLarge,
+          text.displayMedium,
+          text.headlineSmall,
+          text.titleLarge,
+        ]) {
+          expect(style!.fontFamily, WakemixFonts.display);
+        }
+        for (final style in [
+          text.titleMedium,
+          text.bodyLarge,
+          text.bodyMedium,
+          text.bodySmall,
+          text.labelLarge,
+          text.labelMedium,
+          text.labelSmall,
+        ]) {
+          expect(style!.fontFamily, WakemixFonts.text);
+        }
+        final type = theme.extension<WakemixType>()!;
+        expect(type.meta.fontFamily, WakemixFonts.meta);
+        expect(type.caption.fontFamily, WakemixFonts.meta);
+      });
 
       test('has the type scale of the tokens', () {
         final text = theme.textTheme;
         final type = theme.extension<WakemixType>()!;
-        expect(text.displayLarge!.fontSize, TypeScale.dial);
-        expect(text.displayMedium!.fontSize, TypeScale.record);
+        expect(text.displayLarge!.fontSize, TypeScale.hero);
+        expect(text.headlineLarge!.fontSize, TypeScale.figure);
         expect(text.headlineSmall!.fontSize, TypeScale.rowTime);
-        expect(text.titleLarge!.fontSize, TypeScale.title);
         expect(text.bodyMedium!.fontSize, TypeScale.body);
         expect(text.labelMedium!.fontSize, TypeScale.label);
         expect(type.meta.fontSize, TypeScale.label);
-        expect(type.caption.fontSize, TypeScale.caption);
+        expect(type.caption.fontSize, TypeScale.label);
         for (final MapEntry(key: role, value: style) in _roles(text).entries) {
           expect(
             style.fontSize,
@@ -94,7 +93,7 @@ void main() {
         expect(switches.trackOutlineColor!.resolve(off), colors.textMuted);
       });
 
-      test('themes chips, buttons and app bars flat, from the tokens', () {
+      test('themes chips, buttons and app bars from the tokens', () {
         expect(
           theme.chipTheme.color!.resolve({WidgetState.selected}),
           colors.accent,
@@ -112,16 +111,26 @@ void main() {
         );
         expect(theme.appBarTheme.elevation, 0);
         expect(theme.appBarTheme.scrolledUnderElevation, 0);
-        expect(theme.appBarTheme.backgroundColor, colors.background);
+        // The color fields of the page show through the bar.
+        expect(theme.appBarTheme.backgroundColor, Colors.transparent);
         final filled = theme.filledButtonTheme.style!;
         expect(filled.backgroundColor!.resolve({}), colors.accent);
         expect(filled.foregroundColor!.resolve({}), colors.onAccent);
+        expect(filled.shape!.resolve({}), const StadiumBorder());
+      });
+
+      test('fills the chosen key of a segmented button with the accent', () {
+        final style = theme.segmentedButtonTheme.style!;
         expect(
-          filled.shape!.resolve({}),
-          const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(Corners.card)),
-          ),
+          style.backgroundColor!.resolve({WidgetState.selected}),
+          colors.accent,
         );
+        expect(
+          style.foregroundColor!.resolve({WidgetState.selected}),
+          colors.onAccent,
+        );
+        expect(style.backgroundColor!.resolve({}), colors.glass);
+        expect(style.foregroundColor!.resolve({}), colors.text);
       });
 
       testWidgets('writes a chip label in the text color of its fill', (

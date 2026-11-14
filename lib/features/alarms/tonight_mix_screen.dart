@@ -6,13 +6,13 @@ import 'package:material_ui/material_ui.dart';
 import 'package:shuffle_alarm/core/models/sound.dart';
 import 'package:shuffle_alarm/core/ring_sequence.dart';
 import 'package:shuffle_alarm/design/components/layout.dart';
+import 'package:shuffle_alarm/design/components/mix_bars.dart';
 import 'package:shuffle_alarm/design/components/mix_track_row.dart';
-import 'package:shuffle_alarm/design/components/record.dart';
 import 'package:shuffle_alarm/design/components/section_label.dart';
+import 'package:shuffle_alarm/design/components/sound_deck.dart';
 import 'package:shuffle_alarm/design/components/status_view.dart';
 import 'package:shuffle_alarm/design/components/time_text.dart';
 import 'package:shuffle_alarm/design/components/wide_button.dart';
-import 'package:shuffle_alarm/design/theme.dart';
 import 'package:shuffle_alarm/design/tokens.dart';
 import 'package:shuffle_alarm/features/alarms/alarm_texts.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
@@ -94,8 +94,8 @@ class _TonightMixScreenState extends ConsumerState<TonightMixScreen> {
   @override
   Widget build(BuildContext context) {
     final mix = ref.watch(tonightMixProvider);
-    return Scaffold(
-      appBar: const ContentAppBar(title: Text("Tonight's mix")),
+    return PageScaffold(
+      appBar: const ContentAppBar(title: Text("Tonight's mix"), wide: true),
       body: switch (mix) {
         AsyncValue(value: final mix?) => _Mix(
           mix: mix,
@@ -143,18 +143,22 @@ class _Mix extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final type = WakemixType.of(context);
+    final theme = Theme.of(context);
+    final small = theme.textTheme.bodySmall!.copyWith(
+      color: WakemixColors.of(context).textMuted,
+    );
     final preview = ref.watch(mixPreviewProvider);
     final hasPreview = ref.watch(soundPlayerProvider).playsSounds;
     final round = mix.round;
 
-    Widget row(RingClip clip) {
+    DeckCard card(RingClip clip) {
       final sound = clip.sound;
       final playing = preview?.soundId == sound.id;
-      return MixTrackRow(
-        key: ValueKey(sound.id),
+      return DeckCard(
+        id: sound.id,
         title: sound.title,
         details: '${clipStartText(clip.startsAt)} · ${soundDetails(sound)}',
+        intensity: sound.intensity,
         preview: !playing
             ? MixRowPreview.idle
             : preview!.loading
@@ -168,10 +172,17 @@ class _Mix extends ConsumerWidget {
       );
     }
 
+    const gutter = EdgeInsets.fromLTRB(
+      Layout.gutter,
+      Space.s8,
+      Layout.gutter,
+      0,
+    );
     return Column(
       children: [
         Expanded(
           child: ContentWidth(
+            wide: true,
             child: ListView(
               children: [
                 _Header(mix: mix),
@@ -179,50 +190,25 @@ class _Mix extends ConsumerWidget {
                   'In play order',
                   trailing: soundCount(round.length),
                 ),
-                AnimatedSwitcher(
-                  duration: Motion.of(context, Motion.medium),
-                  child: Column(
-                    // A new order fades in; a sound that left does not.
-                    key: ValueKey(mix.plan.seed),
-                    children: [
-                      for (final (index, clip) in round.indexed) ...[
-                        if (index > 0)
-                          const Divider(
-                            indent: Layout.gutter,
-                            endIndent: Layout.gutter,
-                          ),
-                        row(clip),
-                      ],
-                    ],
-                  ),
-                ),
+                // The deck: a new order moves each card to its new place.
+                SoundDeck(cards: [for (final clip in round) card(clip)]),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    Layout.gutter,
-                    Space.s8,
-                    Layout.gutter,
-                    0,
-                  ),
+                  padding: gutter,
                   child: Text(
                     mix.clips.length > round.length
                         ? 'Then again in a new order, for '
                               '${defaultRingCap.inMinutes} min at most.'
                         : 'It rings for ${defaultRingCap.inMinutes} min at '
                               'most.',
-                    style: type.meta,
+                    style: small,
                   ),
                 ),
                 if (!mix.canSkip)
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      Layout.gutter,
-                      Space.s4,
-                      Layout.gutter,
-                      0,
-                    ),
+                    padding: gutter,
                     child: Text(
                       'One sound stays, so the alarm has something to play.',
-                      style: type.meta,
+                      style: small,
                     ),
                   ),
                 if (mix.notTonight.isNotEmpty) ...[
@@ -230,15 +216,21 @@ class _Mix extends ConsumerWidget {
                     'Not tonight',
                     trailing: '${mix.notTonight.length}',
                   ),
-                  for (final sound in mix.notTonight)
-                    MixTrackRow(
-                      key: ValueKey('out ${sound.id}'),
-                      title: sound.title,
-                      details: soundDetails(sound),
-                      actionLabel: 'Bring back',
-                      actionSemanticsLabel: 'Bring back: ${sound.title}',
-                      onAction: () => onBringBack(sound),
+                  ContentWidth(
+                    child: Column(
+                      children: [
+                        for (final sound in mix.notTonight)
+                          MixTrackRow(
+                            key: ValueKey('out ${sound.id}'),
+                            title: sound.title,
+                            details: soundDetails(sound),
+                            actionLabel: 'Bring back',
+                            actionSemanticsLabel: 'Bring back: ${sound.title}',
+                            onAction: () => onBringBack(sound),
+                          ),
+                      ],
                     ),
+                  ),
                 ],
                 const SizedBox(height: Space.s16),
               ],
@@ -257,20 +249,16 @@ class _Mix extends ConsumerWidget {
   }
 }
 
-/// A small record of the mix, and the alarm it is for.
+/// The alarm the mix is for, and the mix as bars.
 class _Header extends ConsumerWidget {
   const _Header({required this.mix});
 
   final TonightMix mix;
 
-  /// The size of the record.
-  static const _record = 96.0;
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = WakemixColors.of(context);
     final theme = Theme.of(context);
-    final type = WakemixType.of(context);
     final now = ref.watch(clockProvider);
     final time = mix.alarm.time;
     return Padding(
@@ -280,35 +268,31 @@ class _Header extends ConsumerWidget {
         Layout.gutter,
         0,
       ),
-      child: Row(
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: Space.s24,
+        runSpacing: Space.s12,
         children: [
-          SizedBox.square(
-            dimension: _record,
-            child: ExcludeSemantics(
-              child: RecordArt(segments: recordSegmentsOf(mix.round)),
-            ),
+          TimeText(
+            TimeOfDay(hour: time.hour, minute: time.minute),
+            style: theme.textTheme.displayMedium!,
           ),
-          const SizedBox(width: Space.s16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TimeText(
-                  TimeOfDay(hour: time.hour, minute: time.minute),
-                  style: theme.textTheme.headlineSmall!,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(alarmDetails(mix.alarm), style: theme.textTheme.titleMedium),
+              Text(
+                countdownText(mix.ringAt.difference(now)),
+                style: theme.textTheme.labelMedium!.copyWith(
+                  color: c.accentText,
                 ),
-                Text(
-                  alarmDetails(mix.alarm),
-                  style: theme.textTheme.bodySmall!.copyWith(
-                    color: c.textMuted,
-                  ),
-                ),
-                Text(
-                  countdownText(mix.ringAt.difference(now)),
-                  style: type.meta.copyWith(color: c.accentText),
-                ),
-              ],
-            ),
+              ),
+            ],
+          ),
+          SizedBox(
+            width: 220,
+            child: MixBars(segments: mixSegmentsOf(mix.round)),
           ),
         ],
       ),

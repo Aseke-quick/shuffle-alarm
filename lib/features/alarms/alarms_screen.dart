@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
@@ -8,8 +10,10 @@ import 'package:shuffle_alarm/core/next_ring.dart';
 import 'package:shuffle_alarm/data/providers.dart';
 import 'package:shuffle_alarm/design/components/alarm_track_row.dart';
 import 'package:shuffle_alarm/design/components/enter_motion.dart';
+import 'package:shuffle_alarm/design/components/info_tile.dart';
 import 'package:shuffle_alarm/design/components/layout.dart';
-import 'package:shuffle_alarm/design/components/record.dart';
+import 'package:shuffle_alarm/design/components/mix_bars.dart';
+import 'package:shuffle_alarm/design/components/next_alarm_card.dart';
 import 'package:shuffle_alarm/design/components/section_label.dart';
 import 'package:shuffle_alarm/design/components/wide_button.dart';
 import 'package:shuffle_alarm/design/components/wordmark.dart';
@@ -25,8 +29,9 @@ import 'package:shuffle_alarm/features/alarms/tonight_mix_screen.dart';
 import 'package:shuffle_alarm/features/ringing/snooze_cards.dart';
 import 'package:shuffle_alarm/features/settings/settings_button.dart';
 
-/// The Alarms tab: the next alarm as a record, every alarm by time of day
-/// below it, and the New alarm button. Tapping an alarm changes it.
+/// The Alarms tab: the next alarm as a big card with its mix and bedtime,
+/// every alarm by time of day, and the New alarm button. Tapping an alarm
+/// changes it. Two columns on a wide screen (ADR-005).
 class AlarmsScreen extends ConsumerWidget {
   const AlarmsScreen({super.key});
 
@@ -35,11 +40,9 @@ class AlarmsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final alarms = ref.watch(alarmsProvider);
-    return Scaffold(
-      appBar: const ContentAppBar(
-        title: Wordmark(),
-        actions: [SettingsButton()],
-      ),
+    return TabPage(
+      title: const Wordmark(),
+      actions: const [SettingsButton()],
       body: switch (alarms) {
         // Also while Riverpod tries again, so the error stays in sight.
         AsyncValue(:final error?) => DatabaseErrorView(error: error),
@@ -57,6 +60,44 @@ class _Alarms extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Only once the alarms are there: without the database, a new alarm
+    // could not be saved.
+    void newAlarm() => unawaited(context.push(AlarmEditorScreen.newPath));
+    if (Layout.isWide(context)) {
+      return ContentWidth(
+        wide: true,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.only(top: Space.s8),
+                children: [_NextAlarm(alarms: alarms)],
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                children: [
+                  _Tracklist(
+                    alarms: alarms,
+                    action: FilledButton.icon(
+                      onPressed: newAlarm,
+                      icon: const Icon(Icons.add, size: 20),
+                      label: const Text('New alarm'),
+                    ),
+                    notices: [
+                      const SnoozeCards(),
+                      ArmCard(alarms: alarms),
+                    ],
+                  ),
+                  const SizedBox(height: Space.s16),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return Column(
       children: [
         Expanded(
@@ -72,13 +113,11 @@ class _Alarms extends StatelessWidget {
             ),
           ),
         ),
-        // Only once the alarms are there: without the database, a new alarm
-        // could not be saved.
         BottomAction(
           child: WideButton(
             label: 'New alarm',
             icon: Icons.add,
-            onPressed: () => context.push(AlarmEditorScreen.newPath),
+            onPressed: newAlarm,
           ),
         ),
       ],
@@ -86,8 +125,8 @@ class _Alarms extends StatelessWidget {
   }
 }
 
-/// The record of the alarm that rings next, with when it rings and when to
-/// go to bed for it; an empty record when no alarm is on.
+/// The card of the alarm that rings next, with its mix and when to go to bed
+/// for it; a card that says so when no alarm is on.
 class _NextAlarm extends ConsumerWidget {
   const _NextAlarm({required this.alarms});
 
@@ -95,13 +134,24 @@ class _NextAlarm extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    const gutter = EdgeInsets.fromLTRB(
+      Layout.gutter,
+      Space.s8,
+      Layout.gutter,
+      0,
+    );
     final now = ref.watch(clockProvider);
     final next = soonestRing(alarms, now);
     if (next == null) {
-      return RecordHero(
-        title: 'No alarm set',
-        note: alarms.isEmpty ? 'Tap New alarm to set one.' : null,
-        semanticsLabel: 'No alarm set',
+      return Padding(
+        padding: gutter,
+        child: NextAlarmCard(
+          title: 'No alarm set',
+          note: alarms.isEmpty ? 'Tap New alarm to set one.' : null,
+          semanticsLabel: alarms.isEmpty
+              ? 'No alarm set\nTap New alarm to set one.'
+              : 'No alarm set',
+        ),
       );
     }
     final (:alarm, :ring) = next;
@@ -113,32 +163,93 @@ class _NextAlarm extends ConsumerWidget {
         .value
         ?.takeIf(alarm: alarm, ring: ring);
     final sounds = mix?.round.length;
-    return RecordHero(
-      time: time,
-      countdown: countdown,
-      segments: mix == null ? const [] : recordSegmentsOf(mix.round),
-      mixLabel: sounds == null ? null : mixCaption(sounds),
-      onTap: mix == null ? null : () => context.push(TonightMixScreen.path),
-      details: alarmDetails(alarm),
-      note: sleepText(
+    void openMix() => unawaited(context.push(TonightMixScreen.path));
+    final bedtime = InfoTile(
+      label: 'Bedtime',
+      icon: Icons.bedtime_outlined,
+      text: sleepText(
         sleepAdvice(ring: ring, now: now),
         now: now,
         clock: (time) => TimeOfDay.fromDateTime(time).format(context),
       ),
-      semanticsLabel:
-          'Next alarm ${time.format(context)}, $countdown'
-          '${sounds == null ? '' : ". Tonight's mix, ${soundCount(sounds)}"}',
+    );
+    return Padding(
+      padding: gutter,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          NextAlarmCard(
+            time: time,
+            countdown: countdown,
+            details: alarmDetails(alarm),
+            onTap: mix == null ? null : openMix,
+            semanticsLabel: [
+              'Next alarm ${time.format(context)}, $countdown',
+              if (sounds != null) "Tonight's mix, ${soundCount(sounds)}",
+            ].join('. '),
+          ),
+          const SizedBox(height: Space.s12),
+          if (mix == null || sounds == null)
+            bedtime
+          else
+            // The card above says it all to a screen reader and a keyboard.
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final mixTile = ExcludeSemantics(
+                  child: InfoTile(
+                    label: mixCaption(sounds),
+                    icon: Icons.arrow_outward,
+                    onTap: openMix,
+                    child: MixBars(segments: mixSegmentsOf(mix.round)),
+                  ),
+                );
+                // Side by side where both fit, also with large text.
+                final scale = MediaQuery.textScalerOf(context).scale(1);
+                if (constraints.maxWidth < 420 * scale) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      mixTile,
+                      const SizedBox(height: Space.s12),
+                      bedtime,
+                    ],
+                  );
+                }
+                return IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(flex: 5, child: mixTile),
+                      const SizedBox(width: Space.s12),
+                      Expanded(flex: 4, child: bedtime),
+                    ],
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
     );
   }
 }
 
-/// "All alarms" and every alarm, by time of day; nothing without alarms.
-/// An alarm that comes in while the list is open, such as one just added,
-/// moves in.
+/// "All alarms" and every alarm, by time of day; nothing without alarms,
+/// unless it has an [action] to show. An alarm that comes in while the list
+/// is open, such as one just added, moves in.
 class _Tracklist extends StatefulWidget {
-  const _Tracklist({required this.alarms});
+  const _Tracklist({
+    required this.alarms,
+    this.action,
+    this.notices = const [],
+  });
 
   final List<Alarm> alarms;
+
+  /// At the end of the title, such as the New alarm button of a wide page.
+  final Widget? action;
+
+  /// Between the title and the alarms, such as "Arm alarms".
+  final List<Widget> notices;
 
   @override
   State<_Tracklist> createState() => _TracklistState();
@@ -169,18 +280,22 @@ class _TracklistState extends State<_Tracklist> {
   Widget build(BuildContext context) {
     final alarms = widget.alarms;
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (alarms.isNotEmpty)
-          SectionLabel('All alarms', trailing: '${alarms.length}'),
-        for (final (index, alarm) in alarms.indexed) ...[
-          if (index > 0)
-            const Divider(indent: Layout.gutter, endIndent: Layout.gutter),
+        if (alarms.isNotEmpty || widget.action != null)
+          SectionLabel(
+            'All alarms',
+            trailing: alarms.isEmpty ? null : '${alarms.length}',
+            action: widget.action,
+          ),
+        ...widget.notices,
+        if (widget.notices.isNotEmpty) const SizedBox(height: Space.s8),
+        for (final alarm in alarms)
           EnterMotion(
             key: ValueKey(alarm.id),
             animate: _added.contains(alarm.id),
             child: AlarmTile(alarm: alarm),
           ),
-        ],
       ],
     );
   }
@@ -205,7 +320,7 @@ class AlarmTile extends ConsumerWidget {
       enabled: alarm.enabled,
       waveformSeed: alarm.id,
       switchLabel: '${time.format(context)} alarm',
-      onTap: () => context.push(AlarmEditorScreen.pathFor(alarm.id)),
+      onTap: () => unawaited(context.push(AlarmEditorScreen.pathFor(alarm.id))),
       onEnabledChanged: (enabled) =>
           saveAlarm(context, ref, alarm.copyWith(enabled: enabled)),
     );

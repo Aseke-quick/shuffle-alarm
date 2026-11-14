@@ -32,6 +32,53 @@ class MiniWaveform extends StatelessWidget {
   }
 }
 
+/// A square tile with the waveform of [seed] on it, as at the start of an
+/// alarm row: in the color of one of the three strengths, which the seed
+/// picks, or grey when not [active].
+class WaveformTile extends StatelessWidget {
+  const WaveformTile({required this.seed, required this.active, super.key});
+
+  final String seed;
+  final bool active;
+
+  static const dimension = 56.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = WakemixColors.of(context);
+    final heights = waveformHeights(seed, 5);
+    final fill = WakemixColors.strengthFill(
+      1 + (waveformHeights(seed, 1).single * 1000).round() % 3,
+    );
+    return ExcludeSemantics(
+      child: Container(
+        width: dimension,
+        height: dimension,
+        decoration: BoxDecoration(
+          color: active ? fill : c.surfaceHigh,
+          borderRadius: const BorderRadius.all(Radius.circular(Corners.dayKey)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (final (index, height) in heights.indexed) ...[
+              if (index > 0) const SizedBox(width: 3),
+              Container(
+                width: 3,
+                height: 8 + 24 * height,
+                decoration: BoxDecoration(
+                  color: active ? WakemixColors.onStrength : c.textDisabled,
+                  borderRadius: const BorderRadius.all(Radius.circular(2)),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// The heights of [count] bars for [seed], from 0.2 to 1 of the full
 /// height, lower at the ends.
 ///

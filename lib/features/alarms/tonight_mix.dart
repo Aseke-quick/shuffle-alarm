@@ -12,7 +12,7 @@ import 'package:shuffle_alarm/core/ring_plan.dart';
 import 'package:shuffle_alarm/core/ring_sequence.dart';
 import 'package:shuffle_alarm/data/providers.dart';
 import 'package:shuffle_alarm/data/sound_repository.dart';
-import 'package:shuffle_alarm/design/components/record.dart';
+import 'package:shuffle_alarm/design/components/mix_bars.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
 
 /// The alarm that rings next and when, or null if no alarm is on: again when
@@ -91,19 +91,16 @@ class TonightMix {
   );
 }
 
-/// The segments of a record for the clips of [round]: how long each sound plays
-/// and how strong it is.
-List<RecordSegment> recordSegmentsOf(List<RingClip> round) => [
+/// The bars of a mix for the clips of [round]: how long each sound plays and
+/// how strong it is.
+List<MixSegment> mixSegmentsOf(List<RingClip> round) => [
   for (final clip in round)
-    RecordSegment(
-      length: clip.window.length,
-      strength: recordStrengthOf(clip.sound),
-    ),
+    MixSegment(length: clip.window.length, strength: mixStrengthOf(clip.sound)),
 ];
 
-/// How strong [sound] is on a record: from 0 (the gentlest) to 1 (the
+/// How strong [sound] is as a bar of a mix: from 0 (the gentlest) to 1 (the
 /// strongest).
-double recordStrengthOf(Sound sound) =>
+double mixStrengthOf(Sound sound) =>
     (sound.intensity - Sound.minIntensity) /
     (Sound.maxIntensity - Sound.minIntensity);
 

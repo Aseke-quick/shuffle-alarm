@@ -4,11 +4,14 @@ import 'package:shuffle_alarm/design/tokens.dart';
 
 /// A full-width button, [Layout.wideButtonHeight] tall: the accent one for
 /// the main action of a screen, or an outlined one ([WideButton.secondary]).
+/// With [tall] it is taller still, with bigger text: Stop on the ringing
+/// page, hit half asleep.
 class WideButton extends StatelessWidget {
   const WideButton({
     required this.label,
     required this.onPressed,
     this.icon,
+    this.tall = false,
     super.key,
   }) : secondary = false;
 
@@ -16,6 +19,7 @@ class WideButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.icon,
+    this.tall = false,
     super.key,
   }) : secondary = true;
 
@@ -26,15 +30,24 @@ class WideButton extends StatelessWidget {
   final IconData? icon;
   final bool secondary;
 
+  /// Whether it is [tallHeight] tall, with bigger text.
+  final bool tall;
+
+  /// The height of a [tall] button.
+  static const tallHeight = 68.0;
+
   @override
   Widget build(BuildContext context) {
-    const style = ButtonStyle(
+    final style = ButtonStyle(
       minimumSize: WidgetStatePropertyAll(
-        Size.fromHeight(Layout.wideButtonHeight),
+        Size.fromHeight(tall ? tallHeight : Layout.wideButtonHeight),
       ),
-      padding: WidgetStatePropertyAll(
+      padding: const WidgetStatePropertyAll(
         EdgeInsets.symmetric(horizontal: Space.s24, vertical: Space.s12),
       ),
+      textStyle: tall
+          ? WidgetStatePropertyAll(Theme.of(context).textTheme.titleLarge)
+          : null,
     );
     final text = Text(label, textAlign: TextAlign.center);
     final icon = this.icon == null ? null : Icon(this.icon, size: 20);

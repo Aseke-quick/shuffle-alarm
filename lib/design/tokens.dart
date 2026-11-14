@@ -20,39 +20,79 @@ class WakemixColors extends ThemeExtension<WakemixColors> {
     required this.onAccent,
     required this.accentText,
     required this.danger,
+    required this.glass,
+    required this.glassLine,
+    required this.gentle,
+    required this.medium,
+    required this.strong,
+    required this.fieldOlive,
+    required this.fieldPine,
+    required this.fieldBronze,
+    required this.shadow,
   });
 
   /// The reference design: alarms are set at night.
   static const dark = WakemixColors(
     brightness: Brightness.dark,
-    background: Color(0xFF0B0B0C),
-    surface: Color(0xFF151518),
-    surfaceHigh: Color(0xFF1E1E22),
-    outline: Color(0xFF2E2E33),
-    text: Color(0xFFF4F4F5),
-    textMuted: Color(0xFF8A8A90),
-    textDisabled: Color(0xFF55555B),
-    accent: Color(0xFF5B8CFF),
-    onAccent: Color(0xFF0B0B0C),
-    accentText: Color(0xFF5B8CFF),
-    danger: Color(0xFFFF6B6B),
+    background: Color(0xFF171B12),
+    surface: Color(0xFF262B1D),
+    surfaceHigh: Color(0xFF333A27),
+    outline: Color(0xFF3C432F),
+    text: Color(0xFFF5F2E6),
+    textMuted: Color(0xFFBEBCA6),
+    textDisabled: Color(0xFF85846F),
+    accent: Color(0xFFE2D398),
+    onAccent: Color(0xFF1E2114),
+    accentText: Color(0xFFE2D398),
+    danger: Color(0xFFF0907A),
+    glass: Color(0x11FFFFFF),
+    glassLine: Color(0x1CFFFFFF),
+    gentle: Color(0xFFA9C27A),
+    medium: Color(0xFFE2D398),
+    strong: Color(0xFFE39A6B),
+    fieldOlive: Color(0x576E8438),
+    fieldPine: Color(0x662F5D46),
+    fieldBronze: Color(0x42A0662F),
+    shadow: Color(0x47000000),
   );
 
   /// For a device set to light mode.
   static const light = WakemixColors(
     brightness: Brightness.light,
-    background: Color(0xFFF6F6F3),
+    background: Color(0xFFF2EEE5),
     surface: Color(0xFFFFFFFF),
-    surfaceHigh: Color(0xFFEDEDE8),
-    outline: Color(0xFFE3E3DE),
-    text: Color(0xFF0B0B0C),
-    textMuted: Color(0xFF5C5C63),
-    textDisabled: Color(0xFF9A9AA0),
-    accent: Color(0xFF2F5BFF),
+    surfaceHigh: Color(0xFFE9E4D6),
+    outline: Color(0xFFDDD6C4),
+    text: Color(0xFF20211B),
+    textMuted: Color(0xFF63614D),
+    textDisabled: Color(0xFF9C9A86),
+    accent: Color(0xFF59603A),
     onAccent: Color(0xFFFFFFFF),
-    accentText: Color(0xFF2348E0),
-    danger: Color(0xFFC62828),
+    accentText: Color(0xFF4A5130),
+    danger: Color(0xFFA83A25),
+    glass: Color(0xB8FFFFFF),
+    glassLine: Color(0x1420211B),
+    gentle: Color(0xFF5C7A2E),
+    medium: Color(0xFF8A7422),
+    strong: Color(0xFFB4582C),
+    fieldOlive: Color(0x296E8438),
+    fieldPine: Color(0x1F2F5D46),
+    fieldBronze: Color(0x24A0662F),
+    shadow: Color(0x173C371E),
   );
+
+  /// The fill of a card of a gentle sound, with [onStrength] on it: the same
+  /// in both themes, as a card is a thing of its own.
+  static const gentleFill = Color(0xFFA9C27A);
+
+  /// The fill of a card of a medium sound.
+  static const mediumFill = Color(0xFFE2D398);
+
+  /// The fill of a card of a strong sound.
+  static const strongFill = Color(0xFFE39A6B);
+
+  /// Text and icons on [gentleFill], [mediumFill] and [strongFill].
+  static const onStrength = Color(0xFF1E2114);
 
   /// The colors of the theme around [context].
   static WakemixColors of(BuildContext context) =>
@@ -60,17 +100,17 @@ class WakemixColors extends ThemeExtension<WakemixColors> {
 
   final Brightness brightness;
 
-  /// The page.
+  /// The page, below the color fields.
   final Color background;
 
-  /// Cards, sheets and the record's label.
+  /// Solid cards: dialogs, snack bars and the bottom bar.
   final Color surface;
 
-  /// Inputs, pressed states and day keys that are off.
+  /// Inputs, pressed states and keys that are off.
   final Color surfaceHigh;
 
-  /// Hairlines and the record's grooves. Decoration only: too faint to be
-  /// the one thing that shows a control.
+  /// Hairlines. Decoration only: too faint to be the one thing that shows a
+  /// control.
   final Color outline;
 
   /// Main text.
@@ -95,6 +135,44 @@ class WakemixColors extends ThemeExtension<WakemixColors> {
   /// Errors.
   final Color danger;
 
+  /// The fill of a glass card: a little light over the color fields.
+  final Color glass;
+
+  /// The hairline around a glass card.
+  final Color glassLine;
+
+  /// A gentle sound, or a morning that went well, as a mark on the page.
+  final Color gentle;
+
+  /// A medium sound, or a morning with a Snooze, as a mark on the page.
+  final Color medium;
+
+  /// A strong sound, or a missed morning, as a mark on the page.
+  final Color strong;
+
+  /// The color fields behind the page, each at its strongest (`Backdrop`).
+  final Color fieldOlive;
+  final Color fieldPine;
+  final Color fieldBronze;
+
+  /// The soft shadow under a glass card.
+  final Color shadow;
+
+  /// The color of a sound of [intensity], from 1 (gentle) to 3 (strong), as a
+  /// mark on the page.
+  Color strength(int intensity) => switch (intensity) {
+    <= 1 => gentle,
+    2 => medium,
+    _ => strong,
+  };
+
+  /// The fill of a card of a sound of [intensity], from 1 to 3.
+  static Color strengthFill(int intensity) => switch (intensity) {
+    <= 1 => gentleFill,
+    2 => mediumFill,
+    _ => strongFill,
+  };
+
   @override
   WakemixColors copyWith({
     Brightness? brightness,
@@ -109,6 +187,15 @@ class WakemixColors extends ThemeExtension<WakemixColors> {
     Color? onAccent,
     Color? accentText,
     Color? danger,
+    Color? glass,
+    Color? glassLine,
+    Color? gentle,
+    Color? medium,
+    Color? strong,
+    Color? fieldOlive,
+    Color? fieldPine,
+    Color? fieldBronze,
+    Color? shadow,
   }) => WakemixColors(
     brightness: brightness ?? this.brightness,
     background: background ?? this.background,
@@ -122,6 +209,15 @@ class WakemixColors extends ThemeExtension<WakemixColors> {
     onAccent: onAccent ?? this.onAccent,
     accentText: accentText ?? this.accentText,
     danger: danger ?? this.danger,
+    glass: glass ?? this.glass,
+    glassLine: glassLine ?? this.glassLine,
+    gentle: gentle ?? this.gentle,
+    medium: medium ?? this.medium,
+    strong: strong ?? this.strong,
+    fieldOlive: fieldOlive ?? this.fieldOlive,
+    fieldPine: fieldPine ?? this.fieldPine,
+    fieldBronze: fieldBronze ?? this.fieldBronze,
+    shadow: shadow ?? this.shadow,
   );
 
   @override
@@ -141,6 +237,15 @@ class WakemixColors extends ThemeExtension<WakemixColors> {
       onAccent: mix(onAccent, other.onAccent),
       accentText: mix(accentText, other.accentText),
       danger: mix(danger, other.danger),
+      glass: mix(glass, other.glass),
+      glassLine: mix(glassLine, other.glassLine),
+      gentle: mix(gentle, other.gentle),
+      medium: mix(medium, other.medium),
+      strong: mix(strong, other.strong),
+      fieldOlive: mix(fieldOlive, other.fieldOlive),
+      fieldPine: mix(fieldPine, other.fieldPine),
+      fieldBronze: mix(fieldBronze, other.fieldBronze),
+      shadow: mix(shadow, other.shadow),
     );
   }
 }
@@ -155,13 +260,19 @@ abstract final class Space {
   static const s32 = 32.0;
 }
 
-/// Corner radii. Switches and chips are fully round.
+/// Corner radii. Buttons, switches, chips and the tabs are fully round.
 abstract final class Corners {
-  /// Cards, buttons, inputs and dialogs.
-  static const card = 16.0;
+  /// The big cards, such as the next alarm.
+  static const hero = 28.0;
 
-  /// Day keys.
-  static const dayKey = 10.0;
+  /// Cards, rows, tiles, inputs and dialogs.
+  static const card = 24.0;
+
+  /// Day keys and the small tiles inside a row.
+  static const dayKey = 16.0;
+
+  /// Fully round: buttons and chips.
+  static const round = 999.0;
 }
 
 /// Motion: short and ease-out, and none at all when the platform asks for
@@ -193,16 +304,20 @@ abstract final class Motion {
 /// Font sizes, in logical pixels before the user's text scale.
 abstract final class TypeScale {
   /// The clock on the ringing screen: read half asleep.
-  static const ringClock = 72.0;
+  static const ringClock = 96.0;
 
-  /// The time on the rotary dial.
-  static const dial = 56.0;
+  /// The time on the card of the next alarm, on a wide screen.
+  static const heroWide = 148.0;
 
-  /// The time on the record's label.
-  static const record = 34.0;
+  /// The time on the card of the next alarm, and the chosen value of a time
+  /// wheel.
+  static const hero = 88.0;
+
+  /// The big titles of a page on a wide screen, and the figures of a tile.
+  static const figure = 30.0;
 
   /// The time in an alarm row.
-  static const rowTime = 22.0;
+  static const rowTime = 32.0;
   static const title = 20.0;
   static const body = 15.0;
   static const label = 13.0;
@@ -213,9 +328,20 @@ abstract final class TypeScale {
 
 /// Sizes of the layout.
 abstract final class Layout {
-  /// Content is at most this wide, and centered, on wide screens such as
-  /// the web and desktop.
+  /// One column of content is at most this wide, and centered.
   static const maxContentWidth = 560.0;
+
+  /// From this width on, a page is wide: the tabs sit in a top bar and the
+  /// content can take two columns ([isWide]).
+  static const wideBreakpoint = 1000.0;
+
+  /// The content of a wide page is at most this wide, and centered.
+  static const maxWideWidth = 1312.0;
+
+  /// Whether the screen around [context] is wide: a laptop or a desktop, not
+  /// a phone.
+  static bool isWide(BuildContext context) =>
+      MediaQuery.sizeOf(context).width >= wideBreakpoint;
 
   /// The space between content and the edges of the screen.
   static const double gutter = Space.s16;
@@ -224,5 +350,5 @@ abstract final class Layout {
   static const minTouchTarget = 48.0;
 
   /// The height of a wide button.
-  static const wideButtonHeight = 52.0;
+  static const wideButtonHeight = 56.0;
 }

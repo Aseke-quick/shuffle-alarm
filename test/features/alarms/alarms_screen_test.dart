@@ -9,8 +9,9 @@ import 'package:shuffle_alarm/data/alarm_repository.dart';
 import 'package:shuffle_alarm/data/database.dart';
 import 'package:shuffle_alarm/data/providers.dart';
 import 'package:shuffle_alarm/design/components/alarm_track_row.dart';
+import 'package:shuffle_alarm/design/components/info_tile.dart';
 import 'package:shuffle_alarm/design/components/mini_waveform.dart';
-import 'package:shuffle_alarm/design/components/record.dart';
+import 'package:shuffle_alarm/design/components/next_alarm_card.dart';
 import 'package:shuffle_alarm/design/components/wordmark.dart';
 
 import '../../data/memory_database.dart';
@@ -37,7 +38,7 @@ void main() {
       expect(find.byTooltip('Settings'), findsOneWidget);
       expect(_hero('No alarm set'), findsOneWidget);
       expect(_hero('Tap New alarm to set one.'), findsOneWidget);
-      expect(find.text('ALL ALARMS'), findsNothing);
+      expect(find.text('All alarms'), findsNothing);
       expect(find.text('New alarm'), findsOneWidget);
     });
 
@@ -66,7 +67,7 @@ void main() {
       // Wednesday 23:40.
       await openAlarms(tester, db: db, now: wednesdayEvening);
 
-      expect(find.text('ALL ALARMS'), findsOneWidget);
+      expect(find.text('All alarms'), findsOneWidget);
       expect(find.text('3'), findsOneWidget);
       _expectRow('6:30 AM', 'Once', 'Rings in 6 h 50 min');
       _expectRow('7:00 AM', 'Work · Weekdays', 'Rings in 7 h 20 min');
@@ -79,7 +80,7 @@ void main() {
       // Only the alarms that are on have a waveform in the accent.
       expect(
         tester
-            .widgetList<MiniWaveform>(find.byType(MiniWaveform))
+            .widgetList<WaveformTile>(find.byType(WaveformTile))
             .map((waveform) => waveform.active),
         [true, true, false],
       );
@@ -284,6 +285,10 @@ void _expectRow(String time, String details, String status) {
   );
 }
 
-/// [text] in the record of the next alarm, or under it.
-Finder _hero(String text) =>
-    find.descendant(of: find.byType(RecordHero), matching: find.text(text));
+/// [text] in the card of the next alarm, or in a tile under it.
+Finder _hero(String text) => find.descendant(
+  of: find.byWidgetPredicate(
+    (widget) => widget is NextAlarmCard || widget is InfoTile,
+  ),
+  matching: find.text(text),
+);

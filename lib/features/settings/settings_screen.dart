@@ -26,7 +26,7 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PageScaffold(
       appBar: const ContentAppBar(title: Text('Settings')),
       body: ContentWidth(
         child: ListView(

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,13 +6,11 @@ import 'package:material_ui/material_ui.dart';
 
 import 'package:shuffle_alarm/core/ring_sequence.dart';
 import 'package:shuffle_alarm/core/snooze.dart';
-import 'package:shuffle_alarm/design/components/accent_page.dart';
+import 'package:shuffle_alarm/design/components/glass_card.dart';
 import 'package:shuffle_alarm/design/components/layout.dart';
-import 'package:shuffle_alarm/design/components/record.dart';
-import 'package:shuffle_alarm/design/components/spinning_record.dart';
+import 'package:shuffle_alarm/design/components/mix_bars.dart';
 import 'package:shuffle_alarm/design/components/time_text.dart';
 import 'package:shuffle_alarm/design/components/wide_button.dart';
-import 'package:shuffle_alarm/design/theme.dart';
 import 'package:shuffle_alarm/design/tokens.dart';
 import 'package:shuffle_alarm/features/alarms/alarms_screen.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
@@ -22,9 +19,10 @@ import 'package:shuffle_alarm/features/ringing/morning_card.dart';
 import 'package:shuffle_alarm/features/ringing/morning_card_screen.dart';
 import 'package:shuffle_alarm/features/ringing/ringing_controller.dart';
 
-/// The ringing screen (task 2.5): filled with the accent, above everything
-/// else, with a big clock on a spinning record, the sound that plays, Snooze
-/// and Stop. The app opens it when a ring starts.
+/// The ringing screen (task 2.5): the page at its warmest, above everything
+/// else, with a very big clock, the mix as bars with the sound that plays
+/// lit, and Snooze and Stop as two wide buttons, Stop the bigger (ADR-005).
+/// The app opens it when a ring starts.
 class RingingScreen extends ConsumerStatefulWidget {
   const RingingScreen({super.key});
 
@@ -68,7 +66,8 @@ class _RingingScreenState extends ConsumerState<RingingScreen> {
       // Only Stop or Snooze ends a ring: Back would leave it ringing out of
       // sight.
       canPop: ringing == null,
-      child: AccentPage(
+      child: PageScaffold(
+        warmth: 1,
         body: SafeArea(
           bottom: false,
           child: ContentWidth(
@@ -86,11 +85,13 @@ class _RingingScreenState extends ConsumerState<RingingScreen> {
                       children: [
                         if (shown != null) _Alarm(shown),
                         const SizedBox(height: Space.s16),
-                        _Record(
-                          now: now,
-                          box: box,
-                          segments: recordSegmentsOf(controller.round),
-                          turning: shown != null && shown.audible && !over,
+                        _Clock(TimeOfDay.fromDateTime(now)),
+                        const SizedBox(height: Space.s16),
+                        _Mix(
+                          round: controller.round,
+                          playing: shown != null && shown.audible && !over
+                              ? shown.sound?.id
+                              : null,
                         ),
                         const SizedBox(height: Space.s16),
                         if (shown != null)
@@ -107,32 +108,36 @@ class _RingingScreenState extends ConsumerState<RingingScreen> {
             ),
           ),
         ),
-        bottomAction: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (!over) ...[
-              WideButton.secondary(
-                label: 'Snooze ${defaultSnooze.inMinutes} min',
+        bottomNavigationBar: BottomAction(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!over) ...[
+                WideButton.secondary(
+                  label: 'Snooze ${defaultSnooze.inMinutes} min',
+                  icon: Icons.snooze,
+                  onPressed: ringing == null
+                      ? null
+                      : () => unawaited(_thenLeave(controller.snooze)),
+                ),
+                const SizedBox(height: Space.s12),
+              ],
+              WideButton(
+                label: over ? 'Close' : 'Stop',
+                tall: true,
                 onPressed: ringing == null
                     ? null
-                    : () => unawaited(_thenLeave(controller.snooze)),
+                    : () => unawaited(_thenLeave(controller.stop)),
               ),
-              const SizedBox(height: Space.s12),
             ],
-            WideButton(
-              label: over ? 'Close' : 'Stop',
-              onPressed: ringing == null
-                  ? null
-                  : () => unawaited(_thenLeave(controller.stop)),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// Above the record: the alarm that rings, its time and its label.
+/// Above the clock: the alarm that rings, its time and its label.
 class _Alarm extends StatelessWidget {
   const _Alarm(this.ringing);
 
@@ -147,18 +152,12 @@ class _Alarm extends StatelessWidget {
     ).format(context);
     return Column(
       children: [
-        // Read in sentence case: screen readers may spell out capitals.
-        Text(
-          'ALARM ${time.toUpperCase()}',
-          style: WakemixType.of(context).caption,
-          textAlign: TextAlign.center,
-          semanticsLabel: 'Alarm $time',
-        ),
+        _Pill('Alarm $time'),
         if (alarm.label.isNotEmpty) ...[
-          const SizedBox(height: Space.s4),
+          const SizedBox(height: Space.s12),
           Text(
             alarm.label,
-            style: Theme.of(context).textTheme.titleLarge,
+            style: Theme.of(context).textTheme.headlineLarge,
             textAlign: TextAlign.center,
           ),
         ],
@@ -167,46 +166,56 @@ class _Alarm extends StatelessWidget {
   }
 }
 
-/// The spinning record with the clock on its label, as large as the space in
-/// [box] allows.
-class _Record extends StatelessWidget {
-  const _Record({
-    required this.now,
-    required this.box,
-    required this.segments,
-    required this.turning,
-  });
+/// A small caption in a pill of glass.
+class _Pill extends StatelessWidget {
+  const _Pill(this.text);
 
-  final DateTime now;
-  final BoxConstraints box;
-
-  /// The sounds of the ring, in play order.
-  final List<RecordSegment> segments;
-
-  /// Whether it turns: not when no sound plays.
-  final bool turning;
-
-  /// The smallest the record gets, on a low screen where the page scrolls.
-  static const minDiameter = 200.0;
-
-  /// The largest the record gets.
-  static const maxDiameter = 420.0;
-
-  /// How much of the height of the page it takes at most, to leave room for
-  /// the alarm and the sound.
-  static const maxHeightShare = 0.6;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
-    final diameter = math
-        .min(box.maxWidth - 2 * Layout.gutter, box.maxHeight * maxHeightShare)
-        .clamp(minDiameter, maxDiameter);
-    return SizedBox.square(
-      dimension: diameter,
-      child: SpinningRecord(
-        segments: segments,
-        turning: turning,
-        child: _Clock(TimeOfDay.fromDateTime(now)),
+    final c = WakemixColors.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: c.glass,
+        border: Border.all(color: c.glassLine),
+        borderRadius: const BorderRadius.all(Radius.circular(Corners.round)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: Space.s12,
+          vertical: Space.s8,
+        ),
+        child: Text(
+          text,
+          style: Theme.of(context).textTheme.labelLarge,
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+}
+
+/// The sounds of the ring as bars, in play order, with the one that plays
+/// lit. Nothing before the ring has its sounds.
+class _Mix extends StatelessWidget {
+  const _Mix({required this.round, required this.playing});
+
+  final List<RingClip> round;
+
+  /// The id of the sound that plays, or null while none does.
+  final String? playing;
+
+  @override
+  Widget build(BuildContext context) {
+    if (round.isEmpty) return const SizedBox(height: 56);
+    final index = round.indexWhere((clip) => clip.sound.id == playing);
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 420),
+      child: MixBars(
+        segments: mixSegmentsOf(round),
+        active: index < 0 ? null : index,
+        height: 56,
       ),
     );
   }
@@ -230,10 +239,16 @@ class _Clock extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            clock,
-            style: theme.textTheme.displayLarge!.copyWith(
-              fontSize: TypeScale.ringClock,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              clock,
+              style: theme.textTheme.displayLarge!.copyWith(
+                fontSize: Layout.isWide(context)
+                    ? TypeScale.heroWide
+                    : TypeScale.ringClock,
+                letterSpacing: -0.05 * TypeScale.ringClock,
+              ),
             ),
           ),
           if (period != null) Text(period, style: theme.textTheme.titleLarge),
@@ -243,7 +258,7 @@ class _Clock extends StatelessWidget {
   }
 }
 
-/// Below the record: the sound that plays, or why none does.
+/// Below the clock: the sound that plays, or why none does.
 class _Sound extends StatelessWidget {
   const _Sound({required this.ringing, required this.onPlaySound});
 
@@ -253,7 +268,7 @@ class _Sound extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final type = WakemixType.of(context);
+    final c = WakemixColors.of(context);
     final sound = ringing.sound;
     if (ringing.over) {
       return Text(
@@ -280,22 +295,29 @@ class _Sound extends StatelessWidget {
       );
     }
     if (sound == null) return const SizedBox.shrink();
-    return Column(
-      children: [
-        Text('NOW PLAYING', style: type.caption, semanticsLabel: 'Now playing'),
-        const SizedBox(height: Space.s4),
-        AnimatedSwitcher(
-          duration: Motion.of(context, Motion.medium),
-          child: Text(
-            sound.title,
-            key: ValueKey(sound.id),
-            style: theme.textTheme.titleLarge,
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Now playing',
+            style: theme.textTheme.labelMedium!.copyWith(color: c.textMuted),
             textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
           ),
-        ),
-      ],
+          const SizedBox(height: Space.s4),
+          AnimatedSwitcher(
+            duration: Motion.of(context, Motion.medium),
+            child: Text(
+              sound.title,
+              key: ValueKey(sound.id),
+              style: theme.textTheme.headlineMedium,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

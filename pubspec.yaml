@@ -97,20 +97,13 @@ flutter:
   # For details regarding adding assets from package dependencies, see
   # https://flutter.dev/to/asset-from-package
 
-  # The Wakemix fonts (lib/design/fonts.dart): variable fonts under the SIL
-  # Open Font License, with their OFL.txt next to them. Unbounded and Geist
-  # Mono hold Latin only, to keep the web download small; text people type
-  # uses Geist. Where each file comes from: docs/DECISIONS.md, task 2.2a.
+  # The Wakemix font (lib/design/fonts.dart, ADR-005): Geist, a variable font
+  # under the SIL Open Font License, with its OFL.txt next to it. Where the
+  # file comes from: docs/DECISIONS.md, task 2.2a.
   fonts:
-    - family: Unbounded
-      fonts:
-        - asset: assets/fonts/unbounded/Unbounded-Latin.ttf
     - family: Geist
       fonts:
         - asset: assets/fonts/geist/Geist.ttf
-    - family: Geist Mono
-      fonts:
-        - asset: assets/fonts/geist_mono/GeistMono-Latin.ttf
     # Flutter's web engine downloads Roboto from Google's font servers as
     # its last-resort font, unless the app has a font family of that name.
     # Geist takes that role, so the web app downloads no font either.

@@ -7,7 +7,7 @@ import 'package:shuffle_alarm/design/tokens.dart';
 import '../design_app.dart';
 
 void main() {
-  testWidgets('marks the open tab with the text color and an accent dot', (
+  testWidgets('marks the open tab with the text color and an accent pill', (
     tester,
   ) async {
     await _pumpBar(tester, selected: 1);
@@ -15,11 +15,12 @@ void main() {
     const colors = WakemixColors.dark;
     expect(_labelColor(tester, 'Library'), colors.text);
     expect(_labelColor(tester, 'Alarms'), colors.textMuted);
-    expect(_dots(tester), [
-      Colors.transparent,
-      colors.accent,
-      Colors.transparent,
-    ]);
+    expect(_pills(tester), [null, colors.accent, null]);
+    // The icon on the pill is in the color that reads on the accent.
+    expect(
+      tester.widget<Icon>(find.byIcon(Icons.library_music)).color,
+      colors.onAccent,
+    );
   });
 
   testWidgets('a tap opens a tab', (tester) async {
@@ -117,17 +118,19 @@ Future<List<int>> _pumpBar(WidgetTester tester, {required int selected}) async {
 Color? _labelColor(WidgetTester tester, String label) =>
     tester.widget<Text>(find.text(label)).style!.color;
 
-List<Color?> _dots(WidgetTester tester) => [
-  for (final dot in tester.widgetList<Container>(
-    find.descendant(
-      of: find.byType(WakemixNavBar),
-      matching: find.byWidgetPredicate(
-        (widget) =>
-            widget is Container &&
-            widget.constraints ==
-                const BoxConstraints.tightFor(width: 4, height: 4),
-      ),
-    ),
-  ))
-    (dot.decoration! as BoxDecoration).color,
+/// The fill behind the icon of each tab: the accent for the open one.
+List<Color?> _pills(WidgetTester tester) => [
+  for (final icon in find.byType(Icon).evaluate())
+    (tester
+                .widget<DecoratedBox>(
+                  find
+                      .ancestor(
+                        of: find.byWidget(icon.widget),
+                        matching: find.byType(DecoratedBox),
+                      )
+                      .first,
+                )
+                .decoration
+            as BoxDecoration)
+        .color,
 ];

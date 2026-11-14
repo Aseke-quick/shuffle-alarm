@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
+import 'package:shuffle_alarm/design/components/glass_card.dart';
 import 'package:shuffle_alarm/design/theme.dart';
 import 'package:shuffle_alarm/design/tokens.dart';
 
@@ -32,39 +33,47 @@ class SettingSwitchRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         Layout.gutter,
-        Space.s8,
-        Space.s8,
-        Space.s8,
+        0,
+        Layout.gutter,
+        Space.s12,
       ),
-      // One switch for screen readers, with all its texts as its name.
-      child: MergeSemantics(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: theme.textTheme.titleMedium),
-                  if (description != null) ...[
-                    const SizedBox(height: Space.s4),
-                    Text(
-                      description!,
-                      style: theme.textTheme.bodySmall!.copyWith(
-                        color: c.textMuted,
+      child: GlassCard(
+        padding: const EdgeInsets.fromLTRB(
+          Space.s16,
+          Space.s16,
+          Space.s8,
+          Space.s16,
+        ),
+        // One switch for screen readers, with all its texts as its name.
+        child: MergeSemantics(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: theme.textTheme.titleMedium),
+                    if (description != null) ...[
+                      const SizedBox(height: Space.s4),
+                      Text(
+                        description!,
+                        style: theme.textTheme.bodySmall!.copyWith(
+                          color: c.textMuted,
+                        ),
                       ),
-                    ),
+                    ],
+                    if (status != null) ...[
+                      const SizedBox(height: Space.s4),
+                      Text(status!, style: WakemixType.of(context).meta),
+                    ],
                   ],
-                  if (status != null) ...[
-                    const SizedBox(height: Space.s4),
-                    Text(status!, style: WakemixType.of(context).meta),
-                  ],
-                ],
+                ),
               ),
-            ),
-            const SizedBox(width: Space.s8),
-            Switch(value: value, onChanged: onChanged),
-          ],
+              const SizedBox(width: Space.s8),
+              Switch(value: value, onChanged: onChanged),
+            ],
+          ),
         ),
       ),
     );

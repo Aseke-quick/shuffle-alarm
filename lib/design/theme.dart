@@ -10,8 +10,8 @@ abstract final class WakemixTheme {
   static final ThemeData light = _theme(WakemixColors.light);
 }
 
-/// The text styles Material's [TextTheme] has no place for: Geist Mono for
-/// small counters and captions. Widgets read them with [WakemixType.of].
+/// The text styles Material's [TextTheme] has no place for: small counters
+/// and captions. Widgets read them with [WakemixType.of].
 @immutable
 class WakemixType extends ThemeExtension<WakemixType> {
   const WakemixType({required this.meta, required this.caption});
@@ -40,15 +40,16 @@ class WakemixType extends ThemeExtension<WakemixType> {
   }
 }
 
-/// The type scale of the tokens on Material's text roles: Unbounded for
-/// display, headline and the large title, Geist for the rest.
+/// The type scale of the tokens on Material's text roles: Geist, heavy and
+/// tight for numerals and titles, plain for the rest.
 TextTheme _textTheme() {
   TextStyle display(double size, {double height = 1.1}) => WakemixFonts.style(
     WakemixFonts.display,
     size: size,
-    weight: FontWeight.w500,
+    weight: FontWeight.w600,
     height: height,
-    letterSpacing: -0.02 * size,
+    // Tighter the bigger it is, as big Geist numerals want.
+    letterSpacing: -(size >= 40 ? 0.05 : 0.025) * size,
   );
   TextStyle text(double size, FontWeight weight, {double height = 1.4}) =>
       WakemixFonts.style(
@@ -58,14 +59,14 @@ TextTheme _textTheme() {
         height: height,
       );
   return TextTheme(
-    displayLarge: display(TypeScale.dial, height: 1),
-    displayMedium: display(TypeScale.record, height: 1),
-    displaySmall: display(28),
-    headlineLarge: display(28),
-    headlineMedium: display(24),
-    headlineSmall: display(TypeScale.rowTime, height: 1.15),
-    titleLarge: display(TypeScale.title, height: 1.2),
-    titleMedium: text(TypeScale.body, FontWeight.w600),
+    displayLarge: display(TypeScale.hero, height: 1),
+    displayMedium: display(56, height: 1),
+    displaySmall: display(40, height: 1),
+    headlineLarge: display(TypeScale.figure),
+    headlineMedium: display(26),
+    headlineSmall: display(TypeScale.rowTime, height: 1.05),
+    titleLarge: display(22, height: 1.2),
+    titleMedium: text(16, FontWeight.w600, height: 1.25),
     titleSmall: text(TypeScale.label, FontWeight.w600),
     bodyLarge: text(TypeScale.body, FontWeight.w400),
     bodyMedium: text(TypeScale.body, FontWeight.w400),
@@ -87,10 +88,9 @@ ThemeData _theme(WakemixColors c) {
     ),
     caption: WakemixFonts.style(
       WakemixFonts.meta,
-      size: TypeScale.caption,
+      size: TypeScale.label,
       weight: FontWeight.w500,
       height: 1.3,
-      letterSpacing: 0.9,
       color: c.textMuted,
     ),
   );
@@ -131,6 +131,7 @@ ThemeData _theme(WakemixColors c) {
   const cardShape = RoundedRectangleBorder(
     borderRadius: BorderRadius.all(Radius.circular(Corners.card)),
   );
+  const buttonShape = StadiumBorder();
   final buttonText = textTheme.labelLarge!;
   final fieldBorder = OutlineInputBorder(
     borderRadius: const BorderRadius.all(Radius.circular(Corners.card)),
@@ -152,7 +153,8 @@ ThemeData _theme(WakemixColors c) {
     materialTapTargetSize: MaterialTapTargetSize.padded,
     extensions: [c, type],
     appBarTheme: AppBarThemeData(
-      backgroundColor: c.background,
+      // The page's color fields show through ([Backdrop]).
+      backgroundColor: Colors.transparent,
       foregroundColor: c.text,
       elevation: 0,
       scrolledUnderElevation: 0,
@@ -174,7 +176,7 @@ ThemeData _theme(WakemixColors c) {
         disabledForegroundColor: c.textDisabled,
         textStyle: buttonText,
         minimumSize: const Size(64, Layout.minTouchTarget),
-        shape: cardShape,
+        shape: buttonShape,
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -184,7 +186,25 @@ ThemeData _theme(WakemixColors c) {
         side: BorderSide(color: c.textMuted),
         textStyle: buttonText,
         minimumSize: const Size(64, Layout.minTouchTarget),
-        shape: cardShape,
+        shape: buttonShape,
+      ),
+    ),
+    // Keys such as AM and PM: the chosen one is filled with the accent.
+    segmentedButtonTheme: SegmentedButtonThemeData(
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.resolveWith(
+          (states) =>
+              states.contains(WidgetState.selected) ? c.accent : c.glass,
+        ),
+        foregroundColor: WidgetStateProperty.resolveWith(
+          (states) =>
+              states.contains(WidgetState.selected) ? c.onAccent : c.text,
+        ),
+        side: WidgetStatePropertyAll(BorderSide(color: c.glassLine)),
+        textStyle: WidgetStatePropertyAll(buttonText),
+        minimumSize: const WidgetStatePropertyAll(
+          Size(48, Layout.minTouchTarget),
+        ),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
@@ -192,7 +212,7 @@ ThemeData _theme(WakemixColors c) {
         foregroundColor: c.accentText,
         textStyle: buttonText,
         minimumSize: const Size(64, Layout.minTouchTarget),
-        shape: cardShape,
+        shape: buttonShape,
       ),
     ),
     iconButtonTheme: IconButtonThemeData(
@@ -305,7 +325,8 @@ ThemeData _theme(WakemixColors c) {
       hourMinuteTextStyle: WakemixFonts.style(
         WakemixFonts.display,
         size: 40,
-        weight: FontWeight.w500,
+        weight: FontWeight.w600,
+        letterSpacing: -2,
       ),
       dayPeriodShape: cardShape,
       dayPeriodBorderSide: BorderSide(color: c.textMuted),

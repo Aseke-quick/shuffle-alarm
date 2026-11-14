@@ -61,7 +61,7 @@ void main() {
       );
 
       // A dialog.
-      await tester.tap(find.byTooltip('Type the time'));
+      await tester.tap(find.text('Type the time'));
       await _twoFrames(tester);
       await _expectFinalAtOnce(
         tester,
@@ -285,7 +285,7 @@ void _morningCardTest() {
       expect(find.text('Thanks. Wakemix will remember that.'), findsWidgets);
       // While it closes, it still shows the morning.
       expect(
-        find.text('YOU WOKE AT'),
+        find.text('You woke at'),
         lessMotion ? findsNothing : findsOneWidget,
       );
       await tester.pumpAndSettle();

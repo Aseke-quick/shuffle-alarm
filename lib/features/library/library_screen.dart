@@ -12,12 +12,11 @@ class LibraryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      appBar: ContentAppBar(
-        title: Text('Library'),
-        actions: [SettingsButton()],
-      ),
+    return const TabPage(
+      title: Text('Library'),
+      actions: [SettingsButton()],
       body: StatusView(
+        icon: Icons.library_music_outlined,
         title: 'No sounds yet.',
         message: 'The sounds your alarms play will show here.',
       ),

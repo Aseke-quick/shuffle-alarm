@@ -13,7 +13,7 @@ import 'package:shuffle_alarm/core/morning.dart';
 import 'package:shuffle_alarm/data/providers.dart';
 import 'package:shuffle_alarm/data/settings_repository.dart';
 import 'package:shuffle_alarm/data/sound_repository.dart';
-import 'package:shuffle_alarm/design/components/record.dart';
+import 'package:shuffle_alarm/design/components/mix_bars.dart';
 import 'package:shuffle_alarm/features/ringing/morning_card.dart';
 
 void main() {
@@ -63,7 +63,7 @@ void main() {
     });
   });
 
-  group('morningRecordSegments', () {
+  group('morningMixSegments', () {
     test('shows how long each sound played, and how strong it is', () {
       final rows = morningCardSounds(_morning(['a', 'b', 'c']), [
         _stored('a'),
@@ -71,10 +71,10 @@ void main() {
         _stored('c', intensity: 3),
       ]);
 
-      expect(morningRecordSegments(rows), const [
-        RecordSegment(length: Duration(seconds: 20), strength: 0),
-        RecordSegment(length: Duration(seconds: 20), strength: 0.5),
-        RecordSegment(length: Duration(seconds: 20)),
+      expect(morningMixSegments(rows), const [
+        MixSegment(length: Duration(seconds: 20), strength: 0),
+        MixSegment(length: Duration(seconds: 20), strength: 0.5),
+        MixSegment(length: Duration(seconds: 20)),
       ]);
     });
   });

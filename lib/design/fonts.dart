@@ -3,26 +3,25 @@ import 'package:material_ui/material_ui.dart';
 
 import 'package:shuffle_alarm/design/font_licenses.dart';
 
-/// The three bundled font families (`pubspec.yaml`, `assets/fonts/`). The
-/// app never downloads a font.
+/// The bundled font (`pubspec.yaml`, `assets/fonts/`): Geist, for everything
+/// (ADR-005). The app never downloads a font.
 abstract final class WakemixFonts {
-  /// Unbounded: times, screen titles and the wordmark. Latin only.
-  static const display = 'Unbounded';
-
-  /// Geist: body text, buttons, labels, and anything people type. It also
-  /// has Cyrillic and Vietnamese.
+  /// Geist: text, buttons, labels, the big numerals and anything people type.
+  /// It also has Cyrillic and Vietnamese.
   static const text = 'Geist';
 
-  /// Geist Mono: small counters and captions, whose fixed-width digits keep
-  /// a countdown steady. Latin only.
-  static const meta = 'Geist Mono';
+  /// The family of times, titles and the wordmark: Geist, heavier and
+  /// tighter.
+  static const String display = text;
+
+  /// The family of small counters and captions: Geist.
+  static const String meta = text;
 
   /// A text style in [family] at [size] and [weight].
   ///
-  /// The fonts are variable fonts, and some platforms draw them at their
-  /// default weight unless the `wght` axis is set too, so [weight] goes into
-  /// both `fontWeight` and `fontVariations`. Glyphs that the Latin-only
-  /// fonts lack, such as Cyrillic, come from Geist.
+  /// Geist is a variable font, and some platforms draw one at its default
+  /// weight unless the `wght` axis is set too, so [weight] goes into both
+  /// `fontWeight` and `fontVariations`.
   static TextStyle style(
     String family, {
     required double size,
@@ -32,7 +31,6 @@ abstract final class WakemixFonts {
     Color? color,
   }) => TextStyle(
     fontFamily: family,
-    fontFamilyFallback: family == text ? null : const [text],
     fontSize: size,
     fontWeight: weight,
     fontVariations: [FontVariation.weight(weight.value.toDouble())],
@@ -52,7 +50,7 @@ abstract final class WakemixFonts {
 
 var _licensesAdded = false;
 
-/// Adds the Open Font License of each bundled font to the app's licenses,
+/// Adds the Open Font License of the bundled font to the app's licenses,
 /// which the Credits screen (task 3.6) lists. Only the first call does
 /// anything.
 void registerFontLicenses() {
@@ -60,11 +58,7 @@ void registerFontLicenses() {
   _licensesAdded = true;
   LicenseRegistry.addLicense(
     () => Stream.fromIterable(const [
-      LicenseEntryWithLineBreaks([WakemixFonts.display], unboundedLicense),
-      LicenseEntryWithLineBreaks([
-        WakemixFonts.text,
-        WakemixFonts.meta,
-      ], geistLicense),
+      LicenseEntryWithLineBreaks([WakemixFonts.text], geistLicense),
     ]),
   );
 }

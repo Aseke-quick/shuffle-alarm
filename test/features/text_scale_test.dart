@@ -79,7 +79,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Edit alarm'), findsOneWidget);
       await _scrollThrough(tester);
-      expect(find.text('GENRES'), findsOneWidget);
+      expect(find.text('Genres'), findsOneWidget);
       expect(find.byType(FilterChip), findsNWidgets(3));
       // A chosen chip gets a check mark, and the chips wrap again.
       final electronic = find.widgetWithText(FilterChip, 'Electronic');
@@ -94,7 +94,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('New alarm'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Type the time'));
+      await tester.tap(find.text('Type the time'));
       await tester.pumpAndSettle();
       expect(find.byType(TimePickerDialog), findsOneWidget);
       await tester.tap(find.text('Cancel'));
@@ -122,6 +122,8 @@ void main() {
       await openAlarms(tester, db: db, now: wednesdayEvening, size: phone);
       await tester.pumpAndSettle();
 
+      await tester.ensureVisible(find.textContaining("Tonight's mix"));
+      await tester.pumpAndSettle();
       await tester.tap(find.textContaining("Tonight's mix"));
       await tester.pumpAndSettle();
       await _scrollThrough(tester);
@@ -140,7 +142,7 @@ void main() {
     setTextScale(tester, 2);
     await openAlarms(tester, db: db, now: wednesdayEvening, size: phone);
 
-    for (final tab in ['Library', 'Insights']) {
+    for (final tab in ['Library', 'Analytics']) {
       await tester.tap(
         find.descendant(
           of: find.byType(WakemixNavBar),
@@ -291,7 +293,7 @@ void main() {
     // The sound plays: the clock, the alarm's long label and the sound.
     await tester.tap(find.text('Play sound'));
     await tester.pumpAndSettle();
-    expect(find.text('NOW PLAYING'), findsOneWidget);
+    expect(find.text('Now playing'), findsOneWidget);
     await _scrollThrough(tester);
     expect(find.text('Snooze 5 min'), findsOneWidget);
 

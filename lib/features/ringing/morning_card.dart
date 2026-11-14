@@ -9,7 +9,7 @@ import 'package:shuffle_alarm/core/models/sound.dart';
 import 'package:shuffle_alarm/core/morning.dart';
 import 'package:shuffle_alarm/data/providers.dart';
 import 'package:shuffle_alarm/data/sound_repository.dart';
-import 'package:shuffle_alarm/design/components/record.dart';
+import 'package:shuffle_alarm/design/components/mix_bars.dart';
 import 'package:shuffle_alarm/features/alarms/tonight_mix.dart';
 
 /// The ring session of the Morning card that is open or opens now: a ring that
@@ -118,12 +118,12 @@ List<MorningCardSound> morningCardSounds(
   ];
 }
 
-/// The segments of a record for [sounds]: how long each one played, and how
-/// strong it is.
-List<RecordSegment> morningRecordSegments(List<MorningCardSound> sounds) => [
+/// The bars of a mix for [sounds]: how long each one played, and how strong
+/// it is.
+List<MixSegment> morningMixSegments(List<MorningCardSound> sounds) => [
   for (final sound in sounds)
-    RecordSegment(
+    MixSegment(
       length: sound.played.played,
-      strength: recordStrengthOf(sound.sound),
+      strength: mixStrengthOf(sound.sound),
     ),
 ];

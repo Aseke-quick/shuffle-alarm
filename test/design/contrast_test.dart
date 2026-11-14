@@ -6,10 +6,12 @@ import 'package:material_ui/material_ui.dart';
 import 'package:shuffle_alarm/design/theme.dart';
 import 'package:shuffle_alarm/design/tokens.dart';
 
-/// The contrast rule of the design (spec section 1): every text on its
-/// background meets WCAG AA, 4.5:1; non-text parts that show a control or
-/// its state, such as switch tracks, 3:1. Text that marks an alarm as off
-/// (`textDisabled`) and the hairlines (`outline`) are exempt.
+/// The contrast rule of the design (spec of redesign 2, section 1): every
+/// text on its background meets WCAG AA, 4.5:1; non-text parts that show a
+/// control or its state, such as switch tracks, 3:1. A page is its color
+/// with a color field over it, and a glass card the glass over that. Text
+/// that marks an alarm as off (`textDisabled`) and the hairlines (`outline`,
+/// `glassLine`) are exempt.
 void main() {
   test('the contrast ratio is worked out as WCAG 2.2 says', () {
     expect(_contrast(const Color(0xFF000000), const Color(0xFFFFFFFF)), 21);
@@ -26,30 +28,51 @@ void main() {
     ('light', WakemixColors.light),
   ]) {
     group('The $name colors', () {
+      // A glass card over each color field at its strongest, and over the
+      // bare page: the lightest and the darkest a card can be.
+      final pages = [
+        colors.background,
+        for (final field in [
+          colors.fieldOlive,
+          colors.fieldPine,
+          colors.fieldBronze,
+        ])
+          Color.alphaBlend(field, colors.background),
+      ];
+      final cards = [
+        for (final page in pages) Color.alphaBlend(colors.glass, page),
+      ];
+
       test('give text a contrast of 4.5:1 on each background', () {
         final c = colors;
         for (final (what, text, background) in [
-          ('text on the page', c.text, c.background),
-          ('text on a card', c.text, c.surface),
+          ('text on a solid card', c.text, c.surface),
           ('text on an input or day key', c.text, c.surfaceHigh),
-          ('meta text on the page', c.textMuted, c.background),
-          ('meta text on a card', c.textMuted, c.surface),
+          ('meta text on a solid card', c.textMuted, c.surface),
           ('meta text on an input', c.textMuted, c.surfaceHigh),
-          ('accent text on the page', c.accentText, c.background),
-          ('accent text on a card', c.accentText, c.surface),
+          ('accent text on a solid card', c.accentText, c.surface),
           ('accent text on an input', c.accentText, c.surfaceHigh),
           ('text on the accent', c.onAccent, c.accent),
-          ('an error on the page', c.danger, c.background),
           ('an error in a dialog', c.danger, c.surface),
           ('text on an error fill', c.onAccent, c.danger),
           ('a snack bar or tooltip', c.background, c.text),
-          ('text on the ringing screen', c.onAccent, c.accent),
-          (
-            'the clock on the record of the ringing screen',
-            c.onAccent,
-            c.accent,
-          ),
-          ('the label of Stop on the ringing screen', c.accent, c.onAccent),
+          for (final page in pages) ...[
+            ('text on the page', c.text, page),
+            ('meta text on the page', c.textMuted, page),
+            ('accent text on the page', c.accentText, page),
+            ('an error on the page', c.danger, page),
+          ],
+          for (final card in cards) ...[
+            ('text on a glass card', c.text, card),
+            ('meta text on a glass card', c.textMuted, card),
+            ('accent text on a glass card', c.accentText, card),
+          ],
+          for (final fill in [
+            WakemixColors.gentleFill,
+            WakemixColors.mediumFill,
+            WakemixColors.strongFill,
+          ])
+            ('text on a sound card', WakemixColors.onStrength, fill),
         ]) {
           expect(
             _contrast(text, background),
@@ -62,29 +85,24 @@ void main() {
       test('give controls and their states a contrast of 3:1', () {
         final c = colors;
         for (final (what, part, background) in [
-          ('a switch that is on', c.accent, c.background),
-          ('a switch that is on, on a card', c.accent, c.surface),
+          ('a switch that is on, on a solid card', c.accent, c.surface),
           ('the thumb of a switch that is on', c.onAccent, c.accent),
-          ('the border of a switch that is off', c.textMuted, c.background),
           ('the thumb of a switch that is off', c.textMuted, c.surfaceHigh),
-          ('the border of an input', c.textMuted, c.background),
-          ('the border of an input on a card', c.textMuted, c.surface),
+          ('the border of an input on a solid card', c.textMuted, c.surface),
           (
             'a day key that is on, next to one that is off',
             c.accent,
             c.surfaceHigh,
           ),
-          ('the knob of the dial on its ring', c.accent, c.surfaceHigh),
-          ('the focus ring', c.accent, c.background),
-          ('the outline record of an error', c.danger, c.background),
-          ('the border of Snooze on the ringing screen', c.onAccent, c.accent),
-          ('the Stop button on the ringing screen', c.onAccent, c.accent),
-          (
-            'the disc of the record on the ringing screen',
-            c.onAccent,
-            c.accent,
-          ),
-          ('the lines on that disc', c.accent, c.onAccent),
+          for (final surface in [...pages, ...cards]) ...[
+            ('a switch that is on', c.accent, surface),
+            ('the border of a switch or an input', c.textMuted, surface),
+            ('the focus ring', c.accent, surface),
+            ('the mark of an error', c.danger, surface),
+            ('the mark of a gentle sound', c.gentle, surface),
+            ('the mark of a medium sound', c.medium, surface),
+            ('the mark of a strong sound', c.strong, surface),
+          ],
         ]) {
           expect(
             _contrast(part, background),
@@ -118,14 +136,16 @@ void main() {
     }
   });
 
-  test('the accent stays cobalt', () {
+  test('the look is soft: no pure black or white page, a cream accent', () {
+    // What the user chose on 2026-11-14 (ADR-005): rich, quiet colors.
+    expect(WakemixColors.dark.background, isNot(const Color(0xFF000000)));
+    expect(WakemixColors.light.background, isNot(const Color(0xFFFFFFFF)));
+    expect(WakemixColors.dark.accent, const Color(0xFFE2D398));
     for (final colors in [WakemixColors.dark, WakemixColors.light]) {
-      for (final color in [colors.accent, colors.accentText]) {
-        final hue = HSLColor.fromColor(color).hue;
-        expect(hue, inInclusiveRange(220, 232), reason: '$color');
-      }
+      // Olive to sand: a warm hue, never a blue or a neon.
+      final hue = HSLColor.fromColor(colors.accent).hue;
+      expect(hue, inInclusiveRange(40, 80), reason: '${colors.accent}');
     }
-    expect(WakemixColors.dark.accent, const Color(0xFF5B8CFF));
   });
 }
 
