@@ -31,8 +31,8 @@ The roadmap and task checklist live in `PLAN.md`. Run `/next-task` to work on th
 - `lib/core/`: pure Dart, no Flutter imports. Models, `RotationEngine`, clip rules, adaptive weights.
 - `lib/data/`: drift database, repositories, library loader for `manifest.json`.
 - `lib/platform/`: `AlarmScheduler` and `SoundPlayer` interfaces + `android/`, `ios/`, `desktop/`, `web/` implementations.
-- `lib/design/`: the Wakemix design system (ADR-001): tokens (the only colors in `lib/`), `WakemixTheme`, the bundled fonts and the components. Flutter and `material_ui` only, never `lib/data/` or `lib/features/`; components take plain values. Features take colors and text styles from the theme, never `Color(0x…)`.
-- `lib/features/`: `alarms/`, `ringing/`, `library/`, `voice/`, `insights/`, `settings/`.
+- `lib/design/`: the Wakemix design system (structure: ADR-001; look "Soft depth": ADR-005): tokens (the only colors in `lib/`), `WakemixTheme`, the bundled fonts and the components. Flutter and `material_ui` only, never `lib/data/` or `lib/features/`; components take plain values. Features take colors and text styles from the theme, never `Color(0x…)`. Pages lay out one column, or two from 1000 px (`Layout.isWide`), over a `Backdrop` (`PageScaffold`, `TabPage`).
+- `lib/features/`: `alarms/`, `ringing/`, `library/`, `voice/`, `insights/` (the Analytics tab), `settings/`.
 - `assets/library/<genre>/`: audio clips + `manifest.json`. `tool/`: dev scripts. `test/` mirrors `lib/`.
 - Features never call platform code directly, only through the interfaces.
 

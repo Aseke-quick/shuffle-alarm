@@ -586,3 +586,29 @@ Add an entry when a task makes a choice that the code does not explain by itself
   - **Two tabs** ring, log and show a card each, for two sessions (2.4, 2.5).
   - **Task 2.8** reads `MorningAnswerRepository.all()`, and `Morning.of` for time to Stop, snoozes and sounds. A session with a `RingOutcome.missed` has no morning.
   - **Untested:** Safari and Firefox, as before.
+
+## 2026-11-14 · 2.8 · Redesign 2: the "Soft depth" look, time wheels, the sound deck and Analytics
+- **Decision:** the look of 2.2a ("Mixtape") is replaced. The user did not like it at all, and chose the new one from pictures in five rounds; the last word was "Да, начинай". The architecture is [ADR-005](../.10x/adrs/005-soft-depth-look-and-wide-layout.md), the spec is `.10x/specs/2026-11-14-wakemix-redesign-2-design.md`.
+  - **Rejected by the user:** dark glass with neon glows, light with acid lime, black with a yellow-to-red gradient ("too harsh, colors wrong, too simple"); a gold watch dial on khaki with a serif font ("silly"); a flat calm look ("too simple").
+  - **Chosen:** soft olive, pine and bronze color fields behind the page, glass cards, a cream accent, Geist only, big numerals; from 1000 px a top bar with the tabs and two columns; on a phone one column and the bottom bar. Light follows the device.
+  - **Time wheels** in the place of the rotary dial: two wheels that go round, AM and PM keys, "Type the time", arrow and Page keys, one adjustable value for screen readers. Two changes in one frame add up.
+  - **Sound deck** on Tonight's mix: the sounds as a fan of cards in play order, in the color of their strength; Reshuffle moves each card to its new place; a row that scrolls where there is no room. "Not tonight" is a button on each card, and a card flicked up does the same.
+  - **Analytics** in the place of Insights, which the user did not want as it was (task 2.8, made bigger): a calendar, Monday first, with a mark on each day an alarm rang, and for the day, week, month or year that holds the chosen day the mornings got up and missed, the average time from the alarm to Stop, the snoozes, the sounds played, a chart, and "Wakes you best".
+- **Rules of Analytics** (`lib/core/analytics.dart`, tests first):
+  - A morning belongs to the local day its alarm was set for. Days are counted on the calendar, so a day of 23 or 25 hours is one day.
+  - Stop with no Snooze is "got up at once", Stop after a Snooze is "snoozed", anything else is "missed": also a ring that was left during a snooze. A day with several rings has the mark of its worst.
+  - "Sounds played" counts clips, so a sound that came twice counts twice. "Wakes you best" is the sound named most often on the Morning card; of two named as often, the one of the later morning.
+  - No new table: it reads `RingSessionRepository.all()` and `MorningAnswerRepository.all()`, again after each ring and answer and each time the tab opens.
+  - The address `/insights` goes to `/analytics`.
+- **What did not change:** what the app does, and every text a screen reader hears for an action. The ringing code changed only for the bug below. Stop is the filled, taller button of the ringing page (68 px), Snooze the outlined one above it.
+- **The database check** (read only, nothing to fix): schema version 3; the generated code is up to date; `web/drift_worker.js` and `web/sqlite3.wasm` match the releases of drift 2.35.3 and sqlite3 3.8.0; each migration step can run twice and is tested from versions 1 and 2; foreign keys are on; with two years of rings (1500 sessions, 18 000 events, 1.5 MB) every lookup uses a primary key and the whole log reads in 30 ms, so no index is missing. A profile with alarms and a plan of the live build opened in the new build with every row. Notes, not bugs: the browser may evict the database, as the site does not ask for persistent storage (a choice for later); `_restoreSnoozes` reads the whole log at start.
+- **The code review** (`lib/`, `test/`, `tool/`, the workflow) found two bugs, each fixed with a test in its own commit:
+  - One check of the clock can find two rings, the oldest first: at 07:32 the ring of 07:00 that a sleeping laptop missed, and the one of 07:30. The second was turned away as "another one rings" while the first was still starting, and the first was then found after its cap: no alarm rang. The starts now run one after the other (`18f6de3`). Found by a ring in Chrome that did not come.
+  - The countdown of a ring that had passed read "in " at its minute and "in 23 h 55 min" after it; it says "now" (`bed6382`).
+  - Not changed: two tabs ring and log twice (known, 2.4); the bedtime reminder reads its setting after the first build, so a tap in that moment could be overwritten (not reachable by hand).
+- **Evidence:** `dart format .` changes nothing, `flutter analyze` 0 issues, 1070 tests pass and 13 skip outside a daylight saving zone (they pass in Europe/Berlin and America/New_York). New tests: the wheels, the deck, the calendar, the chart, the analytics logic and screen, each page at a text scale of 2.0 on 360 x 740 and on 1280 x 800, less motion, the contrast of every token pair over the color fields. In headless Chrome 157, built as the site, fresh profile, real time: rings found 0.9 to 1.2 s after their minute, back 4 to 5 s after a Snooze, Stop and the Morning card logged, seven rings over six days read back by Analytics, no console error; screenshots dark and light at 390 x 844 and 1440 x 900.
+- **Limits:**
+  - Task 2.6 (import own songs) is unfinished in its own worktree and touches `lib/design/theme.dart`, `layout.dart` and the Library screen: it must rebase onto this look.
+  - A browser that has the old build cached shows it until the cache ends (10 minutes on GitHub Pages) or a reload.
+  - With nine cards on a laptop the ends of the fan turn about 16 degrees; more cards than fit become a row.
+  - Untested: Safari and Firefox, as before.

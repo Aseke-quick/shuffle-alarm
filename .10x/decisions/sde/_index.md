@@ -8,3 +8,4 @@
 | --- | --- | --- |
 | `placeholder-library` | Task 2.3: 9 synthesized clips, `manifest.json` and their sync into the database | `placeholder-library.md` |
 | `visual-identity` | Task 2.2a: the Wakemix design system in `lib/design/`, the name and the sleep calculator | `visual-identity.md` |
+- [visual-identity-2](visual-identity-2.md): how the Soft depth look, the wheels, the deck and Analytics are built (2026-11-14)

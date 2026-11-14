@@ -1,6 +1,17 @@
 # Handoff
 
 ## Current handoff
+**From:** redesign 2 and task 2.8 (2026-11-14). **To:** the next task, `PLAN.md` 2.6 (import own songs).
+
+- **State:** `main` has the "Soft depth" look (ADR-005), the time wheels, the sound deck and Analytics. See `status.md` for whether it is pushed.
+- **New in `lib/design/`:** tokens `glass`, `glassLine`, `gentle`, `medium`, `strong`, `fieldOlive`, `fieldPine`, `fieldBronze`, `shadow`, `WakemixColors.strength(1..3)`; `Layout.isWide`, `wideBreakpoint`, `maxWideWidth`; components `Backdrop`, `PageScaffold`, `TabPage`, `GlassCard`, `NextAlarmCard`, `InfoTile`, `MixBars` (`MixSegment`), `TimeWheels`, `SoundDeck` (`DeckCard`), `MonthCalendar`, `BarChart` (`ChartBar`), `WaveformTile`. Gone: `RecordHero`, `RecordArt`, `SpinningRecord`, `RotaryTimeDial`, `AccentPage`, the fonts Unbounded and Geist Mono.
+- **A page** is a `PageScaffold` (a transparent `Scaffold` over the `Backdrop`), a tab is a `TabPage` (no app bar when wide: the shell's top bar stands in). A plain `Scaffold` would hide the color fields.
+- **Renamed:** `recordSegmentsOf` to `mixSegmentsOf`, `recordStrengthOf` to `mixStrengthOf`, `morningRecordSegments` to `morningMixSegments`, `InsightsScreen` to `AnalyticsScreen` (`/analytics`; `/insights` redirects).
+- **For 2.6:** its worktree (`peaceful-ritchie-054466`, not committed) changes `lib/design/theme.dart`, `layout.dart` and the Library screen of the old look. Rebase it onto this one: use `TabPage`, `GlassCard` and the theme's text styles, and no `WakemixFonts.display` look of its own. The Library tab on `main` is still the placeholder.
+- **For 2.6 and 2.7, from the code review:** `buildRingSequence` with a user sound of a few milliseconds would make hundreds of thousands of clips; give an imported clip a least length.
+- **Ringing:** `RingingController._onDue` now starts rings one after the other (`_starts`), so a ring is "missed: another one rings" only when one really rings.
+
+### The hand-over before this one
 **From:** task 2.5b, the Morning card (2026-11-05). **To:** the next task, `PLAN.md` 2.6 (import own songs), through `/next-task`.
 
 - **State:** `main` has 2.5b. After Stop, a card says when the user woke, how long after the alarm, the snoozes and the sounds that played, and asks "Which sound woke you?". The answer makes that sound heavier and stays with the session, for Insights (2.8). A ring that comes due takes its place, and it can be turned off in Settings. docs/DECISIONS.md, entry "2.5b", has every choice and the measurements; ADR-003 has the architecture; the hand-over note is `task-2.5b-handover.md` in the 2.2a session's notes folder.
