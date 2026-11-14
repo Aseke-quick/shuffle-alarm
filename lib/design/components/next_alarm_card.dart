@@ -19,8 +19,12 @@ class NextAlarmCard extends StatelessWidget {
     this.note,
     this.onTap,
     this.semanticsLabel,
+    this.tagLabel = 'Next alarm',
     super.key,
   });
+
+  /// The text of the tag at the top of the card.
+  final String tagLabel;
 
   /// When the next alarm rings, or null if no alarm is on.
   final TimeOfDay? time;
@@ -61,7 +65,7 @@ class NextAlarmCard extends StatelessWidget {
             spacing: Space.s8,
             runSpacing: Space.s8,
             children: [
-              const _Tag(icon: Icons.alarm, text: 'Next alarm'),
+              _Tag(icon: Icons.alarm, text: tagLabel),
               if (countdown != null) _Tag(text: countdown!, filled: true),
             ],
           ),

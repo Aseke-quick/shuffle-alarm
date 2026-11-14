@@ -9,6 +9,7 @@ class SettingsRepository {
 
   static const _bedtimeReminder = 'bedtime_reminder';
   static const _morningCard = 'morning_card';
+  static const _language = 'language';
 
   /// Whether the person wants the bedtime reminder. It is off until they turn
   /// it on.
@@ -25,4 +26,14 @@ class SettingsRepository {
 
   Future<void> saveMorningCard({required bool on}) =>
       _store.setBool(_morningCard, on);
+
+  /// The code of the language the user chose, such as `ru`, or null to follow
+  /// the device (task 2.9).
+  Future<String?> language() => _store.getString(_language);
+
+  /// Keeps the [code] of the chosen language, or forgets it for null: the app
+  /// follows the device again.
+  Future<void> saveLanguage(String? code) => code == null
+      ? _store.remove(_language)
+      : _store.setString(_language, code);
 }

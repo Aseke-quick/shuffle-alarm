@@ -1,0 +1,522 @@
+{
+  "@@locale": "en",
+  "tabAlarms": "Alarms",
+  "tabLibrary": "Library",
+  "tabAnalytics": "Analytics",
+  "settings": "Settings",
+  "tryAgain": "Try again",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "back": "Back",
+  "on": "On",
+  "off": "Off",
+  "alarmTone": "Alarm tone",
+  "spanDays": "{n} d",
+  "@spanDays": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "spanHours": "{n} h",
+  "@spanHours": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "spanMinutes": "{n} min",
+  "@spanMinutes": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "spanSeconds": "{n} s",
+  "@spanSeconds": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "ringsIn": "Rings in {span}",
+  "@ringsIn": {
+    "placeholders": {
+      "span": {
+        "type": "String"
+      }
+    }
+  },
+  "ringsNow": "Rings now",
+  "countdownIn": "in {span}",
+  "@countdownIn": {
+    "placeholders": {
+      "span": {
+        "type": "String"
+      }
+    }
+  },
+  "countdownNow": "now",
+  "bedBy": "Bed by {time} for {span} of sleep",
+  "@bedBy": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "span": {
+        "type": "String"
+      }
+    }
+  },
+  "sleepNowUnderMinute": "Sleep now: under 1 min",
+  "sleepNow": "Sleep now: {span}",
+  "@sleepNow": {
+    "placeholders": {
+      "span": {
+        "type": "String"
+      }
+    }
+  },
+  "bedtimeReminderTitle": "Time for bed",
+  "bedtimeReminderBody": "Sleep now for {span} before your {time} alarm.",
+  "@bedtimeReminderBody": {
+    "placeholders": {
+      "span": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "nextReminderAt": "Next at {time}",
+  "@nextReminderAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "bedtimePassed": "The bedtime of your next alarm has passed",
+  "repeatOnce": "Once",
+  "repeatEveryDay": "Every day",
+  "repeatWeekdays": "Weekdays",
+  "repeatWeekends": "Weekends",
+  "dayMon": "Mon",
+  "dayTue": "Tue",
+  "dayWed": "Wed",
+  "dayThu": "Thu",
+  "dayFri": "Fri",
+  "daySat": "Sat",
+  "daySun": "Sun",
+  "dayMonday": "Monday",
+  "dayTuesday": "Tuesday",
+  "dayWednesday": "Wednesday",
+  "dayThursday": "Thursday",
+  "dayFriday": "Friday",
+  "daySaturday": "Saturday",
+  "daySunday": "Sunday",
+  "soundCount": "{count, plural, =1{1 sound} other{{count} sounds}}",
+  "@soundCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mixCaption": "Tonight's mix · {sounds}",
+  "@mixCaption": {
+    "placeholders": {
+      "sounds": {
+        "type": "String"
+      }
+    }
+  },
+  "wokeAfter": "{span} after your {time} alarm",
+  "@wokeAfter": {
+    "placeholders": {
+      "span": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "wokeAfterUnderMinute": "Under 1 min after your {time} alarm",
+  "@wokeAfterUnderMinute": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "snoozeCount": "{count, plural, =0{No snoozes} =1{1 snooze} other{{count} snoozes}}",
+  "@snoozeCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "yourSong": "Your song",
+  "voiceMessage": "Voice message",
+  "strengthGentle": "Gentle",
+  "strengthMedium": "Medium",
+  "strengthStrong": "Strong",
+  "newAlarm": "New alarm",
+  "noAlarmSet": "No alarm set",
+  "tapNewAlarm": "Tap New alarm to set one.",
+  "bedtime": "Bedtime",
+  "nextAlarm": "Next alarm",
+  "nextAlarmAt": "Next alarm {time}, {countdown}",
+  "@nextAlarmAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "countdown": {
+        "type": "String"
+      }
+    }
+  },
+  "tonightsMixWith": "Tonight's mix, {sounds}",
+  "@tonightsMixWith": {
+    "placeholders": {
+      "sounds": {
+        "type": "String"
+      }
+    }
+  },
+  "allAlarms": "All alarms",
+  "alarmAt": "{time} alarm",
+  "@alarmAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "alarmGone": "This alarm no longer exists.",
+  "editAlarm": "Edit alarm",
+  "saveAlarm": "Save alarm",
+  "repeat": "Repeat",
+  "noDaysChosen": "No days chosen, so it rings once.",
+  "label": "Label",
+  "labelHint": "For example: Gym",
+  "genres": "Genres",
+  "deleteAlarm": "Delete alarm",
+  "deleteAlarmQuestion": "Delete this alarm?",
+  "deleteAlarmNote": "It will not ring again.",
+  "noGenresYet": "The library has no genres yet, so this alarm plays every sound.",
+  "noGenreChosen": "None chosen, so it plays every genre.",
+  "alarmTime": "Alarm time",
+  "typeTheTime": "Type the time",
+  "couldNotSaveAlarm": "Could not save the alarm: {error}",
+  "@couldNotSaveAlarm": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "couldNotDeleteAlarm": "Could not delete the alarm: {error}",
+  "@couldNotDeleteAlarm": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "tonightsMix": "Tonight's mix",
+  "couldNotSaveMix": "Could not save the mix: {error}",
+  "@couldNotSaveMix": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "oneOrderOnly": "These sounds have one order only: gentle to strong.",
+  "turnAlarmOnForMix": "Turn an alarm on to see its mix.",
+  "stopPreview": "Stop preview",
+  "previewSound": "Preview {title}",
+  "@previewSound": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "notTonight": "Not tonight",
+  "notTonightSound": "Not tonight: {title}",
+  "@notTonightSound": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "inPlayOrder": "In play order",
+  "thenAgain": "Then again in a new order, for {minutes} min at most.",
+  "@thenAgain": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "ringsForAtMost": "It rings for {minutes} min at most.",
+  "@ringsForAtMost": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "oneSoundStays": "One sound stays, so the alarm has something to play.",
+  "bringBack": "Bring back",
+  "bringBackSound": "Bring back: {title}",
+  "@bringBackSound": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "reshuffle": "Reshuffle",
+  "soundNumber": "Number {place}",
+  "@soundNumber": {
+    "placeholders": {
+      "place": {
+        "type": "int"
+      }
+    }
+  },
+  "couldNotPlaySound": "Could not play this sound.",
+  "armToHear": "Arm alarms to hear them",
+  "browserBlockedSound": "The browser did not let the sound play. Try again.",
+  "armExplain": "Your browser plays sound only after a tap. Arm alarms, then keep this tab open.",
+  "armAlarms": "Arm alarms",
+  "keepTabOpen": "Keep this tab open",
+  "keepTabOpenExplain": "Alarms ring only while this tab is open. Keep the sound on and the device plugged in.",
+  "screenStaysOn": "The screen stays on.",
+  "screenMayTurnOff": "The screen may turn off. Keep this tab in front.",
+  "alarmsNotAvailable": "Alarms are not available",
+  "storageProblem": "The app could not open its storage, so it cannot show or save alarms, and no alarm can ring. {hint}",
+  "@storageProblem": {
+    "placeholders": {
+      "hint": {
+        "type": "String"
+      }
+    }
+  },
+  "storageHintWeb": "Allow this site to store data, leave private browsing, or try the latest Chrome, Edge or Firefox.",
+  "storageHintDevice": "Restart the app. If that does not help, free some space on the device.",
+  "snoozeMinutes": "Snooze {minutes} min",
+  "@snoozeMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "stop": "Stop",
+  "close": "Close",
+  "alarmPill": "Alarm {time}",
+  "@alarmPill": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "rangNobodyStopped": "It rang for {minutes} min, and nobody stopped it.",
+  "@rangNobodyStopped": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "soundDidNotPlay": "The sound did not play.",
+  "playSound": "Play sound",
+  "nowPlaying": "Now playing",
+  "theAlarm": "The alarm",
+  "snoozedUntil": "Snoozed until {time}",
+  "@snoozedUntil": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "ringsAgainThen": "{name} rings again then, while this tab is open.",
+  "@ringsAgainThen": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "stopAlarm": "Stop alarm",
+  "thanksRemember": "Thanks. Wakemix will remember that.",
+  "morningCard": "Morning card",
+  "turnCardOff": "You can turn this card off in Settings.",
+  "notSure": "Not sure",
+  "done": "Done",
+  "youWokeAt": "You woke at",
+  "whichSoundWoke": "Which sound woke you?",
+  "comeEarlier": "It will tend to come earlier in your next mixes.",
+  "thisOne": "This one",
+  "thisOneWokeMe": "This one woke me: {title}",
+  "@thisOneWokeMe": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "noSoundPlayed": "No sound played",
+  "nothingToAsk": "So there is nothing to ask this time.",
+  "nothingToAskArm": "So there is nothing to ask this time. Tap Arm alarms before your next alarm, so that you can hear it.",
+  "bedtimeReminder": "Bedtime reminder",
+  "goToBedOnTime": "Go to bed on time",
+  "reminderExplain": "Get one notification at the bedtime of your next alarm, so you still sleep {span}.",
+  "@reminderExplain": {
+    "placeholders": {
+      "span": {
+        "type": "String"
+      }
+    }
+  },
+  "browserWillAsk": "Your browser will ask to allow notifications. If you say no, your alarms still ring.",
+  "worksWhileTabOpen": "It works only while this tab is open, like your alarms.",
+  "notAvailableTitle": "Not available on this device",
+  "notAvailableBody": "This browser cannot show notifications from a page. Your alarms still ring.",
+  "notificationsBlockedTitle": "Notifications are blocked",
+  "notificationsBlockedBody": "The reminder stays off, and your alarms still ring. To change it, allow notifications for this site in your browser's settings, then try again.",
+  "noAnswerTitle": "No answer from your browser",
+  "noAnswerBody": "The reminder stays off, and your alarms still ring. If your browser does not ask again, allow notifications for this site in its settings.",
+  "waitingForBrowser": "Waiting for your browser",
+  "turnOn": "Turn on",
+  "notNow": "Not now",
+  "sleep": "Sleep",
+  "morningCardDescription": "After Stop: when you woke, your snoozes, the sounds that played, and which one woke you.",
+  "bedtimeReminderDescription": "One notification at the bedtime of your next alarm, while this tab is open.",
+  "notAvailableOnDevice": "Not available on this device.",
+  "browserBlocksNotifications": "Your browser blocks notifications for this site.",
+  "noAlarmIsOn": "No alarm is on",
+  "language": "Language",
+  "languageOfDevice": "Same as the device",
+  "languageDescription": "The language of the app.",
+  "noSoundsYet": "No sounds yet.",
+  "librarySoundsHere": "The sounds your alarms play will show here.",
+  "noMorningsYet": "No mornings to show yet.",
+  "afterFirstAlarm": "After your first alarm, your mornings will show here.",
+  "couldNotReadMornings": "Could not read your mornings.",
+  "noAlarmThatDay": "no alarm",
+  "gotUp": "Got up",
+  "noneMissed": "none missed",
+  "missedCount": "{count} missed",
+  "@missedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "alarmToStop": "Alarm to Stop",
+  "onAverage": "on average",
+  "noStopYet": "no Stop yet",
+  "snoozes": "Snoozes",
+  "soundsPlayed": "Sounds played",
+  "wakesYouBest": "Wakes you best",
+  "notKnownYet": "Not known yet",
+  "answerMorningCard": "Answer the Morning card after Stop.",
+  "deletedSound": "A deleted sound",
+  "noAlarmRang": "No alarm rang on this day.",
+  "wokeYou": "Woke you: {title}",
+  "@wokeYou": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "playedSounds": "Played: {titles}",
+  "@playedSounds": {
+    "placeholders": {
+      "titles": {
+        "type": "String"
+      }
+    }
+  },
+  "previousMonth": "Previous month",
+  "nextMonth": "Next month",
+  "periodDay": "Day",
+  "periodWeek": "Week",
+  "periodMonth": "Month",
+  "periodYear": "Year",
+  "markAtOnce": "Got up at once",
+  "markSnoozed": "Snoozed",
+  "markMissed": "Missed",
+  "morningMissed": "Missed: no Stop",
+  "morningAtOnce": "Got up at once, {span} after the alarm",
+  "@morningAtOnce": {
+    "placeholders": {
+      "span": {
+        "type": "String"
+      }
+    }
+  },
+  "morningSnoozed": "{count, plural, =1{Stop after 1 snooze, {span} after the alarm} other{Stop after {count} snoozes, {span} after the alarm}}",
+  "@morningSnoozed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "span": {
+        "type": "String"
+      }
+    }
+  },
+  "morningCount": "{count, plural, =1{1 morning} other{{count} mornings}}",
+  "@morningCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "namedOnCard": "{count, plural, =1{Named once on the Morning card} other{Named {count} times on the Morning card}}",
+  "@namedOnCard": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chartTitle": "Time from the alarm to Stop.",
+  "chartNoStop": "No Stop in this period.",
+  "chartAverage": "On average {span}.",
+  "@chartAverage": {
+    "placeholders": {
+      "span": {
+        "type": "String"
+      }
+    }
+  },
+  "chartMissed": "{mornings} missed.",
+  "@chartMissed": {
+    "placeholders": {
+      "mornings": {
+        "type": "String"
+      }
+    }
+  }
+}

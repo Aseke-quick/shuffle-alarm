@@ -20,6 +20,7 @@ import 'package:shuffle_alarm/features/alarms/alarm_texts.dart';
 import 'package:shuffle_alarm/features/alarms/alarm_writes.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
 import 'package:shuffle_alarm/features/alarms/database_error_view.dart';
+import 'package:shuffle_alarm/l10n/texts.dart';
 
 /// The page that adds an alarm or changes one: its time, repeat days, label
 /// and genres. Save keeps the alarm and switches it on; the bin deletes it.
@@ -54,9 +55,7 @@ class _AlarmEditorScreenState extends ConsumerState<AlarmEditorScreen> {
       case AsyncValue(value: final alarms?):
         final alarm = alarms.where((alarm) => alarm.id == id).firstOrNull;
         if (alarm == null) {
-          return const _Message(
-            child: StatusView(title: 'This alarm no longer exists.'),
-          );
+          return _Message(child: StatusView(title: tr.alarmGone));
         }
         _alarm = alarm;
         return _AlarmForm(alarm: alarm);
@@ -77,7 +76,7 @@ class _Message extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PageScaffold(
-      appBar: const ContentAppBar(title: Text('Edit alarm')),
+      appBar: ContentAppBar(title: Text(tr.editAlarm)),
       body: child,
     );
   }
@@ -158,7 +157,7 @@ class _AlarmFormState extends ConsumerState<_AlarmForm> {
     const gutter = EdgeInsets.symmetric(horizontal: Layout.gutter);
     final wide = Layout.isWide(context);
     final save = WideButton(
-      label: 'Save alarm',
+      label: tr.saveAlarm,
       onPressed: _busy ? null : _save,
     );
     final time = [
@@ -173,6 +172,8 @@ class _AlarmFormState extends ConsumerState<_AlarmForm> {
           child: Column(
             children: [
               TimeWheels(
+                label: tr.alarmTime,
+                typeLabel: tr.typeTheTime,
                 time: TimeOfDay(hour: _time.hour, minute: _time.minute),
                 onChanged: (time) => setState(
                   () => _time = ClockTime(hour: time.hour, minute: time.minute),
@@ -202,7 +203,7 @@ class _AlarmFormState extends ConsumerState<_AlarmForm> {
       ),
     ];
     final form = [
-      const SectionLabel('Repeat'),
+      SectionLabel(tr.repeat),
       // Narrower margins: on a phone 360 px wide, each key keeps
       // a touch target of 48 dp.
       Padding(
@@ -224,7 +225,7 @@ class _AlarmFormState extends ConsumerState<_AlarmForm> {
             Layout.gutter,
             0,
           ),
-          child: Text('No days chosen, so it rings once.', style: hint),
+          child: Text(tr.noDaysChosen, style: hint),
         ),
       const SizedBox(height: Space.s24),
       Padding(
@@ -232,13 +233,13 @@ class _AlarmFormState extends ConsumerState<_AlarmForm> {
         child: TextField(
           controller: _label,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(
-            labelText: 'Label',
-            hintText: 'For example: Gym',
+          decoration: InputDecoration(
+            labelText: tr.label,
+            hintText: tr.labelHint,
           ),
         ),
       ),
-      const SectionLabel('Genres'),
+      SectionLabel(tr.genres),
       Padding(
         padding: gutter,
         child: _GenreChoice(
@@ -254,11 +255,11 @@ class _AlarmFormState extends ConsumerState<_AlarmForm> {
       warmth: _warmth(_time),
       appBar: ContentAppBar(
         wide: wide,
-        title: Text(_isNew ? 'New alarm' : 'Edit alarm'),
+        title: Text(_isNew ? tr.newAlarm : tr.editAlarm),
         actions: [
           if (!_isNew)
             IconButton(
-              tooltip: 'Delete alarm',
+              tooltip: tr.deleteAlarm,
               icon: const Icon(Icons.delete_outline),
               onPressed: _busy ? null : _delete,
             ),
@@ -321,17 +322,17 @@ class _AlarmFormState extends ConsumerState<_AlarmForm> {
       context: context,
       animationStyle: Motion.styleOf(context),
       builder: (context) => AlertDialog(
-        title: const Text('Delete this alarm?'),
-        content: const Text('It will not ring again.'),
+        title: Text(tr.deleteAlarmQuestion),
+        content: Text(tr.deleteAlarmNote),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(tr.cancel),
           ),
           TextButton(
             style: TextButton.styleFrom(foregroundColor: danger),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
+            child: Text(tr.delete),
           ),
         ],
       ),
@@ -357,16 +358,13 @@ class _GenreChoice extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final library = ref.watch(genresProvider).value ?? const <String>[];
+    final library = ref.watch(genresProvider).value ?? <String>[];
     // Also a chosen genre the library no longer has, so it can be taken off.
     final genres = {...library, ...chosen}.toList()..sort();
     final hint = Theme.of(context).textTheme.bodySmall!
         .copyWith(color: WakemixColors.of(context).textMuted);
     if (genres.isEmpty) {
-      return Text(
-        'The library has no genres yet, so this alarm plays every sound.',
-        style: hint,
-      );
+      return Text(tr.noGenresYet, style: hint);
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -385,7 +383,7 @@ class _GenreChoice extends ConsumerWidget {
         ),
         if (chosen.isEmpty) ...[
           const SizedBox(height: Space.s8),
-          Text('None chosen, so it plays every genre.', style: hint),
+          Text(tr.noGenreChosen, style: hint),
         ],
       ],
     );

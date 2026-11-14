@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:shuffle_alarm/design/components/layout.dart';
 import 'package:shuffle_alarm/design/components/status_view.dart';
 import 'package:shuffle_alarm/features/settings/settings_button.dart';
+import 'package:shuffle_alarm/l10n/texts.dart';
 
 /// The Library tab. Placeholder until task 3.7 adds the sound library.
 class LibraryScreen extends StatelessWidget {
@@ -12,13 +13,13 @@ class LibraryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const TabPage(
-      title: Text('Library'),
-      actions: [SettingsButton()],
+    return TabPage(
+      title: Text(tr.tabLibrary),
+      actions: const [SettingsButton()],
       body: StatusView(
         icon: Icons.library_music_outlined,
-        title: 'No sounds yet.',
-        message: 'The sounds your alarms play will show here.',
+        title: tr.noSoundsYet,
+        message: tr.librarySoundsHere,
       ),
     );
   }

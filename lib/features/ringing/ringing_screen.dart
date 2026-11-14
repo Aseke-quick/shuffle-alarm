@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
-
 import 'package:shuffle_alarm/core/ring_sequence.dart';
 import 'package:shuffle_alarm/core/snooze.dart';
 import 'package:shuffle_alarm/design/components/glass_card.dart';
@@ -12,12 +11,14 @@ import 'package:shuffle_alarm/design/components/mix_bars.dart';
 import 'package:shuffle_alarm/design/components/time_text.dart';
 import 'package:shuffle_alarm/design/components/wide_button.dart';
 import 'package:shuffle_alarm/design/tokens.dart';
+import 'package:shuffle_alarm/features/alarms/alarm_texts.dart';
 import 'package:shuffle_alarm/features/alarms/alarms_screen.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
 import 'package:shuffle_alarm/features/alarms/tonight_mix.dart';
 import 'package:shuffle_alarm/features/ringing/morning_card.dart';
 import 'package:shuffle_alarm/features/ringing/morning_card_screen.dart';
 import 'package:shuffle_alarm/features/ringing/ringing_controller.dart';
+import 'package:shuffle_alarm/l10n/texts.dart';
 
 /// The ringing screen (task 2.5): the page at its warmest, above everything
 /// else, with a very big clock, the mix as bars with the sound that plays
@@ -114,7 +115,7 @@ class _RingingScreenState extends ConsumerState<RingingScreen> {
             children: [
               if (!over) ...[
                 WideButton.secondary(
-                  label: 'Snooze ${defaultSnooze.inMinutes} min',
+                  label: tr.snoozeMinutes(defaultSnooze.inMinutes),
                   icon: Icons.snooze,
                   onPressed: ringing == null
                       ? null
@@ -123,7 +124,7 @@ class _RingingScreenState extends ConsumerState<RingingScreen> {
                 const SizedBox(height: Space.s12),
               ],
               WideButton(
-                label: over ? 'Close' : 'Stop',
+                label: over ? tr.close : tr.stop,
                 tall: true,
                 onPressed: ringing == null
                     ? null
@@ -152,7 +153,7 @@ class _Alarm extends StatelessWidget {
     ).format(context);
     return Column(
       children: [
-        _Pill('Alarm $time'),
+        _Pill(tr.alarmPill(time)),
         if (alarm.label.isNotEmpty) ...[
           const SizedBox(height: Space.s12),
           Text(
@@ -272,7 +273,7 @@ class _Sound extends StatelessWidget {
     final sound = ringing.sound;
     if (ringing.over) {
       return Text(
-        'It rang for ${defaultRingCap.inMinutes} min, and nobody stopped it.',
+        tr.rangNobodyStopped(defaultRingCap.inMinutes),
         style: theme.textTheme.bodyLarge,
         textAlign: TextAlign.center,
       );
@@ -281,13 +282,13 @@ class _Sound extends StatelessWidget {
       return Column(
         children: [
           Text(
-            'The sound did not play.',
+            tr.soundDidNotPlay,
             style: theme.textTheme.bodyLarge,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: Space.s12),
           WideButton.secondary(
-            label: 'Play sound',
+            label: tr.playSound,
             icon: Icons.volume_up_outlined,
             onPressed: onPlaySound,
           ),
@@ -300,7 +301,7 @@ class _Sound extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Now playing',
+            tr.nowPlaying,
             style: theme.textTheme.labelMedium!.copyWith(color: c.textMuted),
             textAlign: TextAlign.center,
           ),
@@ -308,7 +309,7 @@ class _Sound extends StatelessWidget {
           AnimatedSwitcher(
             duration: Motion.of(context, Motion.medium),
             child: Text(
-              sound.title,
+              soundTitle(sound),
               key: ValueKey(sound.id),
               style: theme.textTheme.headlineMedium,
               textAlign: TextAlign.center,

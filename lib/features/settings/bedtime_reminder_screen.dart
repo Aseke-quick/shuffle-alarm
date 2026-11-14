@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
-
 import 'package:shuffle_alarm/core/bedtime.dart';
 import 'package:shuffle_alarm/design/components/layout.dart';
 import 'package:shuffle_alarm/design/components/notice_card.dart';
@@ -12,6 +11,7 @@ import 'package:shuffle_alarm/design/tokens.dart';
 import 'package:shuffle_alarm/features/alarms/alarm_texts.dart';
 import 'package:shuffle_alarm/features/settings/bedtime_reminder.dart';
 import 'package:shuffle_alarm/features/settings/settings_screen.dart';
+import 'package:shuffle_alarm/l10n/texts.dart';
 import 'package:shuffle_alarm/platform/system_notifications.dart';
 
 /// Explains the bedtime reminder before the browser asks for the permission
@@ -67,7 +67,7 @@ class _BedtimeReminderScreenState extends ConsumerState<BedtimeReminderScreen> {
     return PageScaffold(
       // A page about the night: the cool end of the color fields.
       warmth: 0.2,
-      appBar: const ContentAppBar(title: Text('Bedtime reminder')),
+      appBar: ContentAppBar(title: Text(tr.bedtimeReminder)),
       body: ContentWidth(
         child: ListView(
           children: [
@@ -80,7 +80,7 @@ class _BedtimeReminderScreenState extends ConsumerState<BedtimeReminderScreen> {
                     container: true,
                     header: true,
                     child: Text(
-                      'Go to bed on time',
+                      tr.goToBedOnTime,
                       style: theme.textTheme.titleLarge,
                     ),
                   ),
@@ -88,74 +88,58 @@ class _BedtimeReminderScreenState extends ConsumerState<BedtimeReminderScreen> {
                   Semantics(
                     container: true,
                     child: Text(
-                      'Get one notification at the bedtime of your next alarm, '
-                      'so you still sleep ${sleepGoalText(defaultSleepGoal)}.',
+                      tr.reminderExplain(sleepGoalText(defaultSleepGoal)),
                       style: theme.textTheme.bodyLarge,
                     ),
                   ),
                   const SizedBox(height: Space.s24),
                   if (access == NotificationAccess.notAsked)
-                    const _Point(
+                    _Point(
                       icon: Icons.notifications_outlined,
-                      text:
-                          'Your browser will ask to allow notifications. If '
-                          'you say no, your alarms still ring.',
+                      text: tr.browserWillAsk,
                     ),
-                  const _Point(
-                    icon: Icons.tab_outlined,
-                    text:
-                        'It works only while this tab is open, like your '
-                        'alarms.',
-                  ),
+                  _Point(icon: Icons.tab_outlined, text: tr.worksWhileTabOpen),
                 ],
               ),
             ),
             if (access == NotificationAccess.unavailable)
-              const NoticeCard(
+              NoticeCard(
                 icon: Icons.notifications_off_outlined,
-                title: 'Not available on this device',
-                message:
-                    'This browser cannot show notifications from a page. Your '
-                    'alarms still ring.',
+                title: tr.notAvailableTitle,
+                message: tr.notAvailableBody,
               )
             else if (access == NotificationAccess.blocked)
-              const NoticeCard(
+              NoticeCard(
                 icon: Icons.notifications_off_outlined,
-                title: 'Notifications are blocked',
-                message:
-                    'The reminder stays off, and your alarms still ring. To '
-                    'change it, allow notifications for this site in your '
-                    "browser's settings, then try again.",
+                title: tr.notificationsBlockedTitle,
+                message: tr.notificationsBlockedBody,
                 error: true,
               )
             else if (_noAnswer)
-              const NoticeCard(
+              NoticeCard(
                 icon: Icons.notifications_outlined,
-                title: 'No answer from your browser',
-                message:
-                    'The reminder stays off, and your alarms still ring. If '
-                    'your browser does not ask again, allow notifications for '
-                    'this site in its settings.',
+                title: tr.noAnswerTitle,
+                message: tr.noAnswerBody,
               ),
           ],
         ),
       ),
       bottomNavigationBar: BottomAction(
         child: access == NotificationAccess.unavailable
-            ? WideButton.secondary(label: 'Back', onPressed: _leave)
+            ? WideButton.secondary(label: tr.back, onPressed: _leave)
             : Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   WideButton(
                     label: _asking
-                        ? 'Waiting for your browser'
+                        ? tr.waitingForBrowser
                         : _noAnswer || access == NotificationAccess.blocked
-                        ? 'Try again'
-                        : 'Turn on',
+                        ? tr.tryAgain
+                        : tr.turnOn,
                     onPressed: _asking ? null : () => unawaited(_turnOn()),
                   ),
                   const SizedBox(height: Space.s8),
-                  WideButton.secondary(label: 'Not now', onPressed: _leave),
+                  WideButton.secondary(label: tr.notNow, onPressed: _leave),
                 ],
               ),
       ),

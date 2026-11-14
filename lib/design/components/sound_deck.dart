@@ -60,9 +60,13 @@ class DeckCard {
 /// so the deck mixes in front of the user; not when the platform asks for
 /// less motion. A card dragged up and away does its action.
 class SoundDeck extends StatelessWidget {
-  const SoundDeck({required this.cards, super.key});
+  const SoundDeck({required this.cards, this.placeLabel, super.key});
 
   final List<DeckCard> cards;
+
+  /// What screen readers call the place of a card in the order, from 1:
+  /// by default "Number 2".
+  final String Function(int place)? placeLabel;
 
   /// The width of a card.
   static const cardWidth = 176.0;
@@ -106,6 +110,7 @@ class SoundDeck extends StatelessWidget {
                 child: _SoundCard(
                   card: cards[index],
                   place: index + 1,
+                  placeLabel: placeLabel,
                   textWidth: double.infinity,
                 ),
               ),
@@ -146,6 +151,7 @@ class SoundDeck extends StatelessWidget {
                     child: _SoundCard(
                       card: card,
                       place: index + 1,
+                      placeLabel: placeLabel,
                       textWidth: overlaps ? step - Space.s16 : double.infinity,
                     ),
                   ),
@@ -162,8 +168,11 @@ class _SoundCard extends StatelessWidget {
   const _SoundCard({
     required this.card,
     required this.place,
+    required this.placeLabel,
     required this.textWidth,
   });
+
+  final String Function(int place)? placeLabel;
 
   final DeckCard card;
 
@@ -220,7 +229,8 @@ class _SoundCard extends StatelessWidget {
                         style: theme.textTheme.labelMedium!.copyWith(
                           color: ink.withValues(alpha: 0.6),
                         ),
-                        semanticsLabel: 'Number $place',
+                        semanticsLabel:
+                            placeLabel?.call(place) ?? 'Number $place',
                       ),
                       const SizedBox(height: Space.s4),
                       Text(

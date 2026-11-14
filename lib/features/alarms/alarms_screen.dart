@@ -28,6 +28,7 @@ import 'package:shuffle_alarm/features/alarms/tonight_mix.dart';
 import 'package:shuffle_alarm/features/alarms/tonight_mix_screen.dart';
 import 'package:shuffle_alarm/features/ringing/snooze_cards.dart';
 import 'package:shuffle_alarm/features/settings/settings_button.dart';
+import 'package:shuffle_alarm/l10n/texts.dart';
 
 /// The Alarms tab: the next alarm as a big card with its mix and bedtime,
 /// every alarm by time of day, and the New alarm button. Tapping an alarm
@@ -83,7 +84,7 @@ class _Alarms extends StatelessWidget {
                     action: FilledButton.icon(
                       onPressed: newAlarm,
                       icon: const Icon(Icons.add, size: 20),
-                      label: const Text('New alarm'),
+                      label: Text(tr.newAlarm),
                     ),
                     notices: [
                       const SnoozeCards(),
@@ -115,7 +116,7 @@ class _Alarms extends StatelessWidget {
         ),
         BottomAction(
           child: WideButton(
-            label: 'New alarm',
+            label: tr.newAlarm,
             icon: Icons.add,
             onPressed: newAlarm,
           ),
@@ -146,11 +147,12 @@ class _NextAlarm extends ConsumerWidget {
       return Padding(
         padding: gutter,
         child: NextAlarmCard(
-          title: 'No alarm set',
-          note: alarms.isEmpty ? 'Tap New alarm to set one.' : null,
+          tagLabel: tr.nextAlarm,
+          title: tr.noAlarmSet,
+          note: alarms.isEmpty ? tr.tapNewAlarm : null,
           semanticsLabel: alarms.isEmpty
-              ? 'No alarm set\nTap New alarm to set one.'
-              : 'No alarm set',
+              ? '${tr.noAlarmSet}\n${tr.tapNewAlarm}'
+              : tr.noAlarmSet,
         ),
       );
     }
@@ -165,7 +167,7 @@ class _NextAlarm extends ConsumerWidget {
     final sounds = mix?.round.length;
     void openMix() => unawaited(context.push(TonightMixScreen.path));
     final bedtime = InfoTile(
-      label: 'Bedtime',
+      label: tr.bedtime,
       icon: Icons.bedtime_outlined,
       text: sleepText(
         sleepAdvice(ring: ring, now: now),
@@ -179,13 +181,14 @@ class _NextAlarm extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           NextAlarmCard(
+            tagLabel: tr.nextAlarm,
             time: time,
             countdown: countdown,
             details: alarmDetails(alarm),
             onTap: mix == null ? null : openMix,
             semanticsLabel: [
-              'Next alarm ${time.format(context)}, $countdown',
-              if (sounds != null) "Tonight's mix, ${soundCount(sounds)}",
+              tr.nextAlarmAt(time.format(context), countdown),
+              if (sounds != null) tr.tonightsMixWith(soundCount(sounds)),
             ].join('. '),
           ),
           const SizedBox(height: Space.s12),
@@ -284,7 +287,7 @@ class _TracklistState extends State<_Tracklist> {
       children: [
         if (alarms.isNotEmpty || widget.action != null)
           SectionLabel(
-            'All alarms',
+            tr.allAlarms,
             trailing: alarms.isEmpty ? null : '${alarms.length}',
             action: widget.action,
           ),
@@ -316,10 +319,10 @@ class AlarmTile extends ConsumerWidget {
     return AlarmTrackRow(
       time: time,
       details: alarmDetails(alarm),
-      status: ring == null ? 'Off' : ringsIn(ring.difference(now)),
+      status: ring == null ? tr.off : ringsIn(ring.difference(now)),
       enabled: alarm.enabled,
       waveformSeed: alarm.id,
-      switchLabel: '${time.format(context)} alarm',
+      switchLabel: tr.alarmAt(time.format(context)),
       onTap: () => unawaited(context.push(AlarmEditorScreen.pathFor(alarm.id))),
       onEnabledChanged: (enabled) =>
           saveAlarm(context, ref, alarm.copyWith(enabled: enabled)),

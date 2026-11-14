@@ -9,6 +9,7 @@ import 'package:shuffle_alarm/design/components/wide_button.dart';
 import 'package:shuffle_alarm/features/ringing/morning_card.dart';
 import 'package:shuffle_alarm/features/ringing/morning_card_screen.dart';
 import 'package:shuffle_alarm/features/ringing/ringing_controller.dart';
+import 'package:shuffle_alarm/l10n/texts.dart';
 
 /// On the Alarms tab: a card for each alarm that was snoozed, which says when
 /// it comes back and can end the snooze. Nothing without a snooze.
@@ -20,7 +21,7 @@ class SnoozeCards extends ConsumerWidget {
     final snoozed = ref.watch(snoozedRingsProvider);
     String name(SnoozedRing ring) {
       final label = ring.due.alarm.label;
-      return label.isEmpty ? 'The alarm' : label;
+      return label.isEmpty ? tr.theAlarm : label;
     }
 
     return Column(
@@ -29,12 +30,12 @@ class SnoozeCards extends ConsumerWidget {
         for (final ring in snoozed)
           NoticeCard(
             icon: Icons.snooze,
-            title:
-                'Snoozed until '
-                '${TimeOfDay.fromDateTime(ring.due.startsAt).format(context)}',
-            message: '${name(ring)} rings again then, while this tab is open.',
+            title: tr.snoozedUntil(
+              TimeOfDay.fromDateTime(ring.due.startsAt).format(context),
+            ),
+            message: tr.ringsAgainThen(name(ring)),
             action: WideButton.secondary(
-              label: 'Stop alarm',
+              label: tr.stopAlarm,
               onPressed: () {
                 ref.read(ringingProvider.notifier).stopSnoozed(ring);
                 if (ref.read(morningCardProvider) != null) {

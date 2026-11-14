@@ -5,7 +5,7 @@ Display name Wakemix ("A new mix every morning"; until 2026-10-29 "Shuffle Alarm
 The roadmap and task checklist live in `PLAN.md`. Run `/next-task` to work on the next task.
 
 ## Product rules (never break)
-- UI text is English only. Do not add localization.
+- UI text is in English, Russian and Kazakh (the user's choice, 2026-11-14; before that English only). Every text a person reads is in `lib/l10n/app_en.arb` (the template), `app_ru.arb` and `app_kk.arb`, never a literal in a widget. A new text goes into all three files. The Language setting chooses; by default the app follows the device, and English stands in for any other language.
 - One sound plays for at most 30 s. When it ends, the next sound starts immediately.
 - The alarm keeps rotating until Stop or Snooze. Total cap: 10 min (setting), then it stops and is logged as "missed".
 - Bundled clips are cut to max 29 s, because iOS AlarmKit only accepts alarm sounds shorter than 30 s.
@@ -32,6 +32,7 @@ The roadmap and task checklist live in `PLAN.md`. Run `/next-task` to work on th
 - `lib/data/`: drift database, repositories, library loader for `manifest.json`.
 - `lib/platform/`: `AlarmScheduler` and `SoundPlayer` interfaces + `android/`, `ios/`, `desktop/`, `web/` implementations.
 - `lib/design/`: the Wakemix design system (structure: ADR-001; look "Soft depth": ADR-005): tokens (the only colors in `lib/`), `WakemixTheme`, the bundled fonts and the components. Flutter and `material_ui` only, never `lib/data/` or `lib/features/`; components take plain values. Features take colors and text styles from the theme, never `Color(0x…)`. Pages lay out one column, or two from 1000 px (`Layout.isWide`), over a `Backdrop` (`PageScaffold`, `TabPage`).
+- `lib/l10n/`: the texts in three languages (`app_*.arb`), the classes generated from them, and `tr` (`texts.dart`): the texts of the language the app shows now. Screens and the functions that write a text read `tr`; design components take their texts as values.
 - `lib/features/`: `alarms/`, `ringing/`, `library/`, `voice/`, `insights/` (the Analytics tab), `settings/`.
 - `assets/library/<genre>/`: audio clips + `manifest.json`. `tool/`: dev scripts. `test/` mirrors `lib/`.
 - Features never call platform code directly, only through the interfaces.
@@ -41,6 +42,7 @@ The roadmap and task checklist live in `PLAN.md`. Run `/next-task` to work on th
 - `flutter run -d chrome` (web test version)
 - `dart format .`
 - `dart run build_runner build` (after changing the drift tables in `lib/data/database.dart`; commit the regenerated `database.g.dart`)
+- `flutter gen-l10n` (after changing a text in `lib/l10n/app_*.arb`; `flutter pub get` runs it too; commit the regenerated `app_localizations*.dart`)
 - `flutter analyze` (must report 0 issues)
 - `flutter test` (one file: `flutter test test/core/rotation_engine_test.dart`)
 - `TZ=Europe/Berlin flutter test test/core/next_ring_test.dart test/core/bedtime_test.dart test/core/morning_test.dart` (the daylight saving time tests, skipped in other zones; CI also runs them in America/New_York)

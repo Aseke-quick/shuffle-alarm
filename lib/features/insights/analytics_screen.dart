@@ -17,6 +17,7 @@ import 'package:shuffle_alarm/features/insights/analytics_texts.dart';
 import 'package:shuffle_alarm/features/ringing/morning_card.dart';
 import 'package:shuffle_alarm/features/ringing/ringing_controller.dart';
 import 'package:shuffle_alarm/features/settings/settings_button.dart';
+import 'package:shuffle_alarm/l10n/texts.dart';
 
 /// What the ring log and the answers of the Morning card say. It is read
 /// again after each ring and each answer, and when the tab opens.
@@ -56,22 +57,22 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
     final analytics = ref.watch(analyticsProvider);
     final today = dayOf(ref.watch(clockProvider));
     return TabPage(
-      title: const Text('Analytics'),
+      title: Text(tr.tabAnalytics),
       actions: const [SettingsButton()],
       body: switch (analytics) {
-        AsyncData(:final value) when value.isEmpty => const StatusView(
+        AsyncData(:final value) when value.isEmpty => StatusView(
           icon: Icons.bar_chart,
-          title: 'No mornings to show yet.',
-          message: 'After your first alarm, your mornings will show here.',
+          title: tr.noMorningsYet,
+          message: tr.afterFirstAlarm,
         ),
         AsyncData(:final value) => _content(value, today),
         AsyncError() => StatusView(
           icon: Icons.bar_chart,
-          title: 'Could not read your mornings.',
+          title: tr.couldNotReadMornings,
           error: true,
           action: FilledButton(
             onPressed: () => ref.invalidate(analyticsProvider),
-            child: const Text('Try again'),
+            child: Text(tr.tryAgain),
           ),
         ),
         _ => const SizedBox.shrink(),
@@ -224,6 +225,8 @@ class _Calendar extends StatelessWidget {
         child: Column(
           children: [
             MonthCalendar(
+              previousLabel: tr.previousMonth,
+              nextLabel: tr.nextMonth,
               month: month,
               marks: {
                 for (final MapEntry(:key, :value) in marks.entries)
@@ -236,7 +239,7 @@ class _Calendar extends StatelessWidget {
                 final mark = marks[number];
                 return [
                   localizations.formatFullDate(date),
-                  if (mark == null) 'no alarm' else markName(mark),
+                  if (mark == null) tr.noAlarmThatDay else markName(mark),
                 ].join(', ');
               },
               onDaySelected: onDaySelected,
@@ -342,18 +345,20 @@ class _Figures extends StatelessWidget {
     final average = summary.averageToStop;
     final tiles = [
       _Figure(
-        label: 'Got up',
+        label: tr.gotUp,
         value: '${summary.gotUp}',
-        note: summary.missed == 0 ? 'none missed' : '${summary.missed} missed',
+        note: summary.missed == 0
+            ? tr.noneMissed
+            : tr.missedCount(summary.missed),
       ),
       _Figure(
-        label: 'Alarm to Stop',
+        label: tr.alarmToStop,
         value: average == null ? '–' : spanText(average),
-        note: 'on average',
-        semanticsValue: average == null ? 'no Stop yet' : null,
+        note: tr.onAverage,
+        semanticsValue: average == null ? tr.noStopYet : null,
       ),
-      _Figure(label: 'Snoozes', value: '${summary.snoozes}'),
-      _Figure(label: 'Sounds played', value: '${summary.soundsPlayed}'),
+      _Figure(label: tr.snoozes, value: '${summary.snoozes}'),
+      _Figure(label: tr.soundsPlayed, value: '${summary.soundsPlayed}'),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -474,7 +479,7 @@ class _Chart extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ExcludeSemantics(child: Text('Alarm to Stop', style: type.caption)),
+            ExcludeSemantics(child: Text(tr.alarmToStop, style: type.caption)),
             const SizedBox(height: Space.s12),
             BarChart(
               semanticsLabel: chartSummary(summary),
@@ -526,15 +531,15 @@ class _Best extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Wakes you best', style: type.caption),
+                    Text(tr.wakesYouBest, style: type.caption),
                     const SizedBox(height: Space.s4),
                     Text(
-                      title ?? 'Not known yet',
+                      title ?? tr.notKnownYet,
                       style: theme.textTheme.titleMedium,
                     ),
                     Text(
                       title == null
-                          ? 'Answer the Morning card after Stop.'
+                          ? tr.answerMorningCard
                           : namedText(summary.bestSoundCount),
                       style: type.meta,
                     ),
@@ -551,12 +556,12 @@ class _Best extends ConsumerWidget {
 
 /// The title of the sound [id], or what to call a sound deleted since.
 String _soundTitle(WidgetRef ref, String id) {
-  if (id == fallbackTone.id) return fallbackTone.title;
-  final stored = ref.watch(storedSoundsProvider).value ?? const [];
+  if (id == fallbackTone.id) return tr.alarmTone;
+  final stored = ref.watch(storedSoundsProvider).value ?? [];
   for (final sound in stored) {
     if (sound.sound.id == id) return sound.sound.title;
   }
-  return 'A deleted sound';
+  return tr.deletedSound;
 }
 
 /// What happened on the chosen [day], from the log.
@@ -580,7 +585,7 @@ class _Mornings extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: Layout.gutter),
             child: Text(
-              'No alarm rang on this day.',
+              tr.noAlarmRang,
               style: theme.textTheme.bodyMedium!.copyWith(color: c.textMuted),
             ),
           ),
@@ -621,7 +626,7 @@ class _Mornings extends ConsumerWidget {
                             Text(sounds, style: type.meta),
                           if (morning.wokeSoundId case final id?)
                             Text(
-                              'Woke you: ${_soundTitle(ref, id)}',
+                              tr.wokeYou(_soundTitle(ref, id)),
                               style: type.meta,
                             ),
                         ],
@@ -639,7 +644,7 @@ class _Mornings extends ConsumerWidget {
   /// "7:00 AM alarm".
   String _alarmText(BuildContext context, LoggedMorning morning) {
     final time = TimeOfDay.fromDateTime(morning.session.scheduledFor.toLocal());
-    return '${time.format(context)} alarm';
+    return tr.alarmAt(time.format(context));
   }
 
   /// The sounds that played, in order, each once. Null when none did.
@@ -649,6 +654,6 @@ class _Mornings extends ConsumerWidget {
         if (event.played) event.soundId,
     };
     if (ids.isEmpty) return null;
-    return 'Played: ${ids.map((id) => _soundTitle(ref, id)).join(', ')}';
+    return tr.playedSounds(ids.map((id) => _soundTitle(ref, id)).join(', '));
   }
 }

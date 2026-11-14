@@ -1,0 +1,9 @@
+# The texts of the app in three languages (task 2.9, docs/DECISIONS.md).
+# English is the template: a new text goes into all three .arb files.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-dir: lib/l10n
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false
+format: true

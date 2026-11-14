@@ -53,6 +53,47 @@ void main() {
     expect(violations, isEmpty);
   });
 
+  test('lib/features and the router write no text of their own: every text '
+      'a person reads is in lib/l10n, in three languages', () {
+    final files = [
+      File('lib/router.dart'),
+      ...Directory('lib/features').listSync(recursive: true).whereType<File>(),
+    ].where((file) => file.path.endsWith('.dart'));
+    final literals = <String>[];
+    for (final file in files) {
+      final lines = file.readAsLinesSync();
+      for (final (index, line) in lines.indexed) {
+        if (_textLiteral.hasMatch(line)) {
+          literals.add('${file.path}:${index + 1}: ${line.trim()}');
+        }
+      }
+    }
+    expect(literals, isEmpty);
+  });
+
+  test('the text scanner sees the ways a widget is given a text', () {
+    for (final line in [
+      "child: Text('New alarm'),",
+      "label: 'Save alarm',",
+      'title: "Tonight\'s mix",',
+      "tooltip: 'Delete alarm',",
+      "message: 'Turn an alarm on.',",
+      "hintText: 'For example: Gym',",
+      "const SectionLabel('Repeat'),",
+    ]) {
+      expect(_textLiteral.hasMatch(line), isTrue, reason: line);
+    }
+    for (final line in [
+      'child: Text(tr.newAlarm),',
+      r"label: '${time.format(context)}',",
+      "static const path = '/alarms';",
+      "debugPrint('Could not read the setting');",
+      r"title: Text('$count'),",
+    ]) {
+      expect(_textLiteral.hasMatch(line), isFalse, reason: line);
+    }
+  });
+
   test('the color scanner sees every way to write a color', () {
     const source = '''
 const a = Color(0xFF5B8CFF);
@@ -130,6 +171,13 @@ List<String> _colorLiterals(String source) => [
     if (!line.trimLeft().startsWith('//'))
       for (final match in _colorLiteral.allMatches(line)) match[0]!,
 ];
+
+/// A text in English given to a widget: a string that starts with a letter,
+/// as the argument of `Text` or `SectionLabel`, or as one of the named
+/// arguments that the design system shows.
+final _textLiteral = RegExp(
+  r'''(?:\b(?:Text|SectionLabel)\(|\b(?:label|title|message|tooltip|hintText|labelText|note|details|status|description|actionLabel|previewLabel|semanticsLabel|switchLabel):)\s*(?:const\s+)?['"][A-Za-z]''',
+);
 
 final _colorLiteral = RegExp(
   r'\bColor(?:\(\s*0x[0-9A-Fa-f]+\s*\)|\.from(?:ARGB|RGBO)\([^)]*\))',

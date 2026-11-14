@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:shuffle_alarm/core/clip_rule.dart';
 import 'package:shuffle_alarm/core/models/sound.dart';
 import 'package:shuffle_alarm/features/alarms/arming.dart';
 import 'package:shuffle_alarm/features/ringing/ringing_controller.dart';
+import 'package:shuffle_alarm/l10n/texts.dart';
 import 'package:shuffle_alarm/platform/providers.dart';
 import 'package:shuffle_alarm/platform/sound_player.dart';
 
@@ -50,9 +50,8 @@ enum PreviewOutcome {
 /// What to tell the person after a tap on a preview that ended as [outcome],
 /// or null when it played.
 String? previewProblem(PreviewOutcome outcome) => switch (outcome) {
-  PreviewOutcome.blocked =>
-    'The browser did not let the sound play. Try again.',
-  PreviewOutcome.failed => 'Could not play this sound.',
+  PreviewOutcome.blocked => tr.browserBlockedSound,
+  PreviewOutcome.failed => tr.couldNotPlaySound,
   PreviewOutcome.played || PreviewOutcome.notNow => null,
 };
 

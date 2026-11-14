@@ -19,6 +19,8 @@ class MonthCalendar extends StatelessWidget {
     required this.onNext,
     this.selected,
     this.today,
+    this.previousLabel = 'Previous month',
+    this.nextLabel = 'Next month',
     super.key,
   });
 
@@ -37,6 +39,10 @@ class MonthCalendar extends StatelessWidget {
 
   /// Goes to the month after. Null when there is none to go to.
   final VoidCallback? onNext;
+
+  /// What the two arrows are called.
+  final String previousLabel;
+  final String nextLabel;
 
   /// The chosen day of the month, if it is in this month.
   final int? selected;
@@ -121,12 +127,12 @@ class MonthCalendar extends StatelessWidget {
             ),
             IconButton(
               onPressed: onPrevious,
-              tooltip: 'Previous month',
+              tooltip: previousLabel,
               icon: const Icon(Icons.chevron_left),
             ),
             IconButton(
               onPressed: onNext,
-              tooltip: 'Next month',
+              tooltip: nextLabel,
               icon: const Icon(Icons.chevron_right),
             ),
           ],

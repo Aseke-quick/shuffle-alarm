@@ -25,6 +25,7 @@ class TimeWheels extends StatefulWidget {
     required this.time,
     required this.onChanged,
     this.label = 'Alarm time',
+    this.typeLabel = 'Type the time',
     super.key,
   });
 
@@ -33,6 +34,9 @@ class TimeWheels extends StatefulWidget {
 
   /// What screen readers call the wheels.
   final String label;
+
+  /// The text of the button that opens keyboard entry.
+  final String typeLabel;
 
   /// The height of one value of a wheel.
   static const itemExtent = 64.0;
@@ -351,7 +355,7 @@ class _TimeWheelsState extends State<TimeWheels> {
             TextButton.icon(
               onPressed: _type,
               icon: const Icon(Icons.keyboard_outlined, size: 20),
-              label: const Text('Type the time'),
+              label: Text(widget.typeLabel),
             ),
           ],
         ),

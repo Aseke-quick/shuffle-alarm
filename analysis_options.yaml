@@ -12,6 +12,8 @@ analyzer:
     - macos/**
     - web/**
     - windows/**
+    # Generated from lib/l10n/*.arb by `flutter gen-l10n`.
+    - lib/l10n/app_localizations*.dart
 
 linter:
   rules:

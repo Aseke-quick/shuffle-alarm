@@ -9,6 +9,7 @@
 - **Renamed:** `recordSegmentsOf` to `mixSegmentsOf`, `recordStrengthOf` to `mixStrengthOf`, `morningRecordSegments` to `morningMixSegments`, `InsightsScreen` to `AnalyticsScreen` (`/analytics`; `/insights` redirects).
 - **For 2.6:** its worktree (`peaceful-ritchie-054466`, not committed) changes `lib/design/theme.dart`, `layout.dart` and the Library screen of the old look. Rebase it onto this one: use `TabPage`, `GlassCard` and the theme's text styles, and no `WakemixFonts.display` look of its own. The Library tab on `main` is still the placeholder.
 - **For 2.6 and 2.7, from the code review:** `buildRingSequence` with a user sound of a few milliseconds would make hundreds of thousands of clips; give an imported clip a least length.
+- **Texts (2.9):** no English literal in a screen: add the text to `lib/l10n/app_en.arb`, `app_ru.arb` and `app_kk.arb`, run `flutter gen-l10n`, and read it as `tr.name`. `test/architecture_test.dart` and `test/l10n/translations_test.dart` hold that. In a test, `tr` is English unless the test sets the device's language (`test/features/languages_test.dart`). A sound's title is shown with `soundTitle(sound)`.
 - **Ringing:** `RingingController._onDue` now starts rings one after the other (`_starts`), so a ring is "missed: another one rings" only when one really rings.
 
 ### The hand-over before this one

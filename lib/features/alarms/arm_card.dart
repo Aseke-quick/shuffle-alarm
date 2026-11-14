@@ -8,6 +8,7 @@ import 'package:shuffle_alarm/design/components/notice_card.dart';
 import 'package:shuffle_alarm/design/components/wide_button.dart';
 import 'package:shuffle_alarm/features/alarms/arming.dart';
 import 'package:shuffle_alarm/features/ringing/ringing_controller.dart';
+import 'package:shuffle_alarm/l10n/texts.dart';
 
 /// On the Alarms tab of the web version: the "Arm alarms" card while an
 /// alarm is on or snoozed and its sound is locked, then the "Keep this tab
@@ -30,14 +31,11 @@ class ArmCard extends ConsumerWidget {
     if (!arming.armed) {
       return NoticeCard(
         icon: Icons.volume_up_outlined,
-        title: 'Arm alarms to hear them',
-        message: arming.failed
-            ? 'The browser did not let the sound play. Try again.'
-            : 'Your browser plays sound only after a tap. Arm alarms, then '
-                  'keep this tab open.',
+        title: tr.armToHear,
+        message: arming.failed ? tr.browserBlockedSound : tr.armExplain,
         error: arming.failed,
         action: WideButton(
-          label: 'Arm alarms',
+          label: tr.armAlarms,
           icon: Icons.alarm_on,
           onPressed: () => unawaited(ref.read(armingProvider.notifier).arm()),
         ),
@@ -45,15 +43,13 @@ class ArmCard extends ConsumerWidget {
     }
     return NoticeCard(
       icon: Icons.alarm_on,
-      title: 'Keep this tab open',
-      message:
-          'Alarms ring only while this tab is open. Keep the sound on and '
-          'the device plugged in.',
+      title: tr.keepTabOpen,
+      message: tr.keepTabOpenExplain,
       detail: !anyOn
           ? null
           : arming.screenOn
-          ? 'The screen stays on.'
-          : 'The screen may turn off. Keep this tab in front.',
+          ? tr.screenStaysOn
+          : tr.screenMayTurnOff,
     );
   }
 }

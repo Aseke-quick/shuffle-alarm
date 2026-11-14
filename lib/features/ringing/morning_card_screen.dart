@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
-
 import 'package:shuffle_alarm/core/escalation.dart';
 import 'package:shuffle_alarm/core/models/ring_session.dart';
 import 'package:shuffle_alarm/core/morning.dart';
@@ -21,6 +20,7 @@ import 'package:shuffle_alarm/features/alarms/arming.dart';
 import 'package:shuffle_alarm/features/alarms/mix_preview.dart';
 import 'package:shuffle_alarm/features/ringing/morning_card.dart';
 import 'package:shuffle_alarm/features/ringing/ringing_controller.dart';
+import 'package:shuffle_alarm/l10n/texts.dart';
 import 'package:shuffle_alarm/platform/providers.dart';
 
 /// The Morning card (task 2.5b): after Stop, when the user woke, how long after
@@ -71,7 +71,7 @@ class _MorningCardScreenState extends ConsumerState<MorningCardScreen> {
     final open = ref.read(morningCardProvider) != null;
     unawaited(_preview.stop());
     ref.read(ringingProvider.notifier).answerMorning(soundId);
-    if (open && soundId != null) _say('Thanks. Wakemix will remember that.');
+    if (open && soundId != null) _say(tr.thanksRemember);
     _leave();
   }
 
@@ -99,7 +99,7 @@ class _MorningCardScreenState extends ConsumerState<MorningCardScreen> {
     return PageScaffold(
       // A morning page: the warm end of the color fields.
       warmth: 0.85,
-      appBar: const ContentAppBar(title: Text('Morning card')),
+      appBar: ContentAppBar(title: Text(tr.morningCard)),
       body: session == null || morning == null
           ? const SizedBox.shrink()
           : _Card(
@@ -145,14 +145,14 @@ class _Card extends ConsumerWidget {
                 _Header(
                   alarmAt: alarmAt,
                   morning: morning,
-                  segments: morningMixSegments(rows ?? const []),
+                  segments: morningMixSegments(rows ?? []),
                 ),
                 const SizedBox(height: Space.s24),
                 if (morning.sounds.isEmpty) const _NoSound(),
                 if (asks) ...[
                   const _Question(),
                   _Sounds(
-                    rows: rows ?? const [],
+                    rows: rows ?? [],
                     onAnswer: onAnswer,
                     onPreview: onPreview,
                   ),
@@ -164,10 +164,7 @@ class _Card extends ConsumerWidget {
                     Layout.gutter,
                     Space.s16,
                   ),
-                  child: Text(
-                    'You can turn this card off in Settings.',
-                    style: type.meta,
-                  ),
+                  child: Text(tr.turnCardOff, style: type.meta),
                 ),
               ],
             ),
@@ -176,10 +173,10 @@ class _Card extends ConsumerWidget {
         BottomAction(
           child: asks
               ? WideButton.secondary(
-                  label: 'Not sure',
+                  label: tr.notSure,
                   onPressed: () => onAnswer(null),
                 )
-              : WideButton(label: 'Done', onPressed: onDone),
+              : WideButton(label: tr.done, onPressed: onDone),
         ),
       ],
     );
@@ -218,7 +215,7 @@ class _Header extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('You woke at', style: type.caption),
+            Text(tr.youWokeAt, style: type.caption),
             const SizedBox(height: Space.s4),
             TimeText(
               TimeOfDay.fromDateTime(morning.wokeAt.toLocal()),
@@ -262,16 +259,10 @@ class _Question extends StatelessWidget {
         children: [
           Semantics(
             header: true,
-            child: Text(
-              'Which sound woke you?',
-              style: theme.textTheme.titleLarge,
-            ),
+            child: Text(tr.whichSoundWoke, style: theme.textTheme.titleLarge),
           ),
           const SizedBox(height: Space.s4),
-          Text(
-            'It will tend to come earlier in your next mixes.',
-            style: WakemixType.of(context).meta,
-          ),
+          Text(tr.comeEarlier, style: WakemixType.of(context).meta),
           const SizedBox(height: Space.s8),
         ],
       ),
@@ -315,19 +306,21 @@ class _Sounds extends ConsumerWidget {
     final playing = preview?.soundId == sound.id;
     return MixTrackRow(
       key: ValueKey(sound.id),
-      title: sound.title,
+      title: soundTitle(sound),
       details: '${clipStartText(row.played.firstAt)} · ${soundDetails(sound)}',
       preview: !playing
           ? MixRowPreview.idle
           : preview!.loading
           ? MixRowPreview.loading
           : MixRowPreview.playing,
-      previewLabel: playing ? 'Stop preview' : 'Preview ${sound.title}',
+      previewLabel: playing
+          ? tr.stopPreview
+          : tr.previewSound(soundTitle(sound)),
       onPreview: hasPreview && row.audioPath != null
           ? () => onPreview(row)
           : null,
-      actionLabel: 'This one',
-      actionSemanticsLabel: 'This one woke me: ${sound.title}',
+      actionLabel: tr.thisOne,
+      actionSemanticsLabel: tr.thisOneWokeMe(soundTitle(sound)),
       onAction: () => onAnswer(sound.id),
       accentAction: true,
     );
@@ -350,14 +343,13 @@ class _NoSound extends ConsumerWidget {
         children: [
           Semantics(
             header: true,
-            child: Text('No sound played', style: theme.textTheme.titleLarge),
+            child: Text(tr.noSoundPlayed, style: theme.textTheme.titleLarge),
           ),
           const SizedBox(height: Space.s4),
           Text(
             arming.needed && !arming.armed
-                ? 'So there is nothing to ask this time. Tap Arm alarms before '
-                      'your next alarm, so that you can hear it.'
-                : 'So there is nothing to ask this time.',
+                ? tr.nothingToAskArm
+                : tr.nothingToAsk,
             style: theme.textTheme.bodySmall!.copyWith(color: c.textMuted),
           ),
         ],

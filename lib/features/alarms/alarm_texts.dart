@@ -1,6 +1,8 @@
 import 'package:shuffle_alarm/core/bedtime.dart';
+import 'package:shuffle_alarm/core/fallback_tone.dart';
 import 'package:shuffle_alarm/core/models/alarm.dart';
 import 'package:shuffle_alarm/core/models/sound.dart';
+import 'package:shuffle_alarm/l10n/texts.dart';
 
 /// "Rings in 7 h 20 min": how long until an alarm rings, [untilRing],
 /// rounded up to whole minutes.
@@ -9,14 +11,14 @@ import 'package:shuffle_alarm/core/models/sound.dart';
 /// alarm at 07:00 rings in 7 h 20 min. From 24 hours on it says days too,
 /// such as "Rings in 1 d 2 h 5 min", and it leaves out the parts that are 0.
 /// "Rings now" for a ring whose time has come or passed.
-String ringsIn(Duration untilRing) => untilRing > Duration.zero
-    ? 'Rings in ${_untilRing(untilRing)}'
-    : 'Rings now';
+String ringsIn(Duration untilRing) =>
+    untilRing > Duration.zero ? tr.ringsIn(_untilRing(untilRing)) : tr.ringsNow;
 
 /// "in 7 h 20 min": the countdown of the next alarm, rounded up like
 /// [ringsIn]. "now" for a ring whose time has come or passed.
-String countdownText(Duration untilRing) =>
-    untilRing > Duration.zero ? 'in ${_untilRing(untilRing)}' : 'now';
+String countdownText(Duration untilRing) => untilRing > Duration.zero
+    ? tr.countdownIn(_untilRing(untilRing))
+    : tr.countdownNow;
 
 String _untilRing(Duration untilRing) =>
     _span((untilRing.inMicroseconds / Duration.microsecondsPerMinute).ceil());
@@ -27,9 +29,9 @@ String _span(int minutes) {
   final hours = minutes % Duration.minutesPerDay ~/ Duration.minutesPerHour;
   final rest = minutes % Duration.minutesPerHour;
   return [
-    if (days > 0) '$days d',
-    if (hours > 0) '$hours h',
-    if (rest > 0) '$rest min',
+    if (days > 0) tr.spanDays(days),
+    if (hours > 0) tr.spanHours(hours),
+    if (rest > 0) tr.spanMinutes(rest),
   ].join(' ');
 }
 
@@ -44,18 +46,19 @@ String sleepText(
   required DateTime now,
   required String Function(DateTime time) clock,
 }) => switch (advice) {
-  BedBy(:final bedtime, :final goal) =>
-    'Bed by ${_dayUnlessToday(bedtime, now)}${clock(bedtime.toLocal())} '
-        'for ${_span(goal.inMinutes)} of sleep',
-  SleepNow(:final sleep) when sleep.inMinutes < 1 => 'Sleep now: under 1 min',
-  SleepNow(:final sleep) => 'Sleep now: ${_span(sleep.inMinutes)}',
+  BedBy(:final bedtime, :final goal) => tr.bedBy(
+    '${_dayUnlessToday(bedtime, now)}${clock(bedtime.toLocal())}',
+    _span(goal.inMinutes),
+  ),
+  SleepNow(:final sleep) when sleep.inMinutes < 1 => tr.sleepNowUnderMinute,
+  SleepNow(:final sleep) => tr.sleepNow(_span(sleep.inMinutes)),
 };
 
 /// A sleep goal, such as "8 h".
 String sleepGoalText(Duration goal) => _span(goal.inMinutes);
 
 /// The title of the bedtime reminder's notification.
-const bedtimeReminderTitle = 'Time for bed';
+String get bedtimeReminderTitle => tr.bedtimeReminderTitle;
 
 /// What the bedtime reminder says when it comes at [now] for the ring at
 /// [ring], such as "Sleep now for 8 h before your 7:00 AM alarm."
@@ -71,8 +74,7 @@ String bedtimeReminderBody({
   final minutes =
       (ring.difference(now).inMilliseconds / Duration.millisecondsPerMinute)
           .round();
-  return 'Sleep now for ${_span(minutes)} before your '
-      '${clock(ring.toLocal())} alarm.';
+  return tr.bedtimeReminderBody(_span(minutes), clock(ring.toLocal()));
 }
 
 /// When the bedtime reminder that is on comes next, as [advice] tells it:
@@ -83,9 +85,10 @@ String nextReminderText(
   required DateTime now,
   required String Function(DateTime time) clock,
 }) => switch (advice) {
-  BedBy(:final bedtime) =>
-    'Next at ${_dayUnlessToday(bedtime, now)}${clock(bedtime.toLocal())}',
-  SleepNow() => 'The bedtime of your next alarm has passed',
+  BedBy(:final bedtime) => tr.nextReminderAt(
+    '${_dayUnlessToday(bedtime, now)}${clock(bedtime.toLocal())}',
+  ),
+  SleepNow() => tr.bedtimePassed,
 };
 
 /// "Sun " if [time] is on another day than [now], else nothing.
@@ -108,31 +111,35 @@ String alarmDetails(Alarm alarm) => [
 String repeatText(Set<int> repeatDays) {
   final days = repeatDays.toList()..sort();
   return switch (days) {
-    [] => 'Once',
-    [1, 2, 3, 4, 5, 6, 7] => 'Every day',
-    [1, 2, 3, 4, 5] => 'Weekdays',
-    [6, 7] => 'Weekends',
+    [] => tr.repeatOnce,
+    [1, 2, 3, 4, 5, 6, 7] => tr.repeatEveryDay,
+    [1, 2, 3, 4, 5] => tr.repeatWeekdays,
+    [6, 7] => tr.repeatWeekends,
     _ => days.map(dayName).join(', '),
   };
 }
 
 /// The short name of a [DateTime.weekday]: "Mon" for 1 to "Sun" for 7.
-String dayName(int weekday) => _dayNames[weekday - DateTime.monday];
+String dayName(int weekday) => [
+  tr.dayMon,
+  tr.dayTue,
+  tr.dayWed,
+  tr.dayThu,
+  tr.dayFri,
+  tr.daySat,
+  tr.daySun,
+][weekday - DateTime.monday];
 
 /// The full name of a [DateTime.weekday]: "Monday" for 1 to "Sunday" for 7.
-String fullDayName(int weekday) => _fullDayNames[weekday - DateTime.monday];
-
-const _dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-const _fullDayNames = [
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-  'Sunday',
-];
+String fullDayName(int weekday) => [
+  tr.dayMonday,
+  tr.dayTuesday,
+  tr.dayWednesday,
+  tr.dayThursday,
+  tr.dayFriday,
+  tr.daySaturday,
+  tr.daySunday,
+][weekday - DateTime.monday];
 
 /// A genre as the user reads it: its name in the library with a capital
 /// first letter, such as "Pop" for `pop` and "Hip-hop" for `hip-hop`.
@@ -140,10 +147,10 @@ String genreName(String genre) =>
     genre.isEmpty ? genre : genre[0].toUpperCase() + genre.substring(1);
 
 /// How many sounds these are: "9 sounds", or "1 sound".
-String soundCount(int count) => count == 1 ? '1 sound' : '$count sounds';
+String soundCount(int count) => tr.soundCount(count);
 
 /// The line under the record: "Tonight's mix · 9 sounds".
-String mixCaption(int sounds) => "Tonight's mix · ${soundCount(sounds)}";
+String mixCaption(int sounds) => tr.mixCaption(soundCount(sounds));
 
 /// When a clip starts in a ring, as a tracklist says it: "1:15".
 String clipStartText(Duration startsAt) {
@@ -159,28 +166,30 @@ String clipStartText(Duration startsAt) {
 /// your 7:00 AM alarm".
 String wokeAfterText(Duration afterAlarm, {required String alarmTime}) {
   final minutes = afterAlarm.inMinutes;
-  return '${minutes < 1 ? 'Under 1 min' : _span(minutes)} after your '
-      '$alarmTime alarm';
+  return minutes < 1
+      ? tr.wokeAfterUnderMinute(alarmTime)
+      : tr.wokeAfter(_span(minutes), alarmTime);
 }
 
 /// The snoozes and the sounds of a morning: "1 snooze · 4 sounds", or only
 /// "No snoozes" when no sound played.
-String morningFacts({required int snoozes, required int sounds}) => [
-  switch (snoozes) {
-    0 => 'No snoozes',
-    1 => '1 snooze',
-    _ => '$snoozes snoozes',
-  },
-  if (sounds > 0) soundCount(sounds),
-].join(' · ');
+String morningFacts({required int snoozes, required int sounds}) =>
+    [tr.snoozeCount(snoozes), if (sounds > 0) soundCount(sounds)].join(' · ');
 
 /// What a sound is: "Lo-fi · Gentle", "Your song" or "Voice message".
 String soundDetails(Sound sound) => switch (sound.source) {
   SoundSource.builtin =>
-    '${genreName(sound.genre)} · ${_strengths[sound.intensity - 1]}',
-  SoundSource.user => 'Your song',
-  SoundSource.voice => 'Voice message',
+    '${genreName(sound.genre)} · ${strengthName(sound.intensity)}',
+  SoundSource.user => tr.yourSong,
+  SoundSource.voice => tr.voiceMessage,
 };
 
-/// The word for each `Sound.intensity`, from gentle to strong.
-const _strengths = ['Gentle', 'Medium', 'Strong'];
+/// The word for a `Sound.intensity`, from 1, gentle, to 3, strong.
+String strengthName(int intensity) =>
+    [tr.strengthGentle, tr.strengthMedium, tr.strengthStrong][intensity - 1];
+
+/// The title of [sound] as the user reads it. The tone that stands in when
+/// no sound can play has a name in each language; every other sound has the
+/// title its library or its owner gave it.
+String soundTitle(Sound sound) =>
+    sound.id == fallbackTone.id ? tr.alarmTone : sound.title;

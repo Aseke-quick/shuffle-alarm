@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:shuffle_alarm/data/providers.dart';
 import 'package:shuffle_alarm/design/components/status_view.dart';
 import 'package:shuffle_alarm/design/components/wide_button.dart';
+import 'package:shuffle_alarm/l10n/texts.dart';
 
 /// What the app shows instead of the alarms when its database cannot open,
 /// such as in a browser that blocks the site's storage (docs/DECISIONS.md,
@@ -19,13 +20,12 @@ class DatabaseErrorView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return StatusView(
       error: true,
-      title: 'Alarms are not available',
-      message:
-          'The app could not open its storage, so it cannot show or save '
-          'alarms, and no alarm can ring. '
-          '${kIsWeb ? _webHint : _deviceHint}',
+      title: tr.alarmsNotAvailable,
+      message: tr.storageProblem(
+        kIsWeb ? tr.storageHintWeb : tr.storageHintDevice,
+      ),
       action: WideButton.secondary(
-        label: 'Try again',
+        label: tr.tryAgain,
         // A new database, which tries to open again.
         onPressed: () => ref.invalidate(databaseProvider),
       ),
@@ -33,10 +33,3 @@ class DatabaseErrorView extends ConsumerWidget {
     );
   }
 }
-
-const _webHint =
-    'Allow this site to store data, leave private browsing, or try the '
-    'latest Chrome, Edge or Firefox.';
-
-const _deviceHint =
-    'Restart the app. If that does not help, free some space on the device.';

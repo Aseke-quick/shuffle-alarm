@@ -18,6 +18,7 @@ import 'package:shuffle_alarm/features/ringing/ringing_screen.dart';
 import 'package:shuffle_alarm/features/settings/bedtime_reminder_screen.dart';
 import 'package:shuffle_alarm/features/settings/settings_button.dart';
 import 'package:shuffle_alarm/features/settings/settings_screen.dart';
+import 'package:shuffle_alarm/l10n/texts.dart';
 
 /// All pages of the app: three bottom tabs, and Settings above them.
 ///
@@ -172,21 +173,21 @@ class AppShell extends ConsumerWidget {
   static const _analyticsTab = 2;
 
   // Same order as the branches in [routerProvider].
-  static const _destinations = [
+  static List<NavDestination> get _destinations => [
     NavDestination(
       icon: Icons.alarm_outlined,
       selectedIcon: Icons.alarm,
-      label: 'Alarms',
+      label: tr.tabAlarms,
     ),
     NavDestination(
       icon: Icons.library_music_outlined,
       selectedIcon: Icons.library_music,
-      label: 'Library',
+      label: tr.tabLibrary,
     ),
     NavDestination(
       icon: Icons.bar_chart_outlined,
       selectedIcon: Icons.bar_chart,
-      label: 'Analytics',
+      label: tr.tabAnalytics,
     ),
   ];
 

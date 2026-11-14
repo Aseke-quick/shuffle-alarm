@@ -3,18 +3,21 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
-
 import 'package:shuffle_alarm/core/bedtime.dart';
 import 'package:shuffle_alarm/core/next_ring.dart';
 import 'package:shuffle_alarm/data/providers.dart';
+import 'package:shuffle_alarm/design/components/glass_card.dart';
 import 'package:shuffle_alarm/design/components/layout.dart';
 import 'package:shuffle_alarm/design/components/section_label.dart';
 import 'package:shuffle_alarm/design/components/setting_switch_row.dart';
+import 'package:shuffle_alarm/design/tokens.dart';
 import 'package:shuffle_alarm/features/alarms/alarm_texts.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
 import 'package:shuffle_alarm/features/ringing/morning_card.dart';
 import 'package:shuffle_alarm/features/settings/bedtime_reminder.dart';
 import 'package:shuffle_alarm/features/settings/bedtime_reminder_screen.dart';
+import 'package:shuffle_alarm/features/settings/language.dart';
+import 'package:shuffle_alarm/l10n/texts.dart';
 import 'package:shuffle_alarm/platform/system_notifications.dart';
 
 /// The Settings page. It opens above the tabs, so its app bar has a back
@@ -27,13 +30,15 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PageScaffold(
-      appBar: const ContentAppBar(title: Text('Settings')),
+      appBar: ContentAppBar(title: Text(tr.settings)),
       body: ContentWidth(
         child: ListView(
-          children: const [
-            SectionLabel('Sleep'),
-            _BedtimeReminderRow(),
-            _MorningCardRow(),
+          children: [
+            SectionLabel(tr.sleep),
+            const _BedtimeReminderRow(),
+            const _MorningCardRow(),
+            SectionLabel(tr.language),
+            const _LanguageRow(),
           ],
         ),
       ),
@@ -49,11 +54,9 @@ class _MorningCardRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final on = ref.watch(morningCardOnProvider);
     return SettingSwitchRow(
-      title: 'Morning card',
-      description:
-          'After Stop: when you woke, your snoozes, the sounds that played, '
-          'and which one woke you.',
-      status: on ? 'On' : 'Off',
+      title: tr.morningCard,
+      description: tr.morningCardDescription,
+      status: on ? tr.on : tr.off,
       value: on,
       onChanged: (on) =>
           unawaited(ref.read(morningCardOnProvider.notifier).turn(on: on)),
@@ -72,16 +75,13 @@ class _BedtimeReminderRow extends ConsumerWidget {
     final controller = ref.read(bedtimeReminderProvider.notifier);
     final access = reminder.access;
     return SettingSwitchRow(
-      title: 'Bedtime reminder',
-      description:
-          'One notification at the bedtime of your next alarm, while this tab '
-          'is open.',
+      title: tr.bedtimeReminder,
+      description: tr.bedtimeReminderDescription,
       status: switch (access) {
-        NotificationAccess.unavailable => 'Not available on this device.',
-        NotificationAccess.blocked =>
-          'Your browser blocks notifications for this site.',
+        NotificationAccess.unavailable => tr.notAvailableOnDevice,
+        NotificationAccess.blocked => tr.browserBlocksNotifications,
         _ when reminder.on => _nextReminder(context, ref),
-        _ => 'Off',
+        _ => tr.off,
       },
       value: reminder.on,
       onChanged: access == NotificationAccess.unavailable
@@ -101,12 +101,94 @@ class _BedtimeReminderRow extends ConsumerWidget {
   /// When the reminder that is on comes next.
   String _nextReminder(BuildContext context, WidgetRef ref) {
     final now = ref.watch(clockProvider);
-    final next = soonestRing(ref.watch(alarmsProvider).value ?? const [], now);
-    if (next == null) return 'No alarm is on';
+    final next = soonestRing(ref.watch(alarmsProvider).value ?? [], now);
+    if (next == null) return tr.noAlarmIsOn;
     return nextReminderText(
       sleepAdvice(ring: next.ring, now: now),
       now: now,
       clock: (time) => TimeOfDay.fromDateTime(time).format(context),
     );
+  }
+}
+
+/// The language of the app: the chosen one, and a tap opens the list.
+class _LanguageRow extends ConsumerWidget {
+  const _LanguageRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final c = WakemixColors.of(context);
+    final theme = Theme.of(context);
+    final chosen = ref.watch(languageProvider)?.languageCode;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        Layout.gutter,
+        0,
+        Layout.gutter,
+        Space.s12,
+      ),
+      child: GlassCard(
+        onTap: () => unawaited(_choose(context, ref, chosen)),
+        child: Row(
+          children: [
+            ExcludeSemantics(child: Icon(Icons.language, color: c.textMuted)),
+            const SizedBox(width: Space.s16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    languageNames[chosen] ?? tr.languageOfDevice,
+                    style: theme.textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: Space.s4),
+                  Text(
+                    tr.languageDescription,
+                    style: theme.textTheme.bodySmall!.copyWith(
+                      color: c.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ExcludeSemantics(
+              child: Icon(Icons.chevron_right, color: c.textMuted),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Opens the list of languages, and takes the one that is tapped.
+  Future<void> _choose(
+    BuildContext context,
+    WidgetRef ref,
+    String? chosen,
+  ) async {
+    final setting = ref.read(languageProvider.notifier);
+    // An empty code stands for the device's language: null means no choice.
+    final code = await showDialog<String>(
+      context: context,
+      animationStyle: Motion.styleOf(context),
+      builder: (context) => SimpleDialog(
+        title: Text(tr.language),
+        children: [
+          for (final (code, name) in [
+            ('', tr.languageOfDevice),
+            for (final language in languageNames.entries)
+              (language.key, language.value),
+          ])
+            ListTile(
+              title: Text(name),
+              selected: code == (chosen ?? ''),
+              trailing: code == (chosen ?? '') ? const Icon(Icons.check) : null,
+              onTap: () => Navigator.of(context).pop(code),
+            ),
+        ],
+      ),
+    );
+    if (code == null) return;
+    await setting.choose(code.isEmpty ? null : code);
   }
 }

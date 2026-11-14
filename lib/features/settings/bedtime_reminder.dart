@@ -7,6 +7,7 @@ import 'package:shuffle_alarm/core/bedtime.dart';
 import 'package:shuffle_alarm/data/providers.dart';
 import 'package:shuffle_alarm/features/alarms/alarm_texts.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
+import 'package:shuffle_alarm/l10n/texts.dart';
 import 'package:shuffle_alarm/platform/providers.dart';
 import 'package:shuffle_alarm/platform/system_notifications.dart';
 
@@ -149,11 +150,13 @@ class BedtimeReminderController extends Notifier<BedtimeReminder> {
   }
 }
 
-/// The time of day as the screens write it. Here without a context: the app
-/// is in English only, so these are the localizations of every screen.
-String _clock(DateTime time) =>
-    const DefaultMaterialLocalizations().formatTimeOfDay(
-      TimeOfDay.fromDateTime(time),
-      alwaysUse24HourFormat:
-          WidgetsBinding.instance.platformDispatcher.alwaysUse24HourFormat,
-    );
+/// The time of day as the screens write it. Here without a context, as a
+/// notification has none: with AM and PM in English unless the device shows
+/// 24 hours, and in 24 hours in Russian and Kazakh.
+String _clock(DateTime time) => tr.localeName == 'en'
+    ? const DefaultMaterialLocalizations().formatTimeOfDay(
+        TimeOfDay.fromDateTime(time),
+        alwaysUse24HourFormat:
+            WidgetsBinding.instance.platformDispatcher.alwaysUse24HourFormat,
+      )
+    : '${time.hour}:${time.minute.toString().padLeft(2, '0')}';

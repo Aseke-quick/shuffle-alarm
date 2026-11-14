@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-
 import 'package:shuffle_alarm/core/models/sound.dart';
 import 'package:shuffle_alarm/core/ring_sequence.dart';
 import 'package:shuffle_alarm/design/components/layout.dart';
@@ -18,6 +17,7 @@ import 'package:shuffle_alarm/features/alarms/alarm_texts.dart';
 import 'package:shuffle_alarm/features/alarms/clock.dart';
 import 'package:shuffle_alarm/features/alarms/mix_preview.dart';
 import 'package:shuffle_alarm/features/alarms/tonight_mix.dart';
+import 'package:shuffle_alarm/l10n/texts.dart';
 import 'package:shuffle_alarm/platform/providers.dart';
 
 /// Tonight's mix (task 2.5a): the sounds of the next ring in play order, each
@@ -58,7 +58,7 @@ class _TonightMixScreenState extends ConsumerState<TonightMixScreen> {
       await change();
     } on Object catch (error) {
       messenger.showSnackBar(
-        SnackBar(content: Text('Could not save the mix: $error')),
+        SnackBar(content: Text(tr.couldNotSaveMix('$error'))),
       );
     }
   }
@@ -67,11 +67,7 @@ class _TonightMixScreenState extends ConsumerState<TonightMixScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final changed = await ref.read(tonightMixProvider.notifier).reshuffle();
     if (changed) return;
-    messenger.showSnackBar(
-      const SnackBar(
-        content: Text('These sounds have one order only: gentle to strong.'),
-      ),
-    );
+    messenger.showSnackBar(SnackBar(content: Text(tr.oneOrderOnly)));
   });
 
   Future<void> _togglePreview(
@@ -95,7 +91,7 @@ class _TonightMixScreenState extends ConsumerState<TonightMixScreen> {
   Widget build(BuildContext context) {
     final mix = ref.watch(tonightMixProvider);
     return PageScaffold(
-      appBar: const ContentAppBar(title: Text("Tonight's mix"), wide: true),
+      appBar: ContentAppBar(title: Text(tr.tonightsMix), wide: true),
       body: switch (mix) {
         AsyncValue(value: final mix?) => _Mix(
           mix: mix,
@@ -117,10 +113,7 @@ class _TonightMixScreenState extends ConsumerState<TonightMixScreen> {
             value: Motion.reduceMotion(context) ? 0.25 : null,
           ),
         ),
-        _ => const StatusView(
-          title: 'No alarm set',
-          message: 'Turn an alarm on to see its mix.',
-        ),
+        _ => StatusView(title: tr.noAlarmSet, message: tr.turnAlarmOnForMix),
       },
     );
   }
@@ -156,7 +149,7 @@ class _Mix extends ConsumerWidget {
       final playing = preview?.soundId == sound.id;
       return DeckCard(
         id: sound.id,
-        title: sound.title,
+        title: soundTitle(sound),
         details: '${clipStartText(clip.startsAt)} · ${soundDetails(sound)}',
         intensity: sound.intensity,
         preview: !playing
@@ -164,10 +157,12 @@ class _Mix extends ConsumerWidget {
             : preview!.loading
             ? MixRowPreview.loading
             : MixRowPreview.playing,
-        previewLabel: playing ? 'Stop preview' : 'Preview ${sound.title}',
+        previewLabel: playing
+            ? tr.stopPreview
+            : tr.previewSound(soundTitle(sound)),
         onPreview: hasPreview ? () => onPreview(sound, clip.volume) : null,
-        actionLabel: 'Not tonight',
-        actionSemanticsLabel: 'Not tonight: ${sound.title}',
+        actionLabel: tr.notTonight,
+        actionSemanticsLabel: tr.notTonightSound(soundTitle(sound)),
         onAction: mix.canSkip ? () => onSkip(sound) : null,
       );
     }
@@ -187,33 +182,31 @@ class _Mix extends ConsumerWidget {
               children: [
                 _Header(mix: mix),
                 SectionLabel(
-                  'In play order',
+                  tr.inPlayOrder,
                   trailing: soundCount(round.length),
                 ),
                 // The deck: a new order moves each card to its new place.
-                SoundDeck(cards: [for (final clip in round) card(clip)]),
+                SoundDeck(
+                  placeLabel: tr.soundNumber,
+                  cards: [for (final clip in round) card(clip)],
+                ),
                 Padding(
                   padding: gutter,
                   child: Text(
                     mix.clips.length > round.length
-                        ? 'Then again in a new order, for '
-                              '${defaultRingCap.inMinutes} min at most.'
-                        : 'It rings for ${defaultRingCap.inMinutes} min at '
-                              'most.',
+                        ? tr.thenAgain(defaultRingCap.inMinutes)
+                        : tr.ringsForAtMost(defaultRingCap.inMinutes),
                     style: small,
                   ),
                 ),
                 if (!mix.canSkip)
                   Padding(
                     padding: gutter,
-                    child: Text(
-                      'One sound stays, so the alarm has something to play.',
-                      style: small,
-                    ),
+                    child: Text(tr.oneSoundStays, style: small),
                   ),
                 if (mix.notTonight.isNotEmpty) ...[
                   SectionLabel(
-                    'Not tonight',
+                    tr.notTonight,
                     trailing: '${mix.notTonight.length}',
                   ),
                   ContentWidth(
@@ -222,10 +215,12 @@ class _Mix extends ConsumerWidget {
                         for (final sound in mix.notTonight)
                           MixTrackRow(
                             key: ValueKey('out ${sound.id}'),
-                            title: sound.title,
+                            title: soundTitle(sound),
                             details: soundDetails(sound),
-                            actionLabel: 'Bring back',
-                            actionSemanticsLabel: 'Bring back: ${sound.title}',
+                            actionLabel: tr.bringBack,
+                            actionSemanticsLabel: tr.bringBackSound(
+                              soundTitle(sound),
+                            ),
                             onAction: () => onBringBack(sound),
                           ),
                       ],
@@ -239,7 +234,7 @@ class _Mix extends ConsumerWidget {
         ),
         BottomAction(
           child: WideButton(
-            label: 'Reshuffle',
+            label: tr.reshuffle,
             icon: Icons.shuffle,
             onPressed: round.length > 1 ? onReshuffle : null,
           ),
