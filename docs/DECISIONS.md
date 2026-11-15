@@ -629,3 +629,10 @@ Add an entry when a task makes a choice that the code does not explain by itself
   - The Russian and Kazakh texts were written in this session, not by a translator. The user reads both languages: they are the one to read `app_ru.arb` and `app_kk.arb` before the app is sold.
   - A page keeps what the user typed, but a dialog that is open closes when the language changes.
   - The ringing flow in Chrome was not run again in Russian or Kazakh: the code of a ring did not change, and the widget tests ring, snooze and stop in both languages.
+
+## 2026-11-15 · The code repo is public, and the site moved into it
+- **Decision (the owner's, said twice on 2026-11-15):** `Aseke-quick/shuffle-alarm` is public. This reverses task 0.4 ("code private, only the built site public"). The owner was told before: anyone can read and copy the code and its history, and it cannot be taken back.
+- **The site:** CI pushes the built files to the `gh-pages` branch of this repo, and GitHub Pages serves it at https://aseke-quick.github.io/shuffle-alarm/. The old address, `/shuffle-alarm-web/`, ends when the owner deletes that repo; the secret `SITE_DEPLOY_TOKEN` is no longer used.
+- **Same host, so the same browser storage:** alarms set at the old address are there at the new one.
+- **No license file:** the README says all rights are reserved. Add no license without asking the owner.
+- **Checked before:** no key, token, password or email address in any commit; commits carry GitHub's no-reply address. The app IDs hold the owner's name (`com.asanali`).
