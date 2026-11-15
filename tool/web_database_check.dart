@@ -11,7 +11,7 @@
 ///
 /// ```sh
 /// flutter build web --release -t tool/web_database_check.dart \
-///   --base-href /shuffle-alarm-web/ -o <folder>/shuffle-alarm-web
+///   --base-href /shuffle-alarm/ -o <folder>/shuffle-alarm
 /// ```
 ///
 /// It saves an alarm, a sound, a weight, a ring session, a ring plan and an

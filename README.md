@@ -6,7 +6,9 @@
 
 Until 2026-10-29 the app was called Shuffle Alarm. The package name `shuffle_alarm`, the app IDs, the database name, the repo names and the site address keep the old name ([docs/DECISIONS.md](docs/DECISIONS.md), task 2.2a).
 
-This repository is private. **Web test version:** https://aseke-quick.github.io/shuffle-alarm-web/ (work in progress). Every push to `main` publishes only the built files to the public repo [Aseke-quick/shuffle-alarm-web](https://github.com/Aseke-quick/shuffle-alarm-web).
+**Web test version:** https://aseke-quick.github.io/shuffle-alarm/ (work in progress). Every push to `main` publishes the built files to the `gh-pages` branch.
+
+Copyright (c) 2026 Aseke-quick. All rights reserved. The code is public to read; it has no license that lets others use or sell it.
 
 - Roadmap and task list: [PLAN.md](PLAN.md)
 - Technical decisions and platform limits: [docs/DECISIONS.md](docs/DECISIONS.md)

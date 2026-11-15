@@ -1,6 +1,7 @@
 # Every push: format check, `flutter analyze` and `flutter test`.
-# Every push to main: also build the web app and publish only the built files
-# to the public repo Aseke-quick/shuffle-alarm-web, which GitHub Pages serves.
+# Every push to main: also build the web app and publish the built files to
+# the `gh-pages` branch of this repo, which GitHub Pages serves (the repo is
+# public since 2026-11-15, docs/DECISIONS.md).
 # Why it works like this, and why the versions are pinned: docs/DECISIONS.md
 # (task 0.4).
 name: CI
@@ -71,6 +72,9 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    # To push the built files to the gh-pages branch.
+    permissions:
+      contents: write
     steps:
       - name: Check out the code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -87,41 +91,26 @@ jobs:
       - name: Get packages
         run: flutter pub get --enforce-lockfile
 
-      # The base href is the site repo's name: its site lives at
-      # https://aseke-quick.github.io/shuffle-alarm-web/. The site serves
+      # The base href is the repo's name: its site lives at
+      # https://aseke-quick.github.io/shuffle-alarm/. The site serves
       # Flutter's web engine (CanvasKit) itself, not from Google's CDN.
       - name: Build web app
-        run: flutter build web --release --base-href /shuffle-alarm-web/ --no-web-resources-cdn
+        run: flutter build web --release --base-href /shuffle-alarm/ --no-web-resources-cdn
 
-      # The site repo gets the built files as one fresh commit each time, so
-      # it never holds source code or old builds. SITE_DEPLOY_TOKEN is a
-      # fine-grained token with Contents read/write on the site repo only.
-      - name: Publish to the public site repo
+      # The `gh-pages` branch gets the built files as one fresh commit each
+      # time, so it never holds old builds.
+      - name: Publish to the gh-pages branch
         working-directory: build/web
         env:
-          SITE_REPO: Aseke-quick/shuffle-alarm-web
-          SITE_DEPLOY_TOKEN: ${{ secrets.SITE_DEPLOY_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [ -z "$SITE_DEPLOY_TOKEN" ]; then
-            echo "::error::Secret SITE_DEPLOY_TOKEN is missing (docs/DECISIONS.md, 0.4)."
-            exit 1
-          fi
           rm -f .last_build_id
           # GitHub Pages serves the files as they are, without Jekyll.
           touch .nojekyll
-          cat > README.md <<'EOF'
-          # Wakemix web test version
-
-          Built files of the Wakemix web test version, published here automatically: https://aseke-quick.github.io/shuffle-alarm-web/
-
-          The source code is private.
-
-          Copyright (c) 2026 Aseke-quick. All rights reserved.
-          EOF
-          git init --quiet --initial-branch=main
+          git init --quiet --initial-branch=gh-pages
           git add --all
           git -c user.name='github-actions[bot]' \
             -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
             commit --quiet --message "Publish web build ${GITHUB_SHA::7}"
           git push --force --quiet \
-            "https://x-access-token:${SITE_DEPLOY_TOKEN}@github.com/${SITE_REPO}.git" main
+            "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
