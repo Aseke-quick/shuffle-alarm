@@ -60,6 +60,18 @@ The roadmap and task checklist live in `PLAN.md`. Run `/next-task` to work on th
 - If a requirement is unclear or a platform limit blocks it, stop and ask. Record decisions and limits in `docs/DECISIONS.md`.
 - Big, open work (such as the redesign) runs through the 10x-Team process (`/10x-Team:10x-team`): its state is in `.10x/` (status, handoff, specs, ADRs, reviews; see `.10x/README.md`). `docs/DECISIONS.md` stays the main decision log and links to each ADR.
 
+## Work fast and spend few tokens (the user's rule, 2026-11-15)
+The project took a month to reach task 2.6, and the user's usage limit ran out several times. Speed and a small token bill come before polish. For every session:
+- **Start small.** Read `PLAN.md` only around the task (`grep -n "2\.6" PLAN.md`), and the first section of `.10x/handoff.md`. Never read `docs/DECISIONS.md` whole (140 KB): `grep` for the topic. Read code with `grep` and line ranges, not whole files.
+- **Plan in 5 lines, then build.** No brainstorm rounds, no spec, ADR or review files, and no 10x-Team process, unless the user asks for them. Decide what the user delegated ("не трогай меня", "сделай как надо") and say what was chosen.
+- **Ask at most one question per task,** and only for what cannot be undone: publishing, deleting, spending money, a rule of the product.
+- **Test what can break, once.** Tests first for `lib/core/`; for a screen, one widget test per behavior. No runs with deliberate bugs. While working, run only the test files of the change; `dart format .`, `flutter analyze` and the whole `flutter test` once, at the end.
+- **Chrome only for ringing.** A real run in headless Chrome only when the change touches scheduling, ringing or the database, and once. Screenshots only when the look changes: at most 3, on one sheet.
+- **Design:** show one proposal, or two side by side, once. No rounds of mockups.
+- **Write short.** A Progress log line in `PLAN.md` is one sentence. An entry in `docs/DECISIONS.md` is for a real decision and at most 8 lines. Commit messages: a subject and up to 3 lines. The answer to the user: at most 10 lines, in simple Russian.
+- **No side sessions and no subagents** unless the user asks.
+- **Stop when the task's "Done when" is met.** Note other ideas in one line each; do not build them.
+
 ## Gotchas
 - Web: browsers block audio until the user interacts with the page, so alarms need an "Arm alarms" tap. Background tabs are throttled (silent audio does not prevent it), so check the clock on every tick instead of relying on one long timer. A hidden tab ran a ring 21.7 s late in Chrome (docs/DECISIONS.md, 2.4), and Chrome lets sound play after any earlier tap on the site, so the blocked path is tested with widget tests only.
 - Web notifications: a page can show one only on a computer's browser: `new Notification` throws in Chrome and Samsung Internet on Android, and Safari on an iPhone has no `Notification` (`docs/DECISIONS.md`, 2.4a). In headless Chrome, `Browser.setPermission` gives the answer to the question, and holds only while that DevTools session lasts.
